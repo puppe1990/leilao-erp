@@ -1,19 +1,17 @@
 <script>
   import { inertia } from '@inertiajs/svelte'
-  export let title = 'Início'
+  export let title = 'AuctionHQ'
   export let site = {}
 </script>
 
-<div class="flex min-h-screen flex-col items-center justify-center px-6 py-14 text-center">
-  <h1 class="mt-10 font-serif text-4xl font-semibold tracking-tight text-stone-800 md:text-5xl">
-    leilao-erp
-  </h1>
-  <p class="mt-3 max-w-md text-lg text-stone-600">
-    Mini ERP para revenda de leilões — lotes, vendas, caixa e financeiro.
-  </p>
-  <nav class="mt-8 space-x-4 text-sm">
-    <a href="/login" use:inertia class="px-4 py-2 bg-stone-800 text-white rounded">Entrar</a>
-    <a href="/contact" use:inertia class="underline text-stone-600">Contato</a>
-  </nav>
-  <p class="mt-6 text-xs text-stone-500">Inertia: {title}</p>
+<div class="min-h-screen bg-background flex flex-col items-center justify-center px-container-margin text-center">
+  <div class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-lg mb-4">
+    AQ
+  </div>
+  <h1 class="font-headline-lg text-headline-lg text-primary mb-2">AuctionHQ</h1>
+  <p class="text-on-surface-variant mb-8 max-w-sm">ERP de gestão de leilões — financeiro, lotes e vendas.</p>
+  <div class="flex gap-3">
+    <a href="/login" use:inertia class="ahq-btn-primary px-8">Entrar</a>
+    <a href="/dashboard" use:inertia class="ahq-btn-ghost px-8">Dashboard</a>
+  </div>
 </div>

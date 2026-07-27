@@ -1,6 +1,7 @@
 <script>
   import { inertia } from '@inertiajs/svelte'
-  import Nav from '@/components/Nav.svelte'
+  import AppShell from '@/components/AppShell.svelte'
+
   export let balances = []
   export let totalCashFormatted = 'R$ 0,00'
   export let openPayablesFormatted = 'R$ 0,00'
@@ -14,90 +15,122 @@
   export let site = {}
 </script>
 
-<div class="max-w-5xl mx-auto p-6">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-semibold text-stone-800">Dashboard</h1>
-  </div>
+<AppShell active="dashboard">
+  <section class="mb-section-padding">
+    <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Dashboard</h1>
+    <p class="text-on-surface-variant text-body-md mt-1">Visão financeira do seu negócio de leilão.</p>
+  </section>
 
   {#if ctaLot}
-    <div class="mb-6 border border-dashed border-amber-400 bg-amber-50 rounded p-6 text-center">
-      <p class="text-stone-700 mb-3">Nenhum lote cadastrado ainda.</p>
-      <a
-        href="/lots/new"
-        use:inertia
-        class="inline-block px-4 py-2 bg-stone-800 text-white text-sm rounded"
-      >
-        Registrar primeira compra de leilão
-      </a>
+    <div class="ahq-card p-6 mb-section-padding text-center border-dashed">
+      <span class="material-symbols-outlined text-4xl text-secondary mb-2">gavel</span>
+      <p class="text-on-surface mb-4">Nenhum lote cadastrado ainda.</p>
+      <a href="/lots/new" use:inertia class="ahq-btn-primary">Registrar primeira compra de leilão</a>
     </div>
   {/if}
 
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-    <div class="border rounded p-4 bg-stone-50">
-      <p class="text-sm text-stone-600">Saldo total</p>
-      <p class="text-2xl font-semibold text-stone-800 mt-1">{totalCashFormatted}</p>
+  <!-- Metric cards -->
+  <section class="grid grid-cols-2 md:grid-cols-3 gap-stack-gap mb-section-padding">
+    <div class="ahq-card p-4 flex flex-col gap-1">
+      <span class="ahq-label">Lotes</span>
+      <span class="ahq-value text-primary">{lotCount}</span>
+      <div class="mt-2 flex items-center gap-1 text-[10px] text-on-surface-variant">
+        <span class="material-symbols-outlined text-[14px]">inventory_2</span>
+        <span>cadastrados</span>
+      </div>
+    </div>
+
+    <div class="ahq-card p-4 flex flex-col gap-1">
+      <span class="ahq-label">Saldo total</span>
+      <span class="ahq-value">{totalCashFormatted}</span>
       {#if balances.length > 0}
-        <ul class="mt-3 space-y-1 text-xs text-stone-500">
+        <div class="mt-2 space-y-0.5">
           {#each balances as b}
-            <li class="flex justify-between gap-2">
+            <div class="flex justify-between text-[10px] text-on-surface-variant">
               <span>{b.name}</span>
-              <span class="font-medium text-stone-700">{b.formatted}</span>
-            </li>
+              <span class="font-mono">{b.formatted}</span>
+            </div>
           {/each}
-        </ul>
+        </div>
       {/if}
     </div>
 
-    <div class="border rounded p-4 bg-stone-50">
-      <p class="text-sm text-stone-600">A receber</p>
-      <p class="text-2xl font-semibold text-green-800 mt-1">{openReceivablesFormatted}</p>
-      <a href="/receivables" use:inertia class="text-xs underline text-stone-500 mt-2 inline-block"
-        >Ver recebíveis</a
-      >
+    <div class="col-span-2 md:col-span-1 ahq-card p-4 flex flex-col gap-1">
+      <span class="ahq-label">Lucro do mês</span>
+      <span class="ahq-value">{monthProfitFormatted}</span>
+      <div class="mt-2 flex items-center gap-1 text-[10px] text-secondary">
+        <span class="material-symbols-outlined text-[14px]">payments</span>
+        <span>líquido − custo unitário</span>
+      </div>
     </div>
-
-    <div class="border rounded p-4 bg-stone-50">
-      <p class="text-sm text-stone-600">A pagar</p>
-      <p class="text-2xl font-semibold text-red-800 mt-1">{openPayablesFormatted}</p>
-      <a href="/payables" use:inertia class="text-xs underline text-stone-500 mt-2 inline-block"
-        >Ver pagáveis</a
-      >
-    </div>
-
-    <div class="border rounded p-4 bg-stone-50">
-      <p class="text-sm text-stone-600">Lucro do mês</p>
-      <p class="text-2xl font-semibold text-stone-800 mt-1">{monthProfitFormatted}</p>
-      <p class="text-xs text-stone-500 mt-2">Vendas líquidas − custo unitário</p>
-    </div>
-  </div>
-
-  <section class="mb-8 border rounded p-4">
-    <h2 class="text-sm font-medium text-stone-600 mb-3">Alertas vencidos</h2>
-    {#if overduePayables === 0 && overdueReceivables === 0}
-      <p class="text-sm text-stone-500">Nenhum título vencido.</p>
-    {:else}
-      <ul class="text-sm space-y-2">
-        {#if overduePayables > 0}
-          <li class="text-red-700">
-            {overduePayables}
-            {overduePayables === 1 ? 'conta a pagar vencida' : 'contas a pagar vencidas'}
-            — <a href="/payables" use:inertia class="underline">A pagar</a>
-          </li>
-        {/if}
-        {#if overdueReceivables > 0}
-          <li class="text-amber-800">
-            {overdueReceivables}
-            {overdueReceivables === 1 ? 'recebível vencido' : 'recebíveis vencidos'}
-            — <a href="/receivables" use:inertia class="underline">A receber</a>
-          </li>
-        {/if}
-      </ul>
-    {/if}
   </section>
 
-  <p class="text-xs text-stone-400 mb-4">
-    Lotes: {lotCount}{#if env} · {env}{/if}
-  </p>
+  <section class="grid grid-cols-2 gap-stack-gap mb-section-padding">
+    <a href="/receivables" use:inertia class="ahq-card p-4 block hover:border-secondary transition-colors">
+      <span class="ahq-label">A receber</span>
+      <p class="ahq-value text-on-tertiary-container mt-1">{openReceivablesFormatted}</p>
+      <span class="text-[10px] text-secondary mt-2 inline-block">Ver recebíveis →</span>
+    </a>
+    <a href="/payables" use:inertia class="ahq-card p-4 block hover:border-secondary transition-colors">
+      <span class="ahq-label">A pagar</span>
+      <p class="ahq-value text-error mt-1">{openPayablesFormatted}</p>
+      <span class="text-[10px] text-secondary mt-2 inline-block">Ver pagáveis →</span>
+    </a>
+  </section>
 
-  <Nav active="dashboard" showLogout={true} />
-</div>
+  <!-- Alerts as activity-style list -->
+  <section class="mb-section-padding">
+    <h2 class="font-headline-md text-headline-md text-primary mb-stack-gap">Alertas</h2>
+    <div class="ahq-card divide-y divide-outline-variant">
+      {#if overduePayables === 0 && overdueReceivables === 0}
+        <div class="p-4 flex gap-4 items-center">
+          <div class="w-10 h-10 rounded-full bg-tertiary-fixed/20 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-on-tertiary-container">check_circle</span>
+          </div>
+          <div>
+            <p class="font-semibold text-body-md">Tudo em dia</p>
+            <p class="text-on-surface-variant text-body-md">Nenhum título vencido.</p>
+          </div>
+        </div>
+      {:else}
+        {#if overduePayables > 0}
+          <a href="/payables" use:inertia class="p-4 flex gap-4 hover:bg-surface-container-low">
+            <div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-error">warning</span>
+            </div>
+            <div class="flex-1">
+              <p class="font-semibold text-body-md">Contas a pagar vencidas</p>
+              <p class="text-on-surface-variant text-body-md">
+                {overduePayables}
+                {overduePayables === 1 ? 'título precisa de atenção' : 'títulos precisam de atenção'}
+              </p>
+            </div>
+          </a>
+        {/if}
+        {#if overdueReceivables > 0}
+          <a href="/receivables" use:inertia class="p-4 flex gap-4 hover:bg-surface-container-low">
+            <div class="w-10 h-10 rounded-full bg-pending/15 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-pending">schedule</span>
+            </div>
+            <div class="flex-1">
+              <p class="font-semibold text-body-md">Recebíveis vencidos</p>
+              <p class="text-on-surface-variant text-body-md">
+                {overdueReceivables}
+                {overdueReceivables === 1 ? 'valor aguardando liberação' : 'valores aguardando liberação'}
+              </p>
+            </div>
+          </a>
+        {/if}
+      {/if}
+    </div>
+  </section>
+
+  <section class="grid grid-cols-2 gap-stack-gap">
+    <a href="/lots/new" use:inertia class="ahq-btn-dark w-full text-sm">+ Novo lote</a>
+    <a href="/sales/new" use:inertia class="ahq-btn-primary w-full text-sm">+ Nova venda</a>
+  </section>
+
+  {#if env}
+    <p class="text-[10px] text-on-surface-variant mt-6 uppercase tracking-wider font-mono">{env}</p>
+  {/if}
+</AppShell>

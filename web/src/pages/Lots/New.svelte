@@ -1,5 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
+  import AppShell from '@/components/AppShell.svelte'
+
   export let errors = {}
   export let cashAccounts = []
   export let site = {}
@@ -20,112 +22,106 @@
   }
 </script>
 
-<div class="max-w-lg mx-auto p-6">
-  <h1 class="text-2xl font-semibold text-stone-800 mb-6">Novo lote</h1>
+<AppShell active="lots">
+  <div class="mb-section-padding">
+    <a href="/lots" use:inertia class="text-sm text-secondary flex items-center gap-1 mb-3">
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+      Lotes
+    </a>
+    <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Novo lote</h1>
+    <p class="text-on-surface-variant text-body-md mt-1">Registre a compra no leilão e o rateio dos itens.</p>
+  </div>
 
   {#if errors.form}
-    <p class="mb-4 text-red-700 text-sm">{errors.form}</p>
+    <p class="mb-4 text-error text-sm ahq-card p-3 border-error/30 bg-error-container/30">{errors.form}</p>
   {/if}
 
-  <form on:submit|preventDefault={submit} class="space-y-4">
+  <form on:submit|preventDefault={submit} class="ahq-card p-5 space-y-4">
     <div>
-      <label class="block text-sm text-stone-600 mb-1" for="name">Nome do lote</label>
+      <label class="ahq-label block mb-1.5" for="name">Nome do lote</label>
       <input
         id="name"
         type="text"
         bind:value={form.name}
-        class="block w-full border p-2 rounded"
+        class="ahq-input"
         placeholder="Ex: Monitores — leilão Jul/2026"
       />
-      {#if errors.name}<p class="text-red-600 text-sm mt-1">{errors.name}</p>{/if}
+      {#if errors.name}<p class="text-error text-sm mt-1">{errors.name}</p>{/if}
     </div>
 
     <div>
-      <label class="block text-sm text-stone-600 mb-1" for="purchased_at">Data da compra</label>
-      <input
-        id="purchased_at"
-        type="date"
-        bind:value={form.purchased_at}
-        class="block w-full border p-2 rounded"
-      />
-      {#if errors.purchased_at}<p class="text-red-600 text-sm mt-1">{errors.purchased_at}</p>{/if}
+      <label class="ahq-label block mb-1.5" for="purchased_at">Data da compra</label>
+      <input id="purchased_at" type="date" bind:value={form.purchased_at} class="ahq-input font-mono" />
+      {#if errors.purchased_at}<p class="text-error text-sm mt-1">{errors.purchased_at}</p>{/if}
     </div>
 
-    <div>
-      <label class="block text-sm text-stone-600 mb-1" for="item_title">Título do item</label>
-      <input
-        id="item_title"
-        type="text"
-        bind:value={form.item_title}
-        class="block w-full border p-2 rounded"
-        placeholder="Ex: Monitor"
-      />
-      {#if errors.item_title}<p class="text-red-600 text-sm mt-1">{errors.item_title}</p>{/if}
-    </div>
-
-    <div>
-      <label class="block text-sm text-stone-600 mb-1" for="item_qty">Quantidade</label>
-      <input
-        id="item_qty"
-        type="number"
-        min="1"
-        bind:value={form.item_qty}
-        class="block w-full border p-2 rounded"
-      />
-      {#if errors.item_qty}<p class="text-red-600 text-sm mt-1">{errors.item_qty}</p>{/if}
-    </div>
-
-    <div class="border-t pt-4">
-      <h2 class="font-medium text-stone-700 mb-3">Custo (arremate)</h2>
-      <div class="mb-3">
-        <label class="block text-sm text-stone-600 mb-1" for="cost_label">Rótulo</label>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="col-span-2 sm:col-span-1">
+        <label class="ahq-label block mb-1.5" for="item_title">Título do item</label>
         <input
-          id="cost_label"
+          id="item_title"
           type="text"
-          bind:value={form.cost_label}
-          class="block w-full border p-2 rounded"
+          bind:value={form.item_title}
+          class="ahq-input"
+          placeholder="Ex: Monitor"
         />
+        {#if errors.item_title}<p class="text-error text-sm mt-1">{errors.item_title}</p>{/if}
       </div>
-      <div class="mb-3">
-        <label class="block text-sm text-stone-600 mb-1" for="cost_amount">Valor (R$)</label>
+      <div class="col-span-2 sm:col-span-1">
+        <label class="ahq-label block mb-1.5" for="item_qty">Quantidade</label>
         <input
-          id="cost_amount"
-          type="text"
-          bind:value={form.cost_amount}
-          class="block w-full border p-2 rounded"
-          placeholder="603,00"
+          id="item_qty"
+          type="number"
+          min="1"
+          bind:value={form.item_qty}
+          class="ahq-input font-mono"
         />
-        {#if errors.cost_amount}<p class="text-red-600 text-sm mt-1">{errors.cost_amount}</p>{/if}
+        {#if errors.item_qty}<p class="text-error text-sm mt-1">{errors.item_qty}</p>{/if}
       </div>
-      <label class="flex items-center gap-2 text-sm text-stone-700">
-        <input type="checkbox" bind:checked={form.already_paid} />
-        Já paguei
-      </label>
-      {#if form.already_paid}
-        <div class="mt-3">
-          <label class="block text-sm text-stone-600 mb-1" for="cash_account_id">Conta de caixa</label>
-          <select
-            id="cash_account_id"
-            bind:value={form.cash_account_id}
-            class="block w-full border p-2 rounded"
-          >
-            <option value="">Selecione…</option>
-            {#each cashAccounts as acc}
-              <option value={String(acc.id)}>{acc.name}</option>
-            {/each}
-          </select>
-          {#if errors.cash_account_id}
-            <p class="text-red-600 text-sm mt-1">{errors.cash_account_id}</p>
-          {/if}
+    </div>
+
+    <div class="border-t border-outline-variant pt-4">
+      <h2 class="font-semibold text-primary mb-3">Custo (arremate)</h2>
+      <div class="space-y-3">
+        <div>
+          <label class="ahq-label block mb-1.5" for="cost_label">Rótulo</label>
+          <input id="cost_label" type="text" bind:value={form.cost_label} class="ahq-input" />
         </div>
-      {/if}
+        <div>
+          <label class="ahq-label block mb-1.5" for="cost_amount">Valor (R$)</label>
+          <input
+            id="cost_amount"
+            type="text"
+            bind:value={form.cost_amount}
+            class="ahq-input font-mono"
+            placeholder="603,00"
+          />
+          {#if errors.cost_amount}<p class="text-error text-sm mt-1">{errors.cost_amount}</p>{/if}
+        </div>
+        <label class="flex items-center gap-2 text-body-md text-on-surface">
+          <input type="checkbox" bind:checked={form.already_paid} class="rounded border-outline-variant text-secondary" />
+          Já paguei
+        </label>
+        {#if form.already_paid}
+          <div>
+            <label class="ahq-label block mb-1.5" for="cash_account_id">Conta de caixa</label>
+            <select id="cash_account_id" bind:value={form.cash_account_id} class="ahq-select">
+              <option value="">Selecione…</option>
+              {#each cashAccounts as acc}
+                <option value={String(acc.id)}>{acc.name}</option>
+              {/each}
+            </select>
+            {#if errors.cash_account_id}
+              <p class="text-error text-sm mt-1">{errors.cash_account_id}</p>
+            {/if}
+          </div>
+        {/if}
+      </div>
     </div>
 
-    <div class="flex gap-3 pt-2">
-      <button type="submit" class="px-4 py-2 bg-stone-800 text-white rounded" disabled={form.processing}>
-        Salvar lote
-      </button>
-      <a href="/lots" use:inertia class="px-4 py-2 border rounded text-stone-700">Cancelar</a>
+    <div class="flex flex-col sm:flex-row gap-3 pt-2">
+      <button type="submit" class="ahq-btn-primary flex-1" disabled={form.processing}>Salvar lote</button>
+      <a href="/lots" use:inertia class="ahq-btn-ghost flex-1 text-center">Cancelar</a>
     </div>
   </form>
-</div>
+</AppShell>

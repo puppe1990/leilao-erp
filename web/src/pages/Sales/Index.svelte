@@ -1,6 +1,7 @@
 <script>
   import { inertia, router } from '@inertiajs/svelte'
-  import Nav from '@/components/Nav.svelte'
+  import AppShell from '@/components/AppShell.svelte'
+
   export let sales = []
   export let errors = {}
   export let site = {}
@@ -9,69 +10,76 @@
     if (!confirm('Cancelar esta venda pendente? O item voltará ao estoque.')) return
     router.post(`/sales/${id}/cancel`)
   }
+
+  function paymentBadge(label, canCancel) {
+    if (canCancel) return 'ahq-badge-pending'
+    const l = (label || '').toLowerCase()
+    if (l.includes('receb') || l.includes('pago')) return 'ahq-badge-live'
+    if (l.includes('cancel')) return 'ahq-badge-error'
+    return 'ahq-badge-sold'
+  }
 </script>
 
-<div class="max-w-5xl mx-auto p-6">
-  <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-semibold text-stone-800">Vendas</h1>
-    <a href="/sales/new" use:inertia class="px-4 py-2 bg-stone-800 text-white text-sm rounded">
-      Nova venda
+<AppShell active="sales">
+  <div class="flex items-start justify-between gap-3 mb-section-padding">
+    <div>
+      <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Vendas</h1>
+      <p class="text-on-surface-variant text-body-md mt-1">Canais direto e marketplace.</p>
+    </div>
+    <a href="/sales/new" use:inertia class="ahq-btn-primary h-10 px-4 text-sm shrink-0">
+      <span class="material-symbols-outlined text-[18px] mr-1">add</span>
+      Nova
     </a>
   </div>
 
   {#if errors.form}
-    <p class="mb-4 text-red-700 text-sm">{errors.form}</p>
+    <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
   {#if sales.length === 0}
-    <div class="border border-dashed border-stone-300 rounded p-8 text-center text-stone-600">
-      <p class="mb-4">Nenhuma venda registrada.</p>
-      <a href="/sales/new" use:inertia class="underline text-amber-900">
-        Registrar primeira venda
-      </a>
+    <div class="ahq-card p-10 text-center border-dashed">
+      <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-3">sell</span>
+      <p class="text-on-surface-variant mb-4">Nenhuma venda registrada.</p>
+      <a href="/sales/new" use:inertia class="ahq-btn-primary">Registrar primeira venda</a>
     </div>
   {:else}
-    <div class="overflow-x-auto border rounded">
-      <table class="w-full text-sm text-left">
-        <thead class="bg-stone-100 text-stone-600">
-          <tr>
-            <th class="p-3 font-medium">Item</th>
-            <th class="p-3 font-medium">Data</th>
-            <th class="p-3 font-medium">Canal</th>
-            <th class="p-3 font-medium">Bruto</th>
-            <th class="p-3 font-medium">Taxa</th>
-            <th class="p-3 font-medium">Líquido</th>
-            <th class="p-3 font-medium">Pagamento</th>
-            <th class="p-3 font-medium"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each sales as sale}
-            <tr class="border-t hover:bg-stone-50">
-              <td class="p-3">{sale.itemTitle || `#${sale.itemId}`}</td>
-              <td class="p-3">{sale.soldAt?.slice?.(0, 10) || sale.soldAt}</td>
-              <td class="p-3">{sale.channelLabel}</td>
-              <td class="p-3">{sale.gross}</td>
-              <td class="p-3">{sale.fee}</td>
-              <td class="p-3">{sale.net}</td>
-              <td class="p-3">{sale.paymentLabel}</td>
-              <td class="p-3 text-right">
-                {#if sale.canCancel}
-                  <button
-                    type="button"
-                    class="text-sm text-red-700 underline"
-                    on:click={() => cancelSale(sale.id)}
-                  >
-                    Cancelar
-                  </button>
-                {/if}
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+    <div class="flex flex-col gap-stack-gap">
+      {#each sales as sale}
+        <div class="ahq-card p-4">
+          <div class="flex justify-between items-start gap-2 mb-2">
+            <div>
+              <p class="font-semibold text-primary">{sale.itemTitle || `#${sale.itemId}`}</p>
+              <p class="text-on-surface-variant text-sm">
+                {sale.soldAt?.slice?.(0, 10) || sale.soldAt} · {sale.channelLabel}
+              </p>
+            </div>
+            <span class={paymentBadge(sale.paymentLabel, sale.canCancel)}>{sale.paymentLabel}</span>
+          </div>
+          <div class="bg-surface-container-low rounded p-3 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <span class="ahq-label text-[10px]">Bruto</span>
+              <p class="font-mono text-sm font-semibold">{sale.gross}</p>
+            </div>
+            <div>
+              <span class="ahq-label text-[10px]">Taxa</span>
+              <p class="font-mono text-sm">{sale.fee}</p>
+            </div>
+            <div>
+              <span class="ahq-label text-[10px]">Líquido</span>
+              <p class="font-mono text-sm font-semibold text-secondary">{sale.net}</p>
+            </div>
+          </div>
+          {#if sale.canCancel}
+            <button
+              type="button"
+              class="mt-3 text-sm text-error font-medium"
+              on:click={() => cancelSale(sale.id)}
+            >
+              Cancelar venda pendente
+            </button>
+          {/if}
+        </div>
+      {/each}
     </div>
   {/if}
-
-  <Nav active="sales" />
-</div>
+</AppShell>
