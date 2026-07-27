@@ -6,7 +6,12 @@ BIN := bin/server
 CSS_IN := input.css
 CSS_OUT := web/static/css/styles.css
 
+# Agent one-shot: go tests (race) + frontend unit tests when present
 test:
+	go test ./... -race -count=1
+	npm test
+
+test-go:
 	go test ./... -race -count=1
 
 lint:
