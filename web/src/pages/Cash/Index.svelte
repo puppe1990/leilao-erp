@@ -1,5 +1,6 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
+  import Nav from '@/components/Nav.svelte'
   export let balances = []
   export let entries = []
   export let cashAccounts = []
@@ -184,11 +185,5 @@
     {/if}
   </section>
 
-  <nav class="mt-6 text-sm space-x-4">
-    <a href="/dashboard" use:inertia class="underline">Dashboard</a>
-    <a href="/payables" use:inertia class="underline">A pagar</a>
-    <a href="/receivables" use:inertia class="underline">A receber</a>
-    <a href="/lots" use:inertia class="underline">Lotes</a>
-    <a href="/sales" use:inertia class="underline">Vendas</a>
-  </nav>
+  <Nav active="cash" />
 </div>

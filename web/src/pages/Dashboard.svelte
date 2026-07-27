@@ -1,5 +1,6 @@
 <script>
   import { inertia } from '@inertiajs/svelte'
+  import Nav from '@/components/Nav.svelte'
   export let balances = []
   export let totalCashFormatted = 'R$ 0,00'
   export let openPayablesFormatted = 'R$ 0,00'
@@ -16,9 +17,6 @@
 <div class="max-w-5xl mx-auto p-6">
   <div class="flex items-center justify-between mb-6">
     <h1 class="text-2xl font-semibold text-stone-800">Dashboard</h1>
-    <form method="post" action="/logout" use:inertia>
-      <button type="submit" class="text-sm underline text-stone-600">Sair</button>
-    </form>
   </div>
 
   {#if ctaLot}
@@ -101,11 +99,5 @@
     Lotes: {lotCount}{#if env} · {env}{/if}
   </p>
 
-  <nav class="text-sm space-x-4">
-    <a href="/lots" use:inertia class="underline">Lotes</a>
-    <a href="/sales" use:inertia class="underline">Vendas</a>
-    <a href="/cash" use:inertia class="underline">Caixa</a>
-    <a href="/payables" use:inertia class="underline">A pagar</a>
-    <a href="/receivables" use:inertia class="underline">A receber</a>
-  </nav>
+  <Nav active="dashboard" showLogout={true} />
 </div>

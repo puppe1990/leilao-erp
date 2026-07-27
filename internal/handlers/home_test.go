@@ -8,6 +8,7 @@ import (
 
 	"github.com/puppe1990/cais/pkg/cais"
 	"github.com/puppe1990/cais/pkg/cais/i18n"
+	"github.com/puppe1990/cais/pkg/cais/session"
 )
 
 func newHomeHandler(t *testing.T) *HomeHandler {
@@ -35,6 +36,23 @@ func TestHomeHandler_InertiaComponent(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assertInertiaComponent(t, rr, "Home")
+}
+
+func TestHomeHandler_RedirectsWhenAuthenticated(t *testing.T) {
+	h := newHomeHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = session.WithUserID(req, 1)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("status = %d, want 303", rr.Code)
+	}
+	loc := rr.Header().Get("Location")
+	if loc != "/dashboard" {
+		t.Errorf("Location = %q, want /dashboard", loc)
+	}
 }
 
 func TestHomeHandler_InertiaShell(t *testing.T) {

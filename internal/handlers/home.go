@@ -7,6 +7,7 @@ import (
 	"github.com/puppe1990/cais/pkg/cais/httpx"
 	"github.com/puppe1990/cais/pkg/cais/i18n"
 	"github.com/puppe1990/cais/pkg/cais/meta"
+	"github.com/puppe1990/cais/pkg/cais/session"
 	inertia "github.com/romsar/gonertia/v3"
 )
 
@@ -28,9 +29,19 @@ func NewHomeHandler(renderer *cais.Renderer, site meta.Site, catalog *i18n.Catal
 }
 
 func (h *HomeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Logged-in users go straight to the finance dashboard.
+	if _, ok := session.UserID(r); ok {
+		if h.inertia != nil {
+			h.inertia.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			return
+		}
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
+
 	if h.inertia != nil {
 		err := h.inertia.Render(w, r, "Home", inertia.Props{
-			"title": "Home",
+			"title": "Início",
 			"site":  meta.ForRequest(h.site, r),
 		})
 		if err != nil {
