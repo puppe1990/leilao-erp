@@ -1,5 +1,5 @@
 <script>
-  import { router } from '@inertiajs/svelte'
+  import { useForm, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
   import Nav from '@/components/Nav.svelte'
 
@@ -9,6 +9,12 @@
   export let site = {}
   export let companyName = 'AuctionHQ'
 
+  let createForm = useForm({
+    description: '',
+    amount: '',
+    due_on: new Date().toISOString().slice(0, 10),
+  })
+
   function settle(id) {
     if (!confirm('Quitar este pagamento? Será gerada uma saída no caixa.')) return
     const accountId = cashAccounts[0]?.id
@@ -16,8 +22,17 @@
       alert('Cadastre uma conta de caixa antes de quitar.')
       return
     }
-    router.post(`/payables/${id}/settle`, {
-      cash_account_id: String(accountId),
+    router.post(`/payables/${id}/settle`, { cash_account_id: String(accountId) })
+  }
+
+  function cancel(id) {
+    if (!confirm('Cancelar este título a pagar?')) return
+    router.post(`/payables/${id}/cancel`)
+  }
+
+  function submitCreate() {
+    createForm.post('/payables', {
+      onSuccess: () => createForm.reset('description', 'amount'),
     })
   }
 </script>
@@ -25,7 +40,7 @@
 <AppShell {companyName} active="payables">
   <div class="mb-section-padding">
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">A pagar</h1>
-    <p class="text-on-surface-variant text-body-md mt-1">Títulos e quitações.</p>
+    <p class="text-on-surface-variant text-body-md mt-1">CRUD de títulos e quitações.</p>
     <div class="mt-3"><Nav active="payables" /></div>
   </div>
 
@@ -33,10 +48,19 @@
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
+  <section class="ahq-card p-4 mb-section-padding">
+    <h2 class="font-semibold text-primary mb-3">Novo título</h2>
+    <form on:submit|preventDefault={submitCreate} class="grid gap-3 sm:grid-cols-3">
+      <input class="ahq-input h-10 sm:col-span-2" placeholder="Descrição" bind:value={createForm.description} />
+      <input class="ahq-input h-10 font-mono" placeholder="Valor R$" bind:value={createForm.amount} />
+      <input type="date" class="ahq-input h-10 font-mono" bind:value={createForm.due_on} />
+      <button type="submit" class="ahq-btn-primary h-10 sm:col-span-2" disabled={createForm.processing}>Criar</button>
+    </form>
+    {#if errors.amount}<p class="text-error text-xs mt-2">{errors.amount}</p>{/if}
+  </section>
+
   {#if payables.length === 0}
-    <div class="ahq-card p-10 text-center text-on-surface-variant border-dashed">
-      Nenhuma conta a pagar.
-    </div>
+    <div class="ahq-card p-10 text-center text-on-surface-variant border-dashed">Nenhuma conta a pagar.</div>
   {:else}
     <div class="flex flex-col gap-stack-gap">
       {#each payables as p}
@@ -49,17 +73,20 @@
                 {#if p.lotId}<span> · lote #{p.lotId}</span>{/if}
               </p>
             </div>
-            <span
-              class={p.canSettle ? 'ahq-badge-pending' : 'ahq-badge-sold'}
-            >{p.statusLabel}</span>
+            <span class={p.canSettle ? 'ahq-badge-pending' : 'ahq-badge-sold'}>{p.statusLabel}</span>
           </div>
-          <div class="mt-3 flex items-end justify-between">
+          <div class="mt-3 flex items-end justify-between gap-2 flex-wrap">
             <p class="ahq-value">{p.amount}</p>
-            {#if p.canSettle}
-              <button type="button" class="ahq-btn-primary h-10 px-4 text-sm" on:click={() => settle(p.id)}>
-                Quitar
-              </button>
-            {/if}
+            <div class="flex gap-2">
+              {#if p.canSettle}
+                <button type="button" class="ahq-btn-primary h-10 px-4 text-sm" on:click={() => settle(p.id)}>Quitar</button>
+              {/if}
+              {#if p.canCancel}
+                <button type="button" class="ahq-btn-ghost h-10 px-4 text-sm text-error border-error" on:click={() => cancel(p.id)}>
+                  Cancelar
+                </button>
+              {/if}
+            </div>
           </div>
         </div>
       {/each}

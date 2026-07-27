@@ -369,6 +369,9 @@ func (s *SQLiteStore) FindLot(id int64) (models.Lot, error) {
 		&lot.ID, &lot.Name, &auctionSource, &lot.PurchasedAt,
 		&lot.Status, &notes, &lot.CreatedAt,
 	)
+	if err == sql.ErrNoRows {
+		return models.Lot{}, ErrNotFound
+	}
 	if err != nil {
 		return models.Lot{}, fmt.Errorf("find lot: %w", err)
 	}

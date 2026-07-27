@@ -57,6 +57,7 @@ func (h *PayablesHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"lotId":       lotID,
 			"paidAt":      paidAt,
 			"canSettle":   p.Status == "open",
+			"canCancel":   p.Status == "open",
 		})
 	}
 
@@ -118,5 +119,42 @@ func (h *PayablesHandler) Settle(w http.ResponseWriter, r *http.Request, id int6
 		return
 	}
 
+	h.inertia.Redirect(w, r, "/payables", http.StatusSeeOther)
+}
+
+func (h *PayablesHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	amount, err := domain.ParseBRLToCents(r.FormValue("amount"))
+	if err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"amount": "Valor inválido"})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	lotID, _ := strconv.ParseInt(r.FormValue("lot_id"), 10, 64)
+	if _, err := h.store.CreatePayable(store.CreatePayableInput{
+		Description: r.FormValue("description"),
+		AmountCents: amount,
+		DueOn:       strings.TrimSpace(r.FormValue("due_on")),
+		LotID:       lotID,
+	}); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/payables", http.StatusSeeOther)
+}
+
+func (h *PayablesHandler) Cancel(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.CancelPayable(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
 	h.inertia.Redirect(w, r, "/payables", http.StatusSeeOther)
 }

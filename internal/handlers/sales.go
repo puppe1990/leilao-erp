@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -308,4 +309,137 @@ func paymentStatusLabel(status string) string {
 	default:
 		return status
 	}
+}
+
+func (h *SalesHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
+	sale, err := h.store.FindSaleByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_ = h.inertia.Render(w, r, "Sales/Show", withCompany(h.store, inertia.Props{
+		"site": meta.ForRequest(h.site, r),
+		"sale": map[string]any{
+			"id":            sale.ID,
+			"itemId":        sale.ItemID,
+			"itemTitle":     sale.ItemTitle,
+			"soldAt":        sale.SoldAt,
+			"channel":       sale.Channel,
+			"channelLabel":  channelLabel(sale.Channel),
+			"gross":         domain.FormatBRL(sale.GrossCents),
+			"fee":           domain.FormatBRL(sale.FeeCents),
+			"shipping":      domain.FormatBRL(sale.ShippingCents),
+			"net":           domain.FormatBRL(sale.NetCents),
+			"grossRaw":      sale.GrossCents,
+			"feeRaw":        sale.FeeCents,
+			"shippingRaw":   sale.ShippingCents,
+			"paymentStatus": sale.PaymentStatus,
+			"paymentLabel":  paymentStatusLabel(sale.PaymentStatus),
+			"canEdit":       sale.PaymentStatus == "pending",
+			"canDelete":     sale.PaymentStatus == "pending",
+			"unitCost":      domain.FormatBRL(sale.UnitCostCentsAtSale),
+		},
+	}))
+}
+
+func (h *SalesHandler) Edit(w http.ResponseWriter, r *http.Request, id int64) {
+	sale, err := h.store.FindSaleByID(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if sale.PaymentStatus != "pending" {
+		h.inertia.Redirect(w, r, fmt.Sprintf("/sales/%d", id), http.StatusSeeOther)
+		return
+	}
+	dueOn := ""
+	recs, _ := h.store.ListReceivables()
+	for _, rec := range recs {
+		if rec.SaleID != nil && *rec.SaleID == id && rec.Status == "open" {
+			dueOn = rec.DueOn
+			break
+		}
+	}
+	_ = h.inertia.Render(w, r, "Sales/Edit", withCompany(h.store, inertia.Props{
+		"site":     meta.ForRequest(h.site, r),
+		"channels": channelOptions(),
+		"sale": map[string]any{
+			"id":        sale.ID,
+			"itemTitle": sale.ItemTitle,
+			"soldAt":    sale.SoldAt[:min(10, len(sale.SoldAt))],
+			"channel":   sale.Channel,
+			"gross":     formatCentsInput(sale.GrossCents),
+			"fee":       formatCentsInput(sale.FeeCents),
+			"shipping":  formatCentsInput(sale.ShippingCents),
+			"dueOn":     dueOn,
+		},
+	}))
+}
+
+func (h *SalesHandler) Update(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	gross, err1 := domain.ParseBRLToCents(r.FormValue("gross"))
+	fee, err2 := domain.ParseBRLToCents(r.FormValue("fee"))
+	if err2 != nil {
+		fee = 0
+		err2 = nil
+	}
+	ship, err3 := domain.ParseBRLToCents(r.FormValue("shipping"))
+	if err3 != nil {
+		ship = 0
+		err3 = nil
+	}
+	if err1 != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"gross": "Valor inválido"})
+		r = r.WithContext(ctx)
+		h.Edit(w, r, id)
+		return
+	}
+	err := h.store.UpdateSale(id, store.UpdateSaleInput{
+		SoldAt:        strings.TrimSpace(r.FormValue("sold_at")),
+		Channel:       strings.TrimSpace(r.FormValue("channel")),
+		GrossCents:    gross,
+		FeeCents:      fee,
+		ShippingCents: ship,
+		DueOn:         strings.TrimSpace(r.FormValue("due_on")),
+	})
+	if err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Edit(w, r, id)
+		return
+	}
+	h.inertia.Redirect(w, r, fmt.Sprintf("/sales/%d", id), http.StatusSeeOther)
+}
+
+func (h *SalesHandler) Destroy(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.DeleteSale(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/sales", http.StatusSeeOther)
+}
+
+func formatCentsInput(cents int64) string {
+	neg := cents < 0
+	if neg {
+		cents = -cents
+	}
+	s := fmt.Sprintf("%d,%02d", cents/100, cents%100)
+	if neg {
+		return "-" + s
+	}
+	return s
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

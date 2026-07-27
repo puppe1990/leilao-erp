@@ -49,7 +49,9 @@
         <div class="ahq-card p-4">
           <div class="flex justify-between items-start gap-2 mb-2">
             <div>
-              <p class="font-semibold text-primary">{sale.itemTitle || `#${sale.itemId}`}</p>
+              <a href={`/sales/${sale.id}`} use:inertia class="font-semibold text-primary hover:underline">
+                {sale.itemTitle || `#${sale.itemId}`}
+              </a>
               <p class="text-on-surface-variant text-sm">
                 {sale.soldAt?.slice?.(0, 10) || sale.soldAt} · {sale.channelLabel}
               </p>
@@ -71,13 +73,12 @@
             </div>
           </div>
           {#if sale.canCancel}
-            <button
-              type="button"
-              class="mt-3 text-sm text-error font-medium"
-              on:click={() => cancelSale(sale.id)}
-            >
-              Cancelar venda pendente
-            </button>
+            <div class="mt-3 flex gap-3">
+              <a href={`/sales/${sale.id}/edit`} use:inertia class="text-sm text-secondary font-medium">Editar</a>
+              <button type="button" class="text-sm text-error font-medium" on:click={() => cancelSale(sale.id)}>
+                Excluir
+              </button>
+            </div>
           {/if}
         </div>
       {/each}

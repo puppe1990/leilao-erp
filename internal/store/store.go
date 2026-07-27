@@ -39,25 +39,40 @@ type Store interface {
 
 	// Finance / lots
 	InsertCashAccount(name, kind string, openingBalanceCents int64) (int64, error)
+	FindCashAccount(id int64) (models.CashAccount, error)
+	UpdateCashAccount(id int64, name, kind string, openingBalanceCents int64) error
+	DeleteCashAccount(id int64) error
 	ListCashAccounts() ([]models.CashAccount, error)
 	CashBalance(accountID int64) (int64, error)
 	CreateLotPurchase(input CreateLotInput) (lotID int64, err error)
+	UpdateLot(id int64, in UpdateLotInput) error
+	DeleteLot(id int64) error
 	AddPurchaseCost(lotID int64, cost CostInput, cashAccountID int64, paidAt string) error
 	FindLot(id int64) (models.Lot, error)
 	ListLots() ([]LotListItem, error)
 	ListItemsByLot(lotID int64) ([]models.Item, error)
 	ListItemsInStock() ([]models.Item, error)
+	FindItemByID(id int64) (models.Item, error)
+	UpdateItem(id int64, title, sku string) error
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)
+	FindSaleByID(id int64) (models.Sale, error)
+	UpdateSale(id int64, in UpdateSaleInput) error
+	DeleteSale(id int64) error
 	ListSales() ([]models.Sale, error)
 	CancelPendingSale(saleID int64) error
 	SettlePayable(id, accountID int64, paidAt string) error
 	SettleReceivable(id, accountID int64, receivedAt string) error
+	CancelPayable(id int64) error
+	CancelReceivable(id int64) error
+	CreatePayable(in CreatePayableInput) (int64, error)
+	CreateReceivable(in CreateReceivableInput) (int64, error)
 	ListReceivables() ([]models.Receivable, error)
 	ListPayables() ([]models.Payable, error)
 	ListCashEntries(accountID int64) ([]models.CashEntry, error) // accountID 0 = all
 	InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, memo string) (int64, error)
+	DeleteCashEntry(id int64) error
 	DashboardSummary() (DashboardSummary, error)
 
 	Sessions() session.Store

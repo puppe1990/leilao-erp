@@ -1,5 +1,5 @@
 <script>
-  import { useForm, inertia } from '@inertiajs/svelte'
+  import { useForm, inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
 
   export let lot = {}
@@ -9,6 +9,7 @@
   export let cashAccounts = []
   export let errors = {}
   export let site = {}
+  export let canDelete = false
   export let companyName = 'AuctionHQ'
 
   let costForm = useForm({
@@ -29,11 +30,24 @@
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>
       Lotes
     </a>
+    <div class="flex items-start justify-between gap-3">
+      <div>
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">{lot.name}</h1>
     <p class="text-on-surface-variant text-body-md mt-1">
       Compra em {lot.purchasedAt} · {lot.statusLabel} · Custo total
       <span class="font-mono font-semibold text-primary">{lot.totalCost}</span>
     </p>
+      </div>
+      <div class="flex flex-col gap-2 shrink-0">
+        <a href={`/lots/${lot.id}/edit`} use:inertia class="ahq-btn-primary h-10 px-4 text-sm">Editar</a>
+        {#if canDelete}
+          <button type="button" class="ahq-btn-ghost h-10 px-4 text-sm text-error border-error"
+            on:click={() => { if (confirm('Excluir este lote e itens em estoque?')) router.post(`/lots/${lot.id}/delete`) }}>
+            Excluir
+          </button>
+        {/if}
+      </div>
+    </div>
   </div>
 
   <section class="mb-section-padding">
@@ -44,15 +58,34 @@
       <div class="ahq-card overflow-hidden">
         <div class="divide-y divide-outline-variant">
           {#each items as item}
-            <div class="p-4 flex justify-between items-center gap-3">
-              <div>
-                <p class="font-semibold text-primary">{item.title}</p>
-                <p class="text-[10px] font-mono text-on-surface-variant uppercase">#{item.id}</p>
+            <div class="p-4 space-y-3">
+              <div class="flex justify-between items-center gap-3">
+                <div>
+                  <p class="font-semibold text-primary">{item.title}</p>
+                  <p class="text-[10px] font-mono text-on-surface-variant uppercase">#{item.id}{item.sku ? ` · ${item.sku}` : ''}</p>
+                </div>
+                <div class="text-right">
+                  <p class="ahq-value text-sm">{item.unitCost}</p>
+                  <p class="text-[10px] text-on-surface-variant uppercase mt-0.5">{item.statusLabel}</p>
+                </div>
               </div>
-              <div class="text-right">
-                <p class="ahq-value text-sm">{item.unitCost}</p>
-                <p class="text-[10px] text-on-surface-variant uppercase mt-0.5">{item.statusLabel}</p>
-              </div>
+              {#if item.canEdit}
+                <form
+                  class="grid grid-cols-2 gap-2"
+                  on:submit|preventDefault={() => {
+                    router.post(`/lots/${lot.id}/items/${item.id}`, {
+                      title: item._title ?? item.title,
+                      sku: item._sku ?? item.sku ?? '',
+                    })
+                  }}
+                >
+                  <input class="ahq-input h-10 text-sm" placeholder="Título" value={item.title}
+                    on:input={(e) => (item._title = e.currentTarget.value)} />
+                  <input class="ahq-input h-10 text-sm font-mono" placeholder="SKU" value={item.sku || ''}
+                    on:input={(e) => (item._sku = e.currentTarget.value)} />
+                  <button type="submit" class="col-span-2 ahq-btn-ghost h-10 text-sm">Salvar item</button>
+                </form>
+              {/if}
             </div>
           {/each}
         </div>

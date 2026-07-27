@@ -56,6 +56,7 @@ func (h *ReceivablesHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"statusLabel": receivableStatusLabel(rec.Status),
 			"saleId":      saleID,
 			"receivedAt":  receivedAt,
+			"canCancel":   rec.Status == "open",
 			"canSettle":   rec.Status == "open",
 		})
 	}
@@ -130,4 +131,39 @@ func receivableStatusLabel(status string) string {
 	default:
 		return status
 	}
+}
+
+func (h *ReceivablesHandler) Create(w http.ResponseWriter, r *http.Request) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	amount, err := domain.ParseBRLToCents(r.FormValue("amount"))
+	if err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"amount": "Valor inválido"})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	if _, err := h.store.CreateReceivable(store.CreateReceivableInput{
+		Description: r.FormValue("description"),
+		AmountCents: amount,
+		DueOn:       strings.TrimSpace(r.FormValue("due_on")),
+	}); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/receivables", http.StatusSeeOther)
+}
+
+func (h *ReceivablesHandler) Cancel(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.CancelReceivable(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/receivables", http.StatusSeeOther)
 }

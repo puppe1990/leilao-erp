@@ -175,12 +175,18 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 
 	itemRows := make([]map[string]any, 0, len(items))
 	for _, it := range items {
+		sku := ""
+		if it.SKU != nil {
+			sku = *it.SKU
+		}
 		itemRows = append(itemRows, map[string]any{
-			"id":       it.ID,
-			"title":    it.Title,
-			"unitCost": domain.FormatBRL(it.UnitCostCents),
-			"status":   it.Status,
+			"id":          it.ID,
+			"title":       it.Title,
+			"sku":         sku,
+			"unitCost":    domain.FormatBRL(it.UnitCostCents),
+			"status":      it.Status,
 			"statusLabel": itemStatusLabel(it.Status),
+			"canEdit":     it.Status == "in_stock" || it.Status == "reserved",
 		})
 	}
 
@@ -205,6 +211,14 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		notes = *lot.Notes
 	}
 
+	canDelete := true
+	for _, it := range items {
+		if it.Status == "sold" {
+			canDelete = false
+			break
+		}
+	}
+
 	_ = h.inertia.Render(w, r, "Lots/Show", withCompany(h.store, inertia.Props{
 		"site": meta.ForRequest(h.site, r),
 		"lot": map[string]any{
@@ -221,6 +235,7 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		"costs":        costRows,
 		"payables":     payableRows,
 		"cashAccounts": accounts,
+		"canDelete":    canDelete,
 	}))
 }
 
@@ -348,4 +363,78 @@ func payableStatusLabel(status string) string {
 	default:
 		return status
 	}
+}
+
+func (h *LotsHandler) Edit(w http.ResponseWriter, r *http.Request, id int64) {
+	lot, err := h.store.FindLot(id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	auctionSource, notes := "", ""
+	if lot.AuctionSource != nil {
+		auctionSource = *lot.AuctionSource
+	}
+	if lot.Notes != nil {
+		notes = *lot.Notes
+	}
+	_ = h.inertia.Render(w, r, "Lots/Edit", withCompany(h.store, inertia.Props{
+		"site": meta.ForRequest(h.site, r),
+		"lot": map[string]any{
+			"id":            lot.ID,
+			"name":          lot.Name,
+			"purchasedAt":   lot.PurchasedAt,
+			"auctionSource": auctionSource,
+			"notes":         notes,
+		},
+	}))
+}
+
+func (h *LotsHandler) Update(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err := h.store.UpdateLot(id, store.UpdateLotInput{
+		Name:          strings.TrimSpace(r.FormValue("name")),
+		PurchasedAt:   strings.TrimSpace(r.FormValue("purchased_at")),
+		AuctionSource: strings.TrimSpace(r.FormValue("auction_source")),
+		Notes:         strings.TrimSpace(r.FormValue("notes")),
+	})
+	if err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Edit(w, r, id)
+		return
+	}
+	h.inertia.Redirect(w, r, fmt.Sprintf("/lots/%d", id), http.StatusSeeOther)
+}
+
+func (h *LotsHandler) Destroy(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.DeleteLot(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Show(w, r, id)
+		return
+	}
+	h.inertia.Redirect(w, r, "/lots", http.StatusSeeOther)
+}
+
+func (h *LotsHandler) UpdateItem(w http.ResponseWriter, r *http.Request, lotID int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	itemID, _ := strconv.ParseInt(r.PathValue("itemId"), 10, 64)
+	if itemID <= 0 {
+		http.Error(w, "item inválido", http.StatusBadRequest)
+		return
+	}
+	if err := h.store.UpdateItem(itemID, r.FormValue("title"), r.FormValue("sku")); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Show(w, r, lotID)
+		return
+	}
+	h.inertia.Redirect(w, r, fmt.Sprintf("/lots/%d", lotID), http.StatusSeeOther)
 }

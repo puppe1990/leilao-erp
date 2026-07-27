@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -47,6 +48,8 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"id":           a.ID,
 			"name":         a.Name,
 			"kind":         a.Kind,
+			"opening":      domain.FormatBRL(a.OpeningBalanceCents),
+			"openingRaw":   formatCashInput(a.OpeningBalanceCents),
 			"balance":      domain.FormatBRL(bal),
 			"balanceCents": bal,
 		})
@@ -73,6 +76,7 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"amount":         domain.FormatBRL(e.AmountCents),
 			"occurredAt":     e.OccurredAt,
 			"category":       e.Category,
+			"canDelete":     e.Category == "ajuste",
 			"categoryLabel":  cashCategoryLabel(e.Category),
 			"memo":           memo,
 		})
@@ -164,6 +168,8 @@ func (h *CashHandler) renderIndexWithErrors(w http.ResponseWriter, r *http.Reque
 			"id":           a.ID,
 			"name":         a.Name,
 			"kind":         a.Kind,
+			"opening":      domain.FormatBRL(a.OpeningBalanceCents),
+			"openingRaw":   formatCashInput(a.OpeningBalanceCents),
 			"balance":      domain.FormatBRL(bal),
 			"balanceCents": bal,
 		})
@@ -188,6 +194,7 @@ func (h *CashHandler) renderIndexWithErrors(w http.ResponseWriter, r *http.Reque
 			"amount":         domain.FormatBRL(e.AmountCents),
 			"occurredAt":     e.OccurredAt,
 			"category":       e.Category,
+			"canDelete":     e.Category == "ajuste",
 			"categoryLabel":  cashCategoryLabel(e.Category),
 			"memo":           memo,
 		})
@@ -239,4 +246,80 @@ func cashCategoryLabel(category string) string {
 	default:
 		return category
 	}
+}
+
+func (h *CashHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	kind := strings.TrimSpace(r.FormValue("kind"))
+	if kind == "" {
+		kind = "pix"
+	}
+	opening, _ := domain.ParseBRLToCents(r.FormValue("opening_balance"))
+	if name == "" {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"name": "Nome obrigatório"})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	if _, err := h.store.InsertCashAccount(name, kind, opening); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+}
+
+func (h *CashHandler) UpdateAccount(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(r.FormValue("name"))
+	kind := strings.TrimSpace(r.FormValue("kind"))
+	opening, _ := domain.ParseBRLToCents(r.FormValue("opening_balance"))
+	if err := h.store.UpdateCashAccount(id, name, kind, opening); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+}
+
+func (h *CashHandler) DestroyAccount(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.DeleteCashAccount(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+}
+
+func (h *CashHandler) DestroyEntry(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.DeleteCashEntry(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+}
+
+
+func formatCashInput(cents int64) string {
+	neg := cents < 0
+	if neg {
+		cents = -cents
+	}
+	s := fmt.Sprintf("%d,%02d", cents/100, cents%100)
+	if neg {
+		return "-" + s
+	}
+	return s
 }
