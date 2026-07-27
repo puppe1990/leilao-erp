@@ -10,25 +10,23 @@
   export let site = {}
   export let companyName = 'AuctionHQ'
 
-  function isAccessory(it) {
-    return !!it?.isAccessory
+  const stockItems = Array.isArray(items) ? items : []
+  const mains = stockItems.filter((it) => !it.isAccessory)
+  const accessories = stockItems.filter((it) => it.isAccessory)
+  const mainOptions = mains.length > 0 ? mains : stockItems
+
+  function queryItemId() {
+    if (typeof window === 'undefined') return ''
+    return new URLSearchParams(window.location.search).get('item_id') || ''
   }
 
-  $: mains = (items || []).filter((it) => !isAccessory(it))
-  $: accessories = (items || []).filter((it) => isAccessory(it))
-  $: mainOptions = mains.length > 0 ? mains : items || []
-
-  function defaultItemId() {
-    if (typeof window !== 'undefined') {
-      const q = new URLSearchParams(window.location.search).get('item_id')
-      if (q) return String(q)
-    }
-    const first = mainOptions[0] || (items && items[0])
-    return first?.id != null ? String(first.id) : ''
-  }
+  const initialId =
+    queryItemId() ||
+    (mainOptions[0]?.id != null ? String(mainOptions[0].id) : '') ||
+    (stockItems[0]?.id != null ? String(stockItems[0].id) : '')
 
   let form = useForm({
-    item_id: defaultItemId(),
+    item_id: initialId,
     accessory_ids: [],
     channel: 'direct',
     gross: '',
@@ -40,18 +38,10 @@
     sold_at: new Date().toISOString().slice(0, 10),
   })
 
-  function accessoryIds() {
-    const raw = form.accessory_ids
-    return Array.isArray(raw) ? raw : []
-  }
-
-  $: selectedMain = (items || []).find((it) => String(it.id) === String(form.item_id))
-  $: selectedAccessories = accessories.filter((it) =>
-    accessoryIds().map(String).includes(String(it.id)),
-  )
-  $: totalCostRaw =
-    (Number(selectedMain?.unitCostRaw) || 0) +
-    selectedAccessories.reduce((sum, it) => sum + (Number(it.unitCostRaw) || 0), 0)
+  // Local UI state (not form fields) — avoid Svelte 5 $state mutation in $: blocks
+  let selectedAccessoryIds = []
+  let selectedMain = stockItems.find((it) => String(it.id) === String(initialId)) || null
+  let totalCostRaw = Number(selectedMain?.unitCostRaw) || 0
 
   function formatCents(cents) {
     const n = Number(cents) || 0
@@ -61,55 +51,51 @@
     return neg ? `-R$ ${s}` : `R$ ${s}`
   }
 
-  /** salePriceRaw from server is integer cents */
   function formatCentsInput(cents) {
     const n = Number(cents) || 0
     const abs = Math.abs(n)
     return `${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`
   }
 
-  function prefillGrossFromItem(item) {
-    if (!item) return
-    const raw = item.salePriceRaw
+  function recomputeCost() {
+    const main = stockItems.find((it) => String(it.id) === String(form.item_id))
+    selectedMain = main || null
+    const accCost = selectedAccessoryIds.reduce((sum, id) => {
+      const it = stockItems.find((x) => String(x.id) === String(id))
+      return sum + (Number(it?.unitCostRaw) || 0)
+    }, 0)
+    totalCostRaw = (Number(main?.unitCostRaw) || 0) + accCost
+    form.accessory_ids = [...selectedAccessoryIds]
+  }
+
+  function applyGrossFromMain() {
+    const main = stockItems.find((it) => String(it.id) === String(form.item_id))
+    if (!main) return
+    const raw = main.salePriceRaw
     if (raw != null && raw !== '' && Number(raw) > 0) {
       form.gross = formatCentsInput(raw)
     }
   }
 
-  let lastPrefillId = ''
-  $: if (selectedMain && String(selectedMain.id) !== lastPrefillId) {
-    lastPrefillId = String(selectedMain.id)
-    prefillGrossFromItem(selectedMain)
-  }
-
-  onMount(() => {
-    // Ensure item_id from query after mount (SSR-safe)
-    const q = new URLSearchParams(window.location.search).get('item_id')
-    if (q) {
-      form.item_id = String(q)
-    } else if (!form.item_id && mainOptions[0]) {
-      form.item_id = String(mainOptions[0].id)
-    }
-    if (!Array.isArray(form.accessory_ids)) {
-      form.accessory_ids = []
-    }
-  })
-
-  function toggleAccessory(id) {
-    const sid = String(id)
-    const cur = accessoryIds().map(String)
-    if (cur.includes(sid)) {
-      form.accessory_ids = accessoryIds().filter((x) => String(x) !== sid)
-    } else {
-      form.accessory_ids = [...accessoryIds(), id]
-    }
+  function onMainChange() {
+    recomputeCost()
+    applyGrossFromMain()
   }
 
   function isChecked(id) {
-    return accessoryIds().map(String).includes(String(id))
+    return selectedAccessoryIds.map(String).includes(String(id))
   }
 
-  /** Pick first free cabo de força + VGA + HDMI (kit completo). */
+  function toggleAccessory(id) {
+    const sid = String(id)
+    if (selectedAccessoryIds.map(String).includes(sid)) {
+      selectedAccessoryIds = selectedAccessoryIds.filter((x) => String(x) !== sid)
+    } else {
+      selectedAccessoryIds = [...selectedAccessoryIds, id]
+    }
+    recomputeCost()
+  }
+
   function selectCompleteKit() {
     const picked = []
     const usedTitles = new Set()
@@ -121,24 +107,29 @@
     for (const match of want) {
       const found = accessories.find((it) => {
         const t = (it.title || '').toLowerCase()
-        return match(t) && !usedTitles.has(it.title) && !picked.includes(it.id)
+        return match(t) && !usedTitles.has(it.title) && !picked.map(String).includes(String(it.id))
       })
       if (found) {
         picked.push(found.id)
         usedTitles.add(found.title)
       }
     }
-    form.accessory_ids = picked
+    selectedAccessoryIds = picked
+    recomputeCost()
   }
 
   function clearAccessories() {
-    form.accessory_ids = []
+    selectedAccessoryIds = []
+    recomputeCost()
   }
 
+  onMount(() => {
+    recomputeCost()
+    if (!form.gross) applyGrossFromMain()
+  })
+
   function submit() {
-    if (!Array.isArray(form.accessory_ids)) {
-      form.accessory_ids = []
-    }
+    form.accessory_ids = [...selectedAccessoryIds]
     form.post('/sales')
   }
 </script>
@@ -159,7 +150,7 @@
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
-  {#if !items || items.length === 0}
+  {#if stockItems.length === 0}
     <div class="ahq-card p-6 border-dashed text-on-surface-variant text-sm">
       <p class="mb-2">Nenhum item em estoque para vender.</p>
       <a href="/lots" use:inertia class="text-secondary font-medium">Ver lotes</a>
@@ -170,7 +161,12 @@
     <form on:submit|preventDefault={submit} class="ahq-card p-5 space-y-4">
       <div>
         <label class="ahq-label block mb-1.5" for="item_id">Item principal</label>
-        <select id="item_id" bind:value={form.item_id} class="ahq-select">
+        <select
+          id="item_id"
+          bind:value={form.item_id}
+          class="ahq-select"
+          on:change={onMainChange}
+        >
           <option value="">Selecione…</option>
           {#each mainOptions as it}
             <option value={String(it.id)}>
@@ -184,7 +180,7 @@
           <p class="text-on-surface-variant text-xs mt-1">
             Preço sugerido:
             <span class="font-mono font-semibold text-secondary">{selectedMain.salePriceHint}</span>
-            (preenchido no bruto — pode editar)
+            (pode editar o bruto)
           </p>
         {/if}
         {#if errors.item_id}<p class="text-error text-sm mt-1">{errors.item_id}</p>{/if}
@@ -228,9 +224,9 @@
       <div class="bg-surface-container-low rounded-lg p-3 text-sm">
         <span class="ahq-label text-[10px]">Custo total da composição</span>
         <p class="font-mono font-semibold text-primary">{formatCents(totalCostRaw)}</p>
-        {#if selectedAccessories.length > 0}
+        {#if selectedAccessoryIds.length > 0}
           <p class="text-on-surface-variant text-xs mt-1">
-            {selectedMain?.title || 'Item'} + {selectedAccessories.length} acessório(s)
+            {selectedMain?.title || 'Item'} + {selectedAccessoryIds.length} acessório(s)
           </p>
         {/if}
       </div>
