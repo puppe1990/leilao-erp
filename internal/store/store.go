@@ -54,11 +54,14 @@ type Store interface {
 	ListItemsByLot(lotID int64) ([]models.Item, error)
 	ListItemsInStock() ([]models.Item, error)
 	FindItemByID(id int64) (models.Item, error)
-	UpdateItem(id int64, title, sku string) error
+	UpdateItem(id int64, in UpdateItemInput) error
+	SetSalePriceHintByTitle(title string, hintCents int64) (int64, error)
+	RenameItemsByTitle(fromTitle, toTitle string) (int64, error)
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)
 	FindSaleByID(id int64) (models.Sale, error)
+	ListSaleLines(saleID int64) ([]models.SaleLine, error)
 	UpdateSale(id int64, in UpdateSaleInput) error
 	DeleteSale(id int64) error
 	ListSales() ([]models.Sale, error)

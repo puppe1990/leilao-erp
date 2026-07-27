@@ -36,10 +36,15 @@ func (h *SalesHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 	rows := make([]map[string]any, 0, len(sales))
 	for _, sale := range sales {
+		title := sale.ItemTitle
+		if sale.Composition != "" {
+			title = sale.Composition
+		}
 		rows = append(rows, map[string]any{
 			"id":            sale.ID,
 			"itemId":        sale.ItemID,
-			"itemTitle":     sale.ItemTitle,
+			"itemTitle":     title,
+			"lineCount":     sale.LineCount,
 			"soldAt":        sale.SoldAt,
 			"channel":       sale.Channel,
 			"channelLabel":  channelLabel(sale.Channel),
@@ -85,6 +90,7 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itemID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("item_id")), 10, 64)
+	accessoryIDs := parseAccessoryIDs(r)
 	channel := strings.TrimSpace(r.FormValue("channel"))
 	grossStr := strings.TrimSpace(r.FormValue("gross"))
 	feeStr := strings.TrimSpace(r.FormValue("fee"))
@@ -150,6 +156,7 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.store.CreateSale(store.CreateSaleInput{
 		ItemID:        itemID,
+		AccessoryIDs:  accessoryIDs,
 		SoldAt:        soldAtValue,
 		Channel:       channel,
 		GrossCents:    grossCents,
@@ -163,7 +170,11 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		// Map common store errors to field errors
 		msg := err.Error()
 		if strings.Contains(msg, "not in stock") || strings.Contains(msg, "not found") {
-			ve["item_id"] = msg
+			if strings.Contains(msg, "accessory") || strings.Contains(strings.ToLower(msg), "cabo") {
+				ve["accessory_ids"] = msg
+			} else {
+				ve["item_id"] = msg
+			}
 		} else {
 			ve["form"] = msg
 		}
@@ -237,14 +248,52 @@ func (h *SalesHandler) inStockItemProps() ([]map[string]any, error) {
 	}
 	out := make([]map[string]any, 0, len(items))
 	for _, it := range items {
+		saleHint := ""
+		saleHintRaw := int64(0)
+		if it.SalePriceHintCents != nil {
+			saleHint = domain.FormatBRL(*it.SalePriceHintCents)
+			saleHintRaw = *it.SalePriceHintCents
+		}
 		out = append(out, map[string]any{
-			"id":       it.ID,
-			"title":    it.Title,
-			"lotId":    it.LotID,
-			"unitCost": domain.FormatBRL(it.UnitCostCents),
+			"id":            it.ID,
+			"title":         it.Title,
+			"lotId":         it.LotID,
+			"unitCost":      domain.FormatBRL(it.UnitCostCents),
+			"unitCostRaw":   it.UnitCostCents,
+			"salePriceHint": saleHint,
+			"salePriceRaw":  saleHintRaw,
+			"isAccessory":   isAccessoryTitle(it.Title),
 		})
 	}
 	return out, nil
+}
+
+// isAccessoryTitle flags stock items that are typically sold with a monitor.
+func isAccessoryTitle(title string) bool {
+	t := strings.ToLower(title)
+	return strings.Contains(t, "cabo") ||
+		strings.Contains(t, "vga") ||
+		strings.Contains(t, "hdmi") ||
+		strings.Contains(t, "força") ||
+		strings.Contains(t, "forca") ||
+		strings.Contains(t, "power")
+}
+
+// parseAccessoryIDs reads accessory_ids from form (repeated keys and/or CSV).
+func parseAccessoryIDs(r *http.Request) []int64 {
+	var out []int64
+	seen := map[int64]bool{}
+	for _, raw := range r.Form["accessory_ids"] {
+		for _, part := range strings.Split(raw, ",") {
+			id, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+			if err != nil || id <= 0 || seen[id] {
+				continue
+			}
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 func (h *SalesHandler) cashAccountProps() ([]map[string]any, error) {
@@ -318,12 +367,39 @@ func (h *SalesHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		http.NotFound(w, r)
 		return
 	}
+	lines, _ := h.store.ListSaleLines(id)
+	lineProps := make([]map[string]any, 0, len(lines))
+	for _, ln := range lines {
+		roleLabel := "Principal"
+		if ln.Role == "accessory" {
+			roleLabel = "Acessório"
+		}
+		lineProps = append(lineProps, map[string]any{
+			"id":        ln.ID,
+			"itemId":    ln.ItemID,
+			"title":     ln.ItemTitle,
+			"role":      ln.Role,
+			"roleLabel": roleLabel,
+			"unitCost":  domain.FormatBRL(ln.UnitCostCentsAtSale),
+		})
+	}
+	title := sale.ItemTitle
+	if sale.LineCount > 1 || len(lines) > 1 {
+		n := sale.LineCount
+		if n == 0 {
+			n = len(lines)
+		}
+		if n > 1 {
+			title = fmt.Sprintf("%s + %d acessório(s)", sale.ItemTitle, n-1)
+		}
+	}
+	margin := domain.Margin(sale.NetCents, sale.UnitCostCentsAtSale)
 	_ = h.inertia.Render(w, r, "Sales/Show", withCompany(h.store, inertia.Props{
 		"site": meta.ForRequest(h.site, r),
 		"sale": map[string]any{
 			"id":            sale.ID,
 			"itemId":        sale.ItemID,
-			"itemTitle":     sale.ItemTitle,
+			"itemTitle":     title,
 			"soldAt":        sale.SoldAt,
 			"channel":       sale.Channel,
 			"channelLabel":  channelLabel(sale.Channel),
@@ -339,6 +415,8 @@ func (h *SalesHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 			"canEdit":       sale.PaymentStatus == "pending",
 			"canDelete":     sale.PaymentStatus == "pending",
 			"unitCost":      domain.FormatBRL(sale.UnitCostCentsAtSale),
+			"margin":        domain.FormatBRL(margin),
+			"lines":         lineProps,
 		},
 	}))
 }

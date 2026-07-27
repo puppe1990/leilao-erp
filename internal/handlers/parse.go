@@ -31,7 +31,14 @@ func parseFormOrJSON(r *http.Request) error {
 		r.Form = make(url.Values, len(raw))
 		r.PostForm = r.Form
 		for k, v := range raw {
-			r.Form.Set(k, jsonScalar(v))
+			switch t := v.(type) {
+			case []any:
+				for _, elem := range t {
+					r.Form.Add(k, jsonScalar(elem))
+				}
+			default:
+				r.Form.Set(k, jsonScalar(v))
+			}
 		}
 		return nil
 	}

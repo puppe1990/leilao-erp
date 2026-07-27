@@ -149,11 +149,17 @@ func TestUpdateItem(t *testing.T) {
 	st := testStore(t)
 	lotID, _ := seedLot(t, st, true)
 	items, _ := st.ListItemsByLot(lotID)
-	if err := st.UpdateItem(items[0].ID, "Monitor Dell", "SKU-1"); err != nil {
+	hint := int64(39900)
+	if err := st.UpdateItem(items[0].ID, store.UpdateItemInput{
+		Title: "Monitor Dell P2219H", SKU: "SKU-1", SalePriceHintCents: &hint,
+	}); err != nil {
 		t.Fatal(err)
 	}
 	it, err := st.FindItemByID(items[0].ID)
-	if err != nil || it.Title != "Monitor Dell" {
+	if err != nil || it.Title != "Monitor Dell P2219H" {
 		t.Fatalf("%+v %v", it, err)
+	}
+	if it.SalePriceHintCents == nil || *it.SalePriceHintCents != 39900 {
+		t.Fatalf("sale hint=%v want 39900", it.SalePriceHintCents)
 	}
 }

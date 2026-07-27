@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/puppe1990/leilao-erp/internal/db"
+	"github.com/puppe1990/leilao-erp/internal/models"
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
@@ -30,8 +31,10 @@ func TestAcceptance_SeedSellSettle(t *testing.T) {
 	if sum.LotCount != 1 {
 		t.Fatalf("lots=%d", sum.LotCount)
 	}
-	if sum.TotalCashCents != -60300 {
-		t.Fatalf("cash after seed=%d", sum.TotalCashCents)
+	// Arremate 60300 + Uber 1435 + Uber 1452 + Lalamove 5476 = 68663
+	const seedCash int64 = -68663
+	if sum.TotalCashCents != seedCash {
+		t.Fatalf("cash after seed=%d want %d", sum.TotalCashCents, seedCash)
 	}
 
 	items, err := st.ListItemsInStock()
@@ -39,26 +42,31 @@ func TestAcceptance_SeedSellSettle(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(items) != 22 {
-		t.Fatalf("stock=%d", len(items))
+		t.Fatalf("stock=%d want 22", len(items))
+	}
+	monitors := stockByTitle(items, "Monitor")
+	if len(monitors) != 22 {
+		t.Fatalf("monitors in stock=%d want 22", len(monitors))
 	}
 	accs, err := st.ListCashAccounts()
 	if err != nil || len(accs) == 0 {
 		t.Fatalf("accounts %v %v", accs, err)
 	}
 
-	// Direct sale PIX
+	// Direct sale PIX (monitor only)
 	_, err = st.CreateSale(store.CreateSaleInput{
-		ItemID: items[0].ID, SoldAt: "2026-07-27T12:00:00Z", Channel: "direct",
+		ItemID: monitors[0].ID, SoldAt: "2026-07-27T12:00:00Z", Channel: "direct",
 		GrossCents: 15000, PaymentStatus: "received", CashAccountID: accs[0].ID,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Marketplace pending then settle
+	// Marketplace pending then settle (monitor only)
 	items, _ = st.ListItemsInStock()
+	monitors = stockByTitle(items, "Monitor")
 	_, err = st.CreateSale(store.CreateSaleInput{
-		ItemID: items[0].ID, SoldAt: "2026-07-27T13:00:00Z", Channel: "mercadolivre",
+		ItemID: monitors[0].ID, SoldAt: "2026-07-27T13:00:00Z", Channel: "mercadolivre",
 		GrossCents: 18000, FeeCents: 3000, ShippingCents: 2000,
 		PaymentStatus: "pending", DueOn: "2026-08-10",
 	})
@@ -87,15 +95,25 @@ func TestAcceptance_SeedSellSettle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// -60300 + 15000 + 13000 = -32300
-	if sum.TotalCashCents != -32300 {
-		t.Fatalf("cash=%d want -32300", sum.TotalCashCents)
+	// -68663 + 15000 + 13000 = -40663
+	if sum.TotalCashCents != seedCash+15000+13000 {
+		t.Fatalf("cash=%d want %d", sum.TotalCashCents, seedCash+15000+13000)
 	}
 	if sum.OpenReceivablesCents != 0 {
 		t.Fatalf("open AR=%d", sum.OpenReceivablesCents)
 	}
 	stock, _ := st.ListItemsInStock()
-	if len(stock) != 20 {
-		t.Fatalf("stock left=%d want 20", len(stock))
+	if len(stockByTitle(stock, "Monitor")) != 20 {
+		t.Fatalf("monitors left=%d want 20 (total stock=%d)", len(stockByTitle(stock, "Monitor")), len(stock))
 	}
+}
+
+func stockByTitle(items []models.Item, title string) []models.Item {
+	var out []models.Item
+	for _, it := range items {
+		if it.Title == title {
+			out = append(out, it)
+		}
+	}
+	return out
 }

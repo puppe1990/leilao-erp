@@ -51,11 +51,32 @@
       <span class="ahq-label">Líquido</span>
       <p class="ahq-value text-secondary">{sale.net}</p>
     </div>
-    <div class="col-span-2">
-      <span class="ahq-label">Custo unitário na venda</span>
+    <div>
+      <span class="ahq-label">Custo total (composição)</span>
       <p class="font-mono font-semibold">{sale.unitCost}</p>
     </div>
+    <div>
+      <span class="ahq-label">Margem</span>
+      <p class="font-mono font-semibold text-secondary">{sale.margin || '—'}</p>
+    </div>
   </div>
+
+  {#if sale.lines?.length}
+    <div class="ahq-card p-5 mb-section-padding">
+      <h2 class="font-semibold text-primary mb-3">Itens da venda</h2>
+      <ul class="divide-y divide-outline-variant">
+        {#each sale.lines as line}
+          <li class="py-2 flex justify-between gap-3 text-sm">
+            <div>
+              <span class="font-medium">{line.title}</span>
+              <span class="text-on-surface-variant ml-2 text-xs">{line.roleLabel}</span>
+            </div>
+            <span class="font-mono shrink-0">{line.unitCost}</span>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 
   <div class="flex flex-wrap gap-3">
     {#if sale.canEdit}

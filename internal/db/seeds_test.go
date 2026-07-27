@@ -65,15 +65,17 @@ func TestRunSeeds_idempotentMonitorsLot(t *testing.T) {
 	var sum int64
 	for _, it := range items {
 		sum += it.UnitCostCents
-		if it.Title != "Monitor" {
-			t.Errorf("title = %q, want Monitor", it.Title)
+		if it.Title != seedMonitorTitle {
+			t.Errorf("title = %q, want %s", it.Title, seedMonitorTitle)
 		}
 		if it.Status != "in_stock" {
 			t.Errorf("status = %q, want in_stock", it.Status)
 		}
 	}
-	if sum != 60300 {
-		t.Fatalf("unit cost sum = %d, want 60300", sum)
+	// Arremate 60300 + Uber 1435 + Uber 1452 + Lalamove 5476 = 68663
+	const wantTotal int64 = 68663
+	if sum != wantTotal {
+		t.Fatalf("unit cost sum = %d, want %d", sum, wantTotal)
 	}
 
 	bal, err := s.CashBalance(accounts[0].ID)
@@ -81,8 +83,8 @@ func TestRunSeeds_idempotentMonitorsLot(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Seeded twice must not double the cash outflow.
-	if bal != -60300 {
-		t.Fatalf("cash balance = %d, want -60300 (idempotent paid arremate)", bal)
+	if bal != -wantTotal {
+		t.Fatalf("cash balance = %d, want %d (idempotent paid costs)", bal, -wantTotal)
 	}
 }
 

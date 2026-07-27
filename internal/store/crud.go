@@ -97,9 +97,16 @@ func (s *SQLiteStore) DeleteLot(id int64) error {
 	return tx.Commit()
 }
 
+// UpdateItemInput holds mutable fields for an in-stock / reserved item.
+type UpdateItemInput struct {
+	Title              string
+	SKU                string
+	SalePriceHintCents *int64 // nil = clear hint
+}
+
 // UpdateItem updates mutable fields for an in-stock item.
-func (s *SQLiteStore) UpdateItem(id int64, title, sku string) error {
-	title = strings.TrimSpace(title)
+func (s *SQLiteStore) UpdateItem(id int64, in UpdateItemInput) error {
+	title := strings.TrimSpace(in.Title)
 	if title == "" {
 		return fmt.Errorf("%w: title required", ErrInvalidInput)
 	}
@@ -115,11 +122,43 @@ func (s *SQLiteStore) UpdateItem(id int64, title, sku string) error {
 		return fmt.Errorf("%w: only in-stock items can be edited", ErrCannotUpdate)
 	}
 	var skuVal any
-	if strings.TrimSpace(sku) != "" {
-		skuVal = strings.TrimSpace(sku)
+	if strings.TrimSpace(in.SKU) != "" {
+		skuVal = strings.TrimSpace(in.SKU)
 	}
-	_, err = s.db.Exec(`UPDATE items SET title = ?, sku = ? WHERE id = ?`, title, skuVal, id)
+	var hint any
+	if in.SalePriceHintCents != nil {
+		hint = *in.SalePriceHintCents
+	}
+	_, err = s.db.Exec(
+		`UPDATE items SET title = ?, sku = ?, sale_price_hint_cents = ? WHERE id = ?`,
+		title, skuVal, hint, id,
+	)
 	return err
+}
+
+// SetSalePriceHintByTitle sets sale_price_hint_cents on all matching in-stock items.
+func (s *SQLiteStore) SetSalePriceHintByTitle(title string, hintCents int64) (int64, error) {
+	res, err := s.db.Exec(
+		`UPDATE items SET sale_price_hint_cents = ? WHERE title = ? AND status IN ('in_stock', 'reserved')`,
+		hintCents, title,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+// RenameItemsByTitle renames all items with fromTitle to toTitle (any status).
+func (s *SQLiteStore) RenameItemsByTitle(fromTitle, toTitle string) (int64, error) {
+	toTitle = strings.TrimSpace(toTitle)
+	if toTitle == "" {
+		return 0, fmt.Errorf("%w: title required", ErrInvalidInput)
+	}
+	res, err := s.db.Exec(`UPDATE items SET title = ? WHERE title = ?`, toTitle, fromTitle)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 func (s *SQLiteStore) FindItemByID(id int64) (models.Item, error) {
@@ -374,31 +413,59 @@ func (s *SQLiteStore) CancelReceivable(id int64) error {
 	}
 	// if linked to pending sale, cancel sale + restore item via CancelPendingSale logic inline
 	if saleID.Valid {
+		// Delegate to CancelPendingSale for multi-line restore (after this tx commits
+		// would nest poorly). Inline multi-line restore here instead.
 		var pstatus string
-		var itemID, lotID int64
-		err = tx.QueryRow(
-			`SELECT s.payment_status, s.item_id, i.lot_id FROM sales s JOIN items i ON i.id = s.item_id WHERE s.id = ?`,
-			saleID.Int64,
-		).Scan(&pstatus, &itemID, &lotID)
+		err = tx.QueryRow(`SELECT payment_status FROM sales WHERE id = ?`, saleID.Int64).Scan(&pstatus)
 		if err == nil && pstatus == "pending" {
 			if _, err := tx.Exec(`UPDATE sales SET payment_status = 'cancelled' WHERE id = ?`, saleID.Int64); err != nil {
 				return err
 			}
-			if _, err := tx.Exec(`UPDATE items SET status = 'in_stock' WHERE id = ?`, itemID); err != nil {
+			rows, err := tx.Query(`SELECT item_id FROM sale_lines WHERE sale_id = ?`, saleID.Int64)
+			if err != nil {
 				return err
 			}
-			// recompute lot status
-			var inStock, total int
-			_ = tx.QueryRow(`SELECT COUNT(*) FROM items WHERE lot_id = ? AND status = 'in_stock'`, lotID).Scan(&inStock)
-			_ = tx.QueryRow(`SELECT COUNT(*) FROM items WHERE lot_id = ?`, lotID).Scan(&total)
-			lotStatus := "open"
-			if inStock == 0 && total > 0 {
-				lotStatus = "sold"
-			} else if inStock < total {
-				lotStatus = "partial"
+			var itemIDs []int64
+			for rows.Next() {
+				var id int64
+				if err := rows.Scan(&id); err != nil {
+					_ = rows.Close()
+					return err
+				}
+				itemIDs = append(itemIDs, id)
 			}
-			if _, err := tx.Exec(`UPDATE lots SET status = ? WHERE id = ?`, lotStatus, lotID); err != nil {
-				return err
+			_ = rows.Close()
+			if len(itemIDs) == 0 {
+				var itemID int64
+				_ = tx.QueryRow(`SELECT item_id FROM sales WHERE id = ?`, saleID.Int64).Scan(&itemID)
+				if itemID > 0 {
+					itemIDs = []int64{itemID}
+				}
+			}
+			lotsTouched := map[int64]bool{}
+			for _, itemID := range itemIDs {
+				var lotID int64
+				if err := tx.QueryRow(`SELECT lot_id FROM items WHERE id = ?`, itemID).Scan(&lotID); err != nil {
+					return err
+				}
+				lotsTouched[lotID] = true
+				if _, err := tx.Exec(`UPDATE items SET status = 'in_stock' WHERE id = ?`, itemID); err != nil {
+					return err
+				}
+			}
+			for lotID := range lotsTouched {
+				var inStock, total int
+				_ = tx.QueryRow(`SELECT COUNT(*) FROM items WHERE lot_id = ? AND status = 'in_stock'`, lotID).Scan(&inStock)
+				_ = tx.QueryRow(`SELECT COUNT(*) FROM items WHERE lot_id = ?`, lotID).Scan(&total)
+				lotStatus := "open"
+				if inStock == 0 && total > 0 {
+					lotStatus = "sold"
+				} else if inStock > 0 && inStock < total {
+					lotStatus = "partial"
+				}
+				if _, err := tx.Exec(`UPDATE lots SET status = ? WHERE id = ?`, lotStatus, lotID); err != nil {
+					return err
+				}
 			}
 		}
 	}

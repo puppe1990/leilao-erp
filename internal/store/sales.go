@@ -9,7 +9,10 @@ import (
 )
 
 type CreateSaleInput struct {
-	ItemID        int64
+	// ItemID is the main item (usually the monitor). Required.
+	ItemID int64
+	// AccessoryIDs are optional extra items sold with the main (cables, etc.).
+	AccessoryIDs  []int64
 	SoldAt        string // ISO datetime or date
 	Channel       string // direct, mercadolivre, shopee, olx, other
 	GrossCents    int64
@@ -39,6 +42,20 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 		return 0, fmt.Errorf("net amount cannot be negative (gross=%d fee=%d shipping=%d)",
 			input.GrossCents, input.FeeCents, input.ShippingCents)
 	}
+	if input.ItemID <= 0 {
+		return 0, fmt.Errorf("main item is required")
+	}
+
+	// Deduplicate IDs while preserving main first.
+	seen := map[int64]bool{input.ItemID: true}
+	allIDs := []int64{input.ItemID}
+	for _, id := range input.AccessoryIDs {
+		if id <= 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+		allIDs = append(allIDs, id)
+	}
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -46,20 +63,41 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var lotID, unitCost int64
-	var title, status string
-	err = tx.QueryRow(
-		`SELECT lot_id, title, unit_cost_cents, status FROM items WHERE id = ?`,
-		input.ItemID,
-	).Scan(&lotID, &title, &unitCost, &status)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, fmt.Errorf("item %d not found", input.ItemID)
-		}
-		return 0, fmt.Errorf("load item: %w", err)
+	type lineItem struct {
+		id, lotID, unitCost int64
+		title, status, role string
 	}
-	if status != "in_stock" {
-		return 0, fmt.Errorf("item %d is not in stock (status=%s)", input.ItemID, status)
+	lines := make([]lineItem, 0, len(allIDs))
+	var totalCost int64
+	var mainTitle string
+	lotsTouched := map[int64]bool{}
+
+	for i, itemID := range allIDs {
+		var li lineItem
+		li.id = itemID
+		li.role = "accessory"
+		if i == 0 {
+			li.role = "main"
+		}
+		err = tx.QueryRow(
+			`SELECT lot_id, title, unit_cost_cents, status FROM items WHERE id = ?`,
+			itemID,
+		).Scan(&li.lotID, &li.title, &li.unitCost, &li.status)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return 0, fmt.Errorf("item %d not found", itemID)
+			}
+			return 0, fmt.Errorf("load item: %w", err)
+		}
+		if li.status != "in_stock" {
+			return 0, fmt.Errorf("item %d is not in stock (status=%s)", itemID, li.status)
+		}
+		if i == 0 {
+			mainTitle = li.title
+		}
+		totalCost += li.unitCost
+		lotsTouched[li.lotID] = true
+		lines = append(lines, li)
 	}
 
 	res, err := tx.Exec(
@@ -69,7 +107,7 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		input.ItemID, input.SoldAt, input.Channel,
 		input.GrossCents, input.FeeCents, input.ShippingCents,
-		net, input.PaymentStatus, unitCost,
+		net, input.PaymentStatus, totalCost,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert sale: %w", err)
@@ -79,11 +117,17 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 		return 0, fmt.Errorf("sale id: %w", err)
 	}
 
-	if _, err := tx.Exec(
-		`UPDATE items SET status = 'sold' WHERE id = ?`,
-		input.ItemID,
-	); err != nil {
-		return 0, fmt.Errorf("mark item sold: %w", err)
+	for _, li := range lines {
+		if _, err := tx.Exec(
+			`INSERT INTO sale_lines (sale_id, item_id, unit_cost_cents_at_sale, role)
+			 VALUES (?, ?, ?, ?)`,
+			saleID, li.id, li.unitCost, li.role,
+		); err != nil {
+			return 0, fmt.Errorf("insert sale line: %w", err)
+		}
+		if _, err := tx.Exec(`UPDATE items SET status = 'sold' WHERE id = ?`, li.id); err != nil {
+			return 0, fmt.Errorf("mark item sold: %w", err)
+		}
 	}
 
 	switch input.PaymentStatus {
@@ -100,7 +144,10 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 		}
 	case "pending":
 		if net > 0 {
-			desc := fmt.Sprintf("Venda — %s", title)
+			desc := fmt.Sprintf("Venda — %s", mainTitle)
+			if len(lines) > 1 {
+				desc = fmt.Sprintf("Venda — %s + %d acessório(s)", mainTitle, len(lines)-1)
+			}
 			if _, err := tx.Exec(
 				`INSERT INTO receivables
 				 (description, amount_cents, due_on, status, sale_id)
@@ -112,22 +159,21 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 		}
 	}
 
-	var inStockLeft int
-	if err := tx.QueryRow(
-		`SELECT COUNT(*) FROM items WHERE lot_id = ? AND status = 'in_stock'`,
-		lotID,
-	).Scan(&inStockLeft); err != nil {
-		return 0, fmt.Errorf("count in_stock items: %w", err)
-	}
-	lotStatus := "sold"
-	if inStockLeft > 0 {
-		lotStatus = "partial"
-	}
-	if _, err := tx.Exec(
-		`UPDATE lots SET status = ? WHERE id = ?`,
-		lotStatus, lotID,
-	); err != nil {
-		return 0, fmt.Errorf("update lot status: %w", err)
+	for lotID := range lotsTouched {
+		var inStockLeft int
+		if err := tx.QueryRow(
+			`SELECT COUNT(*) FROM items WHERE lot_id = ? AND status = 'in_stock'`,
+			lotID,
+		).Scan(&inStockLeft); err != nil {
+			return 0, fmt.Errorf("count in_stock items: %w", err)
+		}
+		lotStatus := "sold"
+		if inStockLeft > 0 {
+			lotStatus = "partial"
+		}
+		if _, err := tx.Exec(`UPDATE lots SET status = ? WHERE id = ?`, lotStatus, lotID); err != nil {
+			return 0, fmt.Errorf("update lot status: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -136,8 +182,8 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 	return saleID, nil
 }
 
-// CancelPendingSale cancels a pending sale: reverts the item to in_stock,
-// cancels the open receivable (if any), and refreshes the lot status.
+// CancelPendingSale cancels a pending sale: reverts all sale_lines items to in_stock,
+// cancels the open receivable (if any), and refreshes lot statuses.
 // Received sales cannot be cancelled in v1.
 func (s *SQLiteStore) CancelPendingSale(saleID int64) error {
 	tx, err := s.db.Begin()
@@ -146,12 +192,11 @@ func (s *SQLiteStore) CancelPendingSale(saleID int64) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	var itemID int64
 	var paymentStatus string
 	err = tx.QueryRow(
-		`SELECT item_id, payment_status FROM sales WHERE id = ?`,
+		`SELECT payment_status FROM sales WHERE id = ?`,
 		saleID,
-	).Scan(&itemID, &paymentStatus)
+	).Scan(&paymentStatus)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("sale %d not found", saleID)
@@ -166,7 +211,6 @@ func (s *SQLiteStore) CancelPendingSale(saleID int64) error {
 		return fmt.Errorf("cannot cancel sale %d: payment_status=%s", saleID, paymentStatus)
 	}
 
-	// Related receivable must be open or absent (e.g. net=0 pending sale).
 	var recID sql.NullInt64
 	var recStatus sql.NullString
 	err = tx.QueryRow(
@@ -202,43 +246,65 @@ func (s *SQLiteStore) CancelPendingSale(saleID int64) error {
 		}
 	}
 
-	var lotID int64
-	err = tx.QueryRow(`SELECT lot_id FROM items WHERE id = ?`, itemID).Scan(&lotID)
+	// Prefer sale_lines; fall back to sales.item_id for edge cases.
+	itemRows, err := tx.Query(`SELECT item_id FROM sale_lines WHERE sale_id = ?`, saleID)
 	if err != nil {
-		return fmt.Errorf("load item lot: %w", err)
+		return fmt.Errorf("list sale lines: %w", err)
+	}
+	var itemIDs []int64
+	for itemRows.Next() {
+		var id int64
+		if err := itemRows.Scan(&id); err != nil {
+			_ = itemRows.Close()
+			return err
+		}
+		itemIDs = append(itemIDs, id)
+	}
+	_ = itemRows.Close()
+	if err := itemRows.Err(); err != nil {
+		return err
+	}
+	if len(itemIDs) == 0 {
+		var itemID int64
+		if err := tx.QueryRow(`SELECT item_id FROM sales WHERE id = ?`, saleID).Scan(&itemID); err != nil {
+			return err
+		}
+		itemIDs = []int64{itemID}
 	}
 
-	if _, err := tx.Exec(
-		`UPDATE items SET status = 'in_stock' WHERE id = ?`,
-		itemID,
-	); err != nil {
-		return fmt.Errorf("restore item in_stock: %w", err)
+	lotsTouched := map[int64]bool{}
+	for _, itemID := range itemIDs {
+		var lotID int64
+		if err := tx.QueryRow(`SELECT lot_id FROM items WHERE id = ?`, itemID).Scan(&lotID); err != nil {
+			return fmt.Errorf("load item lot: %w", err)
+		}
+		lotsTouched[lotID] = true
+		if _, err := tx.Exec(`UPDATE items SET status = 'in_stock' WHERE id = ?`, itemID); err != nil {
+			return fmt.Errorf("restore item in_stock: %w", err)
+		}
 	}
 
-	var total, inStock, sold int
-	if err := tx.QueryRow(
-		`SELECT COUNT(*),
-		        COALESCE(SUM(CASE WHEN status = 'in_stock' THEN 1 ELSE 0 END), 0),
-		        COALESCE(SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END), 0)
-		 FROM items WHERE lot_id = ?`,
-		lotID,
-	).Scan(&total, &inStock, &sold); err != nil {
-		return fmt.Errorf("count lot items: %w", err)
-	}
-
-	lotStatus := "partial"
-	switch {
-	case total > 0 && inStock == total:
-		lotStatus = "open"
-	case total > 0 && sold == total:
-		lotStatus = "sold"
-	}
-
-	if _, err := tx.Exec(
-		`UPDATE lots SET status = ? WHERE id = ?`,
-		lotStatus, lotID,
-	); err != nil {
-		return fmt.Errorf("update lot status: %w", err)
+	for lotID := range lotsTouched {
+		var total, inStock, sold int
+		if err := tx.QueryRow(
+			`SELECT COUNT(*),
+			        COALESCE(SUM(CASE WHEN status = 'in_stock' THEN 1 ELSE 0 END), 0),
+			        COALESCE(SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END), 0)
+			 FROM items WHERE lot_id = ?`,
+			lotID,
+		).Scan(&total, &inStock, &sold); err != nil {
+			return fmt.Errorf("count lot items: %w", err)
+		}
+		lotStatus := "partial"
+		switch {
+		case total > 0 && inStock == total:
+			lotStatus = "open"
+		case total > 0 && sold == total:
+			lotStatus = "sold"
+		}
+		if _, err := tx.Exec(`UPDATE lots SET status = ? WHERE id = ?`, lotStatus, lotID); err != nil {
+			return fmt.Errorf("update lot status: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -251,7 +317,8 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 	rows, err := s.db.Query(
 		`SELECT s.id, s.item_id, COALESCE(i.title, ''), s.sold_at, s.channel,
 		        s.gross_cents, s.fee_cents, s.shipping_cents,
-		        s.net_cents, s.payment_status, s.unit_cost_cents_at_sale, s.created_at
+		        s.net_cents, s.payment_status, s.unit_cost_cents_at_sale, s.created_at,
+		        COALESCE((SELECT COUNT(*) FROM sale_lines sl WHERE sl.sale_id = s.id), 0)
 		 FROM sales s
 		 LEFT JOIN items i ON i.id = s.item_id
 		 ORDER BY s.id DESC`,
@@ -268,9 +335,14 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 			&sale.ID, &sale.ItemID, &sale.ItemTitle, &sale.SoldAt, &sale.Channel,
 			&sale.GrossCents, &sale.FeeCents, &sale.ShippingCents,
 			&sale.NetCents, &sale.PaymentStatus, &sale.UnitCostCentsAtSale,
-			&sale.CreatedAt,
+			&sale.CreatedAt, &sale.LineCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan sale: %w", err)
+		}
+		if sale.LineCount <= 1 {
+			sale.Composition = sale.ItemTitle
+		} else {
+			sale.Composition = fmt.Sprintf("%s + %d acessório(s)", sale.ItemTitle, sale.LineCount-1)
 		}
 		out = append(out, sale)
 	}
@@ -382,4 +454,33 @@ func (s *SQLiteStore) FindLot(id int64) (models.Lot, error) {
 		lot.Notes = &notes.String
 	}
 	return lot, nil
+}
+
+// ListSaleLines returns line items for a sale (main + accessories).
+func (s *SQLiteStore) ListSaleLines(saleID int64) ([]models.SaleLine, error) {
+	rows, err := s.db.Query(
+		`SELECT sl.id, sl.sale_id, sl.item_id, COALESCE(i.title, ''), sl.unit_cost_cents_at_sale, sl.role, sl.created_at
+		 FROM sale_lines sl
+		 LEFT JOIN items i ON i.id = sl.item_id
+		 WHERE sl.sale_id = ?
+		 ORDER BY CASE sl.role WHEN 'main' THEN 0 ELSE 1 END, sl.id`,
+		saleID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list sale lines: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []models.SaleLine
+	for rows.Next() {
+		var ln models.SaleLine
+		if err := rows.Scan(
+			&ln.ID, &ln.SaleID, &ln.ItemID, &ln.ItemTitle,
+			&ln.UnitCostCentsAtSale, &ln.Role, &ln.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan sale line: %w", err)
+		}
+		out = append(out, ln)
+	}
+	return out, rows.Err()
 }

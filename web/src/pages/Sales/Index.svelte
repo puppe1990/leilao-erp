@@ -8,7 +8,7 @@
   export let companyName = 'AuctionHQ'
 
   function cancelSale(id) {
-    if (!confirm('Cancelar esta venda pendente? O item voltará ao estoque.')) return
+    if (!confirm('Cancelar esta venda pendente? Todos os itens da composição voltam ao estoque.')) return
     router.post(`/sales/${id}/cancel`)
   }
 
