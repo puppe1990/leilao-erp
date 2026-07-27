@@ -14,8 +14,9 @@ import (
 	"github.com/puppe1990/cais/pkg/cais/meta"
 	"github.com/puppe1990/cais/pkg/cais/middleware"
 	"github.com/puppe1990/cais/pkg/cais/netutil"
-	"github.com/puppe1990/leilao-erp/internal/store"
 	inertia "github.com/romsar/gonertia/v3"
+
+	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
 type Deps struct {
@@ -48,10 +49,9 @@ func New(cfg cais.Config, deps Deps) (*App, error) {
 		return nil, fmt.Errorf("store is required")
 	}
 
-	inertiaI := deps.Inertia
-	if inertiaI == nil {
+	if deps.Inertia == nil {
 		var err error
-		inertiaI, err = inertia.New(defaultInertiaRoot)
+		deps.Inertia, err = inertia.New(defaultInertiaRoot)
 		if err != nil {
 			return nil, fmt.Errorf("inertia: %w", err)
 		}

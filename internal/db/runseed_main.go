@@ -5,9 +5,10 @@ package main
 import (
 	"log"
 
+	"github.com/puppe1990/cais/pkg/cais"
+
 	"github.com/puppe1990/leilao-erp/internal/db"
 	"github.com/puppe1990/leilao-erp/internal/store"
-	"github.com/puppe1990/cais/pkg/cais"
 )
 
 func main() {

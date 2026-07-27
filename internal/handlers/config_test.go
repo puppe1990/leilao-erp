@@ -10,6 +10,7 @@ import (
 
 	"github.com/puppe1990/cais/pkg/cais"
 	"github.com/puppe1990/cais/pkg/cais/session"
+
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 

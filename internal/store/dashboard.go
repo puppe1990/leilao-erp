@@ -35,7 +35,7 @@ func (s *SQLiteStore) DashboardSummary() (DashboardSummary, error) {
 	if err != nil {
 		return out, fmt.Errorf("list cash accounts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	type acct struct {
 		id      int64

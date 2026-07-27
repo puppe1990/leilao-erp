@@ -62,11 +62,11 @@ cmd/server/        → entry point
 
 ## Environment variables
 
-| Variable  | Default         | Description      |
-| --------- | --------------- | ---------------- |
-| PORT      | :8080           | Server port      |
-| DB_PATH   | ./data/app.db   | SQLite file path |
-| ENV       | development     | Environment      |
+| Variable | Default       | Description      |
+| -------- | ------------- | ---------------- |
+| PORT     | :8080         | Server port      |
+| DB_PATH  | ./data/app.db | SQLite file path |
+| ENV      | development   | Environment      |
 
 Health check: GET /health → {"status":"ok"}
 
@@ -133,15 +133,15 @@ Unpack release into `/opt/leilao-erp/current`, rename binary to `bin/server`, an
 
 Copy [`.env.production.example`](.env.production.example) to `/etc/leilao-erp/env`:
 
-| Variable         | Example                         | Notes                                      |
-| ---------------- | ------------------------------- | ------------------------------------------ |
-| `ENV`            | `production`                    | Required                                   |
-| `PORT`           | `:8080`                         | Local bind; reverse proxy in front         |
-| `DB_PATH`        | `/var/lib/leilao-erp/app.db`    | Outside deploy tree                        |
-| `SESSION_SECRET` | random 32+ bytes                | `openssl rand -base64 48`                  |
-| `APP_URL`        | `https://seu-dominio.com`       | Canonical public URL                       |
-| `TRUSTED_PROXIES`| `127.0.0.1`                     | When behind Caddy/nginx                    |
-| `LOCALE`         | `pt`                            | Optional                                   |
+| Variable          | Example                      | Notes                              |
+| ----------------- | ---------------------------- | ---------------------------------- |
+| `ENV`             | `production`                 | Required                           |
+| `PORT`            | `:8080`                      | Local bind; reverse proxy in front |
+| `DB_PATH`         | `/var/lib/leilao-erp/app.db` | Outside deploy tree                |
+| `SESSION_SECRET`  | random 32+ bytes             | `openssl rand -base64 48`          |
+| `APP_URL`         | `https://seu-dominio.com`    | Canonical public URL               |
+| `TRUSTED_PROXIES` | `127.0.0.1`                  | When behind Caddy/nginx            |
+| `LOCALE`          | `pt`                         | Optional                           |
 
 ```bash
 sudo install -m 600 /dev/stdin /etc/leilao-erp/env <<'EOF'

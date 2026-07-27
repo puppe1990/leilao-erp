@@ -250,7 +250,7 @@ func (s *SQLiteStore) AddPurchaseCost(lotID int64, cost CostInput, cashAccountID
 	if err != nil {
 		return fmt.Errorf("list items for reallocation: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var soldCostSum int64
 	type openItem struct {
@@ -307,7 +307,7 @@ func (s *SQLiteStore) ListItemsByLot(lotID int64) ([]models.Item, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list items by lot: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.Item
 	for rows.Next() {
@@ -347,7 +347,7 @@ func (s *SQLiteStore) ListPayablesByLot(lotID int64) ([]models.Payable, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list payables by lot: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.Payable
 	for rows.Next() {
@@ -397,7 +397,7 @@ func (s *SQLiteStore) ListLots() ([]LotListItem, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list lots: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []LotListItem
 	for rows.Next() {
@@ -424,7 +424,7 @@ func (s *SQLiteStore) ListCashAccounts() ([]models.CashAccount, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list cash accounts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.CashAccount
 	for rows.Next() {
@@ -449,7 +449,7 @@ func (s *SQLiteStore) ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost
 	if err != nil {
 		return nil, fmt.Errorf("list purchase costs by lot: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.PurchaseCost
 	for rows.Next() {

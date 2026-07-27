@@ -1,91 +1,91 @@
 ---
 name: Precision Auction Systems
 colors:
-  surface: '#f7f9fb'
-  surface-dim: '#d8dadc'
-  surface-bright: '#f7f9fb'
-  surface-container-lowest: '#ffffff'
-  surface-container-low: '#f2f4f6'
-  surface-container: '#eceef0'
-  surface-container-high: '#e6e8ea'
-  surface-container-highest: '#e0e3e5'
-  on-surface: '#191c1e'
-  on-surface-variant: '#44474d'
-  inverse-surface: '#2d3133'
-  inverse-on-surface: '#eff1f3'
-  outline: '#75777e'
-  outline-variant: '#c5c6cd'
-  surface-tint: '#515f78'
-  primary: '#000000'
-  on-primary: '#ffffff'
-  primary-container: '#0d1c32'
-  on-primary-container: '#76849f'
-  inverse-primary: '#b9c7e4'
-  secondary: '#0059bb'
-  on-secondary: '#ffffff'
-  secondary-container: '#0070ea'
-  on-secondary-container: '#fefcff'
-  tertiary: '#000000'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#002106'
-  on-tertiary-container: '#0d9838'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#d6e3ff'
-  primary-fixed-dim: '#b9c7e4'
-  on-primary-fixed: '#0d1c32'
-  on-primary-fixed-variant: '#39475f'
-  secondary-fixed: '#d8e2ff'
-  secondary-fixed-dim: '#adc7ff'
-  on-secondary-fixed: '#001a41'
-  on-secondary-fixed-variant: '#004493'
-  tertiary-fixed: '#83fc8e'
-  tertiary-fixed-dim: '#66df75'
-  on-tertiary-fixed: '#002106'
-  on-tertiary-fixed-variant: '#00531a'
-  background: '#f7f9fb'
-  on-background: '#191c1e'
-  surface-variant: '#e0e3e5'
+  surface: "#f7f9fb"
+  surface-dim: "#d8dadc"
+  surface-bright: "#f7f9fb"
+  surface-container-lowest: "#ffffff"
+  surface-container-low: "#f2f4f6"
+  surface-container: "#eceef0"
+  surface-container-high: "#e6e8ea"
+  surface-container-highest: "#e0e3e5"
+  on-surface: "#191c1e"
+  on-surface-variant: "#44474d"
+  inverse-surface: "#2d3133"
+  inverse-on-surface: "#eff1f3"
+  outline: "#75777e"
+  outline-variant: "#c5c6cd"
+  surface-tint: "#515f78"
+  primary: "#000000"
+  on-primary: "#ffffff"
+  primary-container: "#0d1c32"
+  on-primary-container: "#76849f"
+  inverse-primary: "#b9c7e4"
+  secondary: "#0059bb"
+  on-secondary: "#ffffff"
+  secondary-container: "#0070ea"
+  on-secondary-container: "#fefcff"
+  tertiary: "#000000"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#002106"
+  on-tertiary-container: "#0d9838"
+  error: "#ba1a1a"
+  on-error: "#ffffff"
+  error-container: "#ffdad6"
+  on-error-container: "#93000a"
+  primary-fixed: "#d6e3ff"
+  primary-fixed-dim: "#b9c7e4"
+  on-primary-fixed: "#0d1c32"
+  on-primary-fixed-variant: "#39475f"
+  secondary-fixed: "#d8e2ff"
+  secondary-fixed-dim: "#adc7ff"
+  on-secondary-fixed: "#001a41"
+  on-secondary-fixed-variant: "#004493"
+  tertiary-fixed: "#83fc8e"
+  tertiary-fixed-dim: "#66df75"
+  on-tertiary-fixed: "#002106"
+  on-tertiary-fixed-variant: "#00531a"
+  background: "#f7f9fb"
+  on-background: "#191c1e"
+  surface-variant: "#e0e3e5"
 typography:
   headline-lg:
     fontFamily: Inter
     fontSize: 24px
-    fontWeight: '700'
+    fontWeight: "700"
     lineHeight: 32px
     letterSpacing: -0.02em
   headline-md:
     fontFamily: Inter
     fontSize: 20px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 28px
     letterSpacing: -0.01em
   body-lg:
     fontFamily: Inter
     fontSize: 16px
-    fontWeight: '400'
+    fontWeight: "400"
     lineHeight: 24px
   body-md:
     fontFamily: Inter
     fontSize: 14px
-    fontWeight: '400'
+    fontWeight: "400"
     lineHeight: 20px
   label-md:
     fontFamily: JetBrains Mono
     fontSize: 12px
-    fontWeight: '500'
+    fontWeight: "500"
     lineHeight: 16px
     letterSpacing: 0.05em
   data-display:
     fontFamily: JetBrains Mono
     fontSize: 18px
-    fontWeight: '600'
+    fontWeight: "600"
     lineHeight: 24px
   headline-lg-mobile:
     fontFamily: Inter
     fontSize: 22px
-    fontWeight: '700'
+    fontWeight: "700"
     lineHeight: 28px
 rounded:
   sm: 0.125rem
@@ -112,11 +112,12 @@ The target audience consists of professional auctioneers and high-volume bidders
 The palette is anchored by deep, authoritative tones contrasted against high-utility action colors.
 
 - **Primary (#0A192F):** Used for navigation, headers, and primary text to establish institutional gravity.
-- **Secondary (#007BFF):** Reserved for primary actions, active bid buttons, and interactive states. 
+- **Secondary (#007BFF):** Reserved for primary actions, active bid buttons, and interactive states.
 - **Tertiary (#28A745):** Utilized exclusively for success states, active "Live" indicators, and winning bid notifications.
 - **Neutral (#F8FAFC):** The primary background color to ensure a clean, breathable canvas for dense data.
 
-Status-specific semantic colors are used for badges: 
+Status-specific semantic colors are used for badges:
+
 - **Pending:** #F59E0B (Amber)
 - **Closed:** #64748B (Slate)
 
@@ -157,20 +158,25 @@ The shape language is disciplined and "Soft" (4px - 8px radius). This avoids the
 ## Components
 
 ### Buttons
+
 - **Primary:** Solid #007BFF with white text. High-contrast, 48px minimum height for mobile accessibility.
 - **Secondary:** Ghost style with #0A192F border and text. Used for "View Details" or "Watchlist."
 
 ### Data Cards
-- Cards must feature a "Sticky Header" area for the item name and a dedicated "Data Footer" for the current bid and time remaining. 
+
+- Cards must feature a "Sticky Header" area for the item name and a dedicated "Data Footer" for the current bid and time remaining.
 - High-contrast background for the "Current Bid" area (use #F1F5F9) to draw the eye immediately.
 
 ### Status Badges
+
 - **Live:** Tertiary (#28A745) background with white text. Include a pulsing dot icon for "Live" status.
 - **Pending/Closed:** Subtle tinted backgrounds with dark text (e.g., light gray background for "Closed").
 
 ### Input Fields
-- Structured with a persistent label in `label-md`. 
+
+- Structured with a persistent label in `label-md`.
 - Active state indicated by a 2px #007BFF border. Use monospaced font for numeric bid entry.
 
 ### Navigation
+
 - Bottom-fixed tab bar using #FFFFFF with #0A192F icons. The central action (typically "Search" or "My Bids") can be visually emphasized with a subtle primary color tint.

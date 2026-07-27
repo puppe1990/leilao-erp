@@ -9,9 +9,10 @@ import (
 
 	"github.com/puppe1990/cais/pkg/cais"
 	"github.com/puppe1990/cais/pkg/cais/meta"
+	inertia "github.com/romsar/gonertia/v3"
+
 	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/store"
-	inertia "github.com/romsar/gonertia/v3"
 )
 
 type CashHandler struct {
@@ -76,7 +77,7 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"amount":         domain.FormatBRL(e.AmountCents),
 			"occurredAt":     e.OccurredAt,
 			"category":       e.Category,
-			"canDelete":     e.Category == "ajuste",
+			"canDelete":      e.Category == "ajuste",
 			"categoryLabel":  cashCategoryLabel(e.Category),
 			"memo":           memo,
 		})
@@ -194,7 +195,7 @@ func (h *CashHandler) renderIndexWithErrors(w http.ResponseWriter, r *http.Reque
 			"amount":         domain.FormatBRL(e.AmountCents),
 			"occurredAt":     e.OccurredAt,
 			"category":       e.Category,
-			"canDelete":     e.Category == "ajuste",
+			"canDelete":      e.Category == "ajuste",
 			"categoryLabel":  cashCategoryLabel(e.Category),
 			"memo":           memo,
 		})
@@ -310,7 +311,6 @@ func (h *CashHandler) DestroyEntry(w http.ResponseWriter, r *http.Request, id in
 	}
 	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
 }
-
 
 func formatCashInput(cents int64) string {
 	neg := cents < 0

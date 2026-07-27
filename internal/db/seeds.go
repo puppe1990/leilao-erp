@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	seedPIXAccountName = "PIX principal"
+	seedPIXAccountName  = "PIX principal"
 	seedMonitorsLotName = "Monitores — leilão Jul/2026"
 )
 

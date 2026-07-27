@@ -12,8 +12,9 @@ import (
 	"github.com/puppe1990/cais/pkg/cais/passwordreset"
 	"github.com/puppe1990/cais/pkg/cais/session"
 	"github.com/puppe1990/cais/pkg/cais/validate"
-	"github.com/puppe1990/leilao-erp/internal/store"
 	inertia "github.com/romsar/gonertia/v3"
+
+	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
 type AuthHandler struct {
@@ -29,12 +30,6 @@ type AuthHandler struct {
 
 func NewAuthHandler(renderer *cais.Renderer, s store.Store, site meta.Site, sessions session.Store, cfg cais.Config, catalog *i18n.Catalog, i *inertia.Inertia) *AuthHandler {
 	return &AuthHandler{renderer: renderer, store: s, site: site, sessions: sessions, cfg: cfg, catalog: catalog, inertia: i}
-}
-
-// keep data types for fallback render paths (old templates)
-type loginData struct {
-	meta.Site
-	Error string
 }
 
 type forgotPasswordData struct {

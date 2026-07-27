@@ -8,9 +8,10 @@ import (
 
 	"github.com/puppe1990/cais/pkg/cais"
 	"github.com/puppe1990/cais/pkg/cais/meta"
+	inertia "github.com/romsar/gonertia/v3"
+
 	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/store"
-	inertia "github.com/romsar/gonertia/v3"
 )
 
 type PayablesHandler struct {
@@ -89,7 +90,7 @@ func (h *PayablesHandler) Settle(w http.ResponseWriter, r *http.Request, id int6
 		paidAt = time.Now().UTC().Format("2006-01-02")
 	}
 	if len(paidAt) == 10 {
-		paidAt = paidAt + "T12:00:00Z"
+		paidAt += "T12:00:00Z"
 	}
 
 	if accountID <= 0 {

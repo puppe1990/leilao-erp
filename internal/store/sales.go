@@ -259,7 +259,7 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list sales: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.Sale
 	for rows.Next() {
@@ -290,7 +290,7 @@ func (s *SQLiteStore) ListItemsInStock() ([]models.Item, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list items in stock: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.Item
 	for rows.Next() {
@@ -329,7 +329,7 @@ func (s *SQLiteStore) ListReceivables() ([]models.Receivable, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list receivables: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.Receivable
 	for rows.Next() {

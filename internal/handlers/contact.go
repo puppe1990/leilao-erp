@@ -10,9 +10,10 @@ import (
 	"github.com/puppe1990/cais/pkg/cais/i18n"
 	"github.com/puppe1990/cais/pkg/cais/meta"
 	"github.com/puppe1990/cais/pkg/cais/validate"
+	inertia "github.com/romsar/gonertia/v3"
+
 	"github.com/puppe1990/leilao-erp/internal/models"
 	"github.com/puppe1990/leilao-erp/internal/store"
-	inertia "github.com/romsar/gonertia/v3"
 )
 
 type ContactHandler struct {

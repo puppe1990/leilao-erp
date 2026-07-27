@@ -25,7 +25,7 @@ func (s *SQLiteStore) ListCashEntries(accountID int64) ([]models.CashEntry, erro
 	if err != nil {
 		return nil, fmt.Errorf("list cash entries: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.CashEntry
 	for rows.Next() {
@@ -106,7 +106,7 @@ func (s *SQLiteStore) ListPayables() ([]models.Payable, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list payables: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var out []models.Payable
 	for rows.Next() {

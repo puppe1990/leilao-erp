@@ -3,8 +3,9 @@ package handlers
 import (
 	"strings"
 
-	"github.com/puppe1990/leilao-erp/internal/store"
 	inertia "github.com/romsar/gonertia/v3"
+
+	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
 const defaultCompanyName = "AuctionHQ"

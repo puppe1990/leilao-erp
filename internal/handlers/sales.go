@@ -9,9 +9,10 @@ import (
 
 	"github.com/puppe1990/cais/pkg/cais"
 	"github.com/puppe1990/cais/pkg/cais/meta"
+	inertia "github.com/romsar/gonertia/v3"
+
 	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/store"
-	inertia "github.com/romsar/gonertia/v3"
 )
 
 type SalesHandler struct {
@@ -382,15 +383,13 @@ func (h *SalesHandler) Update(w http.ResponseWriter, r *http.Request, id int64) 
 		return
 	}
 	gross, err1 := domain.ParseBRLToCents(r.FormValue("gross"))
-	fee, err2 := domain.ParseBRLToCents(r.FormValue("fee"))
-	if err2 != nil {
+	fee, errFee := domain.ParseBRLToCents(r.FormValue("fee"))
+	if errFee != nil {
 		fee = 0
-		err2 = nil
 	}
-	ship, err3 := domain.ParseBRLToCents(r.FormValue("shipping"))
-	if err3 != nil {
+	ship, errShip := domain.ParseBRLToCents(r.FormValue("shipping"))
+	if errShip != nil {
 		ship = 0
-		err3 = nil
 	}
 	if err1 != nil {
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"gross": "Valor inválido"})

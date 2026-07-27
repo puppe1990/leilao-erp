@@ -34,14 +34,14 @@ Negócio de **revenda de itens de leilão**. Primeiro lote real: **22 monitores 
 
 ## 2. Decisões de produto
 
-| Decisão | Escolha |
-|---------|---------|
-| Escopo financeiro | Completo: caixa + a pagar/receber + custo por lote/item |
-| Usuários | 1 usuário agora; multi-usuário depois |
-| Canais de venda | Misto: marketplace + direto |
-| Deploy v1 | VPS/Lightsail |
-| Nome do app | `leilao-erp` |
-| Abordagem | Domínio de leilão + financeiro **derivado** das operações |
+| Decisão           | Escolha                                                   |
+| ----------------- | --------------------------------------------------------- |
+| Escopo financeiro | Completo: caixa + a pagar/receber + custo por lote/item   |
+| Usuários          | 1 usuário agora; multi-usuário depois                     |
+| Canais de venda   | Misto: marketplace + direto                               |
+| Deploy v1         | VPS/Lightsail                                             |
+| Nome do app       | `leilao-erp`                                              |
+| Abordagem         | Domínio de leilão + financeiro **derivado** das operações |
 
 ### Regra de ouro
 
@@ -72,12 +72,12 @@ Layout padrão Cais:
 
 ### Módulos v1 (ordem de valor)
 
-| Módulo | Responsabilidade |
-|--------|------------------|
-| Auth | Login único |
-| Lotes & Itens | Compra no leilão, custos, rateio unitário |
-| Vendas | Canal, preço, taxas, frete, status de pagamento |
-| Financeiro | Caixa, a pagar, a receber, dashboard |
+| Módulo        | Responsabilidade                                |
+| ------------- | ----------------------------------------------- |
+| Auth          | Login único                                     |
+| Lotes & Itens | Compra no leilão, custos, rateio unitário       |
+| Vendas        | Canal, preço, taxas, frete, status de pagamento |
+| Financeiro    | Caixa, a pagar, a receber, dashboard            |
 
 ### Dinheiro e moeda
 
@@ -108,101 +108,101 @@ CashEntry
 
 #### Lot
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| name | string | ex. "Monitores — leilão Jul/2026" |
-| auction_source | string? | casa de leilão / URL |
-| purchased_at | date | |
-| status | enum | `open`, `partial`, `sold`, `closed` |
-| notes | text? | |
+| Campo          | Tipo    | Notas                               |
+| -------------- | ------- | ----------------------------------- |
+| id             | PK      |                                     |
+| name           | string  | ex. "Monitores — leilão Jul/2026"   |
+| auction_source | string? | casa de leilão / URL                |
+| purchased_at   | date    |                                     |
+| status         | enum    | `open`, `partial`, `sold`, `closed` |
+| notes          | text?   |                                     |
 
 #### Item
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| lot_id | FK → Lot | |
-| sku | string? | |
-| title | string | ex. "Monitor" |
-| condition | string? | |
-| unit_cost_cents | int | rateado; congelado na venda |
-| status | enum | `in_stock`, `reserved`, `sold` |
-| sale_price_hint_cents | int? | preço sugerido opcional |
+| Campo                 | Tipo     | Notas                          |
+| --------------------- | -------- | ------------------------------ |
+| id                    | PK       |                                |
+| lot_id                | FK → Lot |                                |
+| sku                   | string?  |                                |
+| title                 | string   | ex. "Monitor"                  |
+| condition             | string?  |                                |
+| unit_cost_cents       | int      | rateado; congelado na venda    |
+| status                | enum     | `in_stock`, `reserved`, `sold` |
+| sale_price_hint_cents | int?     | preço sugerido opcional        |
 
 #### PurchaseCost
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| lot_id | FK → Lot | |
-| label | string | "Arremate", "Frete"… |
-| amount_cents | int | > 0 |
-| payable_id | FK? → Payable | se gerou título |
+| Campo        | Tipo          | Notas                |
+| ------------ | ------------- | -------------------- |
+| id           | PK            |                      |
+| lot_id       | FK → Lot      |                      |
+| label        | string        | "Arremate", "Frete"… |
+| amount_cents | int           | > 0                  |
+| payable_id   | FK? → Payable | se gerou título      |
 
 #### Sale
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| item_id | FK → Item | 1 item por venda na v1 |
-| sold_at | datetime | |
-| channel | enum | `direct`, `mercadolivre`, `shopee`, `olx`, `other` |
-| gross_cents | int | |
-| fee_cents | int | default 0 |
-| shipping_cents | int | default 0 |
-| net_cents | int | gross − fee − shipping |
-| payment_status | enum | `received`, `pending`, `cancelled` |
-| unit_cost_cents_at_sale | int | snapshot do custo do item |
+| Campo                   | Tipo      | Notas                                              |
+| ----------------------- | --------- | -------------------------------------------------- |
+| id                      | PK        |                                                    |
+| item_id                 | FK → Item | 1 item por venda na v1                             |
+| sold_at                 | datetime  |                                                    |
+| channel                 | enum      | `direct`, `mercadolivre`, `shopee`, `olx`, `other` |
+| gross_cents             | int       |                                                    |
+| fee_cents               | int       | default 0                                          |
+| shipping_cents          | int       | default 0                                          |
+| net_cents               | int       | gross − fee − shipping                             |
+| payment_status          | enum      | `received`, `pending`, `cancelled`                 |
+| unit_cost_cents_at_sale | int       | snapshot do custo do item                          |
 
 #### Payable
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| description | string | |
-| amount_cents | int | |
-| due_on | date | |
-| status | enum | `open`, `paid`, `cancelled` |
-| lot_id | FK? | |
-| paid_at | datetime? | |
+| Campo        | Tipo      | Notas                       |
+| ------------ | --------- | --------------------------- |
+| id           | PK        |                             |
+| description  | string    |                             |
+| amount_cents | int       |                             |
+| due_on       | date      |                             |
+| status       | enum      | `open`, `paid`, `cancelled` |
+| lot_id       | FK?       |                             |
+| paid_at      | datetime? |                             |
 
 #### Receivable
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| description | string | |
-| amount_cents | int | |
-| due_on | date | |
-| status | enum | `open`, `received`, `cancelled` |
-| sale_id | FK? | |
-| received_at | datetime? | |
+| Campo        | Tipo      | Notas                           |
+| ------------ | --------- | ------------------------------- |
+| id           | PK        |                                 |
+| description  | string    |                                 |
+| amount_cents | int       |                                 |
+| due_on       | date      |                                 |
+| status       | enum      | `open`, `received`, `cancelled` |
+| sale_id      | FK?       |                                 |
+| received_at  | datetime? |                                 |
 
 #### CashAccount
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| name | string | ex. "PIX principal" |
-| kind | enum | `pix`, `bank`, `cash`, `other` |
-| opening_balance_cents | int | default 0 |
+| Campo                 | Tipo   | Notas                          |
+| --------------------- | ------ | ------------------------------ |
+| id                    | PK     |                                |
+| name                  | string | ex. "PIX principal"            |
+| kind                  | enum   | `pix`, `bank`, `cash`, `other` |
+| opening_balance_cents | int    | default 0                      |
 
 #### CashEntry
 
-| Campo | Tipo | Notas |
-|-------|------|--------|
-| id | PK | |
-| account_id | FK → CashAccount | |
-| direction | enum | `in`, `out` |
-| amount_cents | int | > 0 |
-| occurred_at | datetime | |
-| category | string | ex. `compra_lote`, `venda`, `taxa`, `frete`, `ajuste` |
-| memo | text? | |
-| sale_id | FK? | |
-| payable_id | FK? | |
-| receivable_id | FK? | |
-| lot_id | FK? | |
+| Campo         | Tipo             | Notas                                                 |
+| ------------- | ---------------- | ----------------------------------------------------- |
+| id            | PK               |                                                       |
+| account_id    | FK → CashAccount |                                                       |
+| direction     | enum             | `in`, `out`                                           |
+| amount_cents  | int              | > 0                                                   |
+| occurred_at   | datetime         |                                                       |
+| category      | string           | ex. `compra_lote`, `venda`, `taxa`, `frete`, `ajuste` |
+| memo          | text?            |                                                       |
+| sale_id       | FK?              |                                                       |
+| payable_id    | FK?              |                                                       |
+| receivable_id | FK?              |                                                       |
+| lot_id        | FK?              |                                                       |
 
 ### Rateio de custo
 
@@ -227,14 +227,14 @@ remainder   = total_costs % qty
 
 ### Como o financeiro nasce
 
-| Ação do usuário | Efeito no sistema |
-|-----------------|-------------------|
-| Novo lote + custos “já paguei” | CashEntry(s) `out` + Payable(s) já `paid` (ou só CashEntry; preferência: Payable quitado para histórico) |
-| Novo lote + custos “ainda devo” | Payable(s) `open` |
-| Venda “recebi agora” (PIX) | Sale + CashEntry `in` + item `sold` |
-| Venda marketplace “libera em N dias” | Sale + Receivable `open` + item `sold` |
-| Quitar payable | status `paid` + CashEntry `out` |
-| Quitar receivable | status `received` + CashEntry `in` |
+| Ação do usuário                      | Efeito no sistema                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Novo lote + custos “já paguei”       | CashEntry(s) `out` + Payable(s) já `paid` (ou só CashEntry; preferência: Payable quitado para histórico) |
+| Novo lote + custos “ainda devo”      | Payable(s) `open`                                                                                        |
+| Venda “recebi agora” (PIX)           | Sale + CashEntry `in` + item `sold`                                                                      |
+| Venda marketplace “libera em N dias” | Sale + Receivable `open` + item `sold`                                                                   |
+| Quitar payable                       | status `paid` + CashEntry `out`                                                                          |
+| Quitar receivable                    | status `received` + CashEntry `in`                                                                       |
 
 ### Margem por venda
 
@@ -274,17 +274,17 @@ Config (contas de caixa)
 
 ### Telas
 
-| Tela | Função |
-|------|--------|
-| Dashboard | Saldos · a receber 7/30d · a pagar · lucro do mês · margem média · vencidos |
-| Lotes (lista) | Nome, data, custo total, estoque/vendidos, status |
-| Lote (detalhe) | Custos, rateio, itens · +custo · ações de pagamento |
-| Novo lote (wizard) | Dados → custos (+ pago?) → itens (qtd/título) → grava e rateia |
-| Vendas (lista) | Data, item, canal, bruto, taxas, líquido, status |
-| Nova venda | Item em estoque · canal · valores · recebi agora vs a receber |
-| Caixa | Extrato por conta · filtros · lançamento manual (categoria `ajuste`) |
-| A pagar / A receber | Listas · botão Quitar → CashEntry |
-| Login | E-mail/senha Cais |
+| Tela                | Função                                                                      |
+| ------------------- | --------------------------------------------------------------------------- |
+| Dashboard           | Saldos · a receber 7/30d · a pagar · lucro do mês · margem média · vencidos |
+| Lotes (lista)       | Nome, data, custo total, estoque/vendidos, status                           |
+| Lote (detalhe)      | Custos, rateio, itens · +custo · ações de pagamento                         |
+| Novo lote (wizard)  | Dados → custos (+ pago?) → itens (qtd/título) → grava e rateia              |
+| Vendas (lista)      | Data, item, canal, bruto, taxas, líquido, status                            |
+| Nova venda          | Item em estoque · canal · valores · recebi agora vs a receber               |
+| Caixa               | Extrato por conta · filtros · lançamento manual (categoria `ajuste`)        |
+| A pagar / A receber | Listas · botão Quitar → CashEntry                                           |
+| Login               | E-mail/senha Cais                                                           |
 
 ### Fluxos principais
 
@@ -309,14 +309,14 @@ Primeiro acesso: CTA “Registrar primeira compra de leilão”. Seed opcional d
 
 ## 6. Erros e resiliência
 
-| Situação | Resposta |
-|----------|----------|
-| Vender item já vendido | 422 + mensagem clara |
-| Quitar título já quitado | 422 |
-| Validação de form | Erros de campo Inertia |
-| SQLite busy | Retry curto; se falhar, mensagem amigável |
-| Sessão expirada | Redirect login + flash |
-| Prod sem secrets | Boot falha (padrão Cais) |
+| Situação                 | Resposta                                  |
+| ------------------------ | ----------------------------------------- |
+| Vender item já vendido   | 422 + mensagem clara                      |
+| Quitar título já quitado | 422                                       |
+| Validação de form        | Erros de campo Inertia                    |
+| SQLite busy              | Retry curto; se falhar, mensagem amigável |
+| Sessão expirada          | Redirect login + flash                    |
+| Prod sem secrets         | Boot falha (padrão Cais)                  |
 
 ---
 
@@ -324,11 +324,11 @@ Primeiro acesso: CTA “Registrar primeira compra de leilão”. Seed opcional d
 
 TDD obrigatório (convenção Cais / AGENTS.md).
 
-| Camada | Cobertura mínima |
-|--------|------------------|
-| Store | Rateio 60300/22; freeze de custo; quitação gera CashEntry; venda bloqueia item sold |
-| Handlers | Fluxos compra/venda direta/venda pending + 422s |
-| Frontend (Vitest) | Dashboard com saldos; form venda inválido não submete |
+| Camada            | Cobertura mínima                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| Store             | Rateio 60300/22; freeze de custo; quitação gera CashEntry; venda bloqueia item sold |
+| Handlers          | Fluxos compra/venda direta/venda pending + 422s                                     |
+| Frontend (Vitest) | Dashboard com saldos; form venda inválido não submete                               |
 
 **Fixture de ouro:** lote monitores R$603 / 22 itens em testes e seed opcional (`cais db seed`).
 
@@ -376,12 +376,12 @@ Detalhamento task-by-task fica no **plano de implementação** (`docs/superpower
 
 ## 11. Riscos e mitigações
 
-| Risco | Mitigação |
-|-------|-----------|
-| Escopo “ERP completo” estourar | Ordem de módulos; cancelamento de venda received adiado |
-| Float em dinheiro | Só centavos INTEGER |
-| Perda de DB na VPS | Path persistente + backup documentado |
-| Recálculo de custo errado | Testes de rateio + freeze em sold |
+| Risco                          | Mitigação                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| Escopo “ERP completo” estourar | Ordem de módulos; cancelamento de venda received adiado                   |
+| Float em dinheiro              | Só centavos INTEGER                                                       |
+| Perda de DB na VPS             | Path persistente + backup documentado                                     |
+| Recálculo de custo errado      | Testes de rateio + freeze em sold                                         |
 | Generators Cais HTMX vs Svelte | Preferir páginas Svelte/Inertia alinhadas ao scaffold atual do `cais new` |
 
 ---
