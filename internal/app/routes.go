@@ -12,6 +12,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	home := handlers.NewHomeHandler(deps.Renderer, deps.Site, deps.Catalog, cfg, deps.Inertia)
 	contact := handlers.NewContactHandler(deps.Renderer, deps.Store, deps.Site, deps.Catalog, cfg, deps.Inertia)
 	dashboard := handlers.NewDashboardHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
+	lots := handlers.NewLotsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	auth := handlers.NewAuthHandler(deps.Renderer, deps.Store, deps.Site, deps.Store.Sessions(), cfg, deps.Catalog, deps.Inertia)
 
 	loginLimit := middleware.NewRateLimiter(10, cfg)
@@ -30,4 +31,10 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/reset-password", resetLimit.Middleware(http.HandlerFunc(auth.ResetPasswordPost)).ServeHTTP)
 	r.Post("/logout", auth.LogoutPost)
 	r.Get("/dashboard", middleware.RequireAuthFunc("/login", dashboard.ServeHTTP))
+
+	r.Get("/lots", middleware.RequireAuthFunc("/login", lots.Index))
+	r.Get("/lots/new", middleware.RequireAuthFunc("/login", lots.New))
+	r.Post("/lots", middleware.RequireAuthFunc("/login", lots.Create))
+	r.Get("/lots/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", lots.Show)))
+	r.Post("/lots/{id}/costs", middleware.RequireAuthFunc("/login", cais.IntParam("id", lots.AddCost)))
 }

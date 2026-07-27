@@ -28,6 +28,27 @@ type Store interface {
 	CreatePasswordResetToken(userID int64) (string, error)
 	FindPasswordResetUserID(token string) (int64, bool)
 	ResetPasswordWithToken(token, passwordHash string) error
+
+	// Finance / lots
+	InsertCashAccount(name, kind string, openingBalanceCents int64) (int64, error)
+	ListCashAccounts() ([]models.CashAccount, error)
+	CashBalance(accountID int64) (int64, error)
+	CreateLotPurchase(input CreateLotInput) (lotID int64, err error)
+	AddPurchaseCost(lotID int64, cost CostInput, cashAccountID int64, paidAt string) error
+	FindLot(id int64) (models.Lot, error)
+	ListLots() ([]LotListItem, error)
+	ListItemsByLot(lotID int64) ([]models.Item, error)
+	ListPayablesByLot(lotID int64) ([]models.Payable, error)
+	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
+	CreateSale(input CreateSaleInput) (saleID int64, err error)
+	ListSales() ([]models.Sale, error)
+	CancelPendingSale(saleID int64) error
+	SettlePayable(id, accountID int64, paidAt string) error
+	SettleReceivable(id, accountID int64, receivedAt string) error
+	ListReceivables() ([]models.Receivable, error)
+	ListPayables() ([]models.Payable, error)
+	DashboardSummary() (DashboardSummary, error)
+
 	Sessions() session.Store
 	Ping() error
 	Close() error

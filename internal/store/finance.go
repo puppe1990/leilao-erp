@@ -3,7 +3,46 @@ package store
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/puppe1990/leilao-erp/internal/models"
 )
+
+func (s *SQLiteStore) ListPayables() ([]models.Payable, error) {
+	rows, err := s.db.Query(
+		`SELECT id, description, amount_cents, due_on, status, lot_id, paid_at, created_at
+		 FROM payables ORDER BY id DESC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list payables: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.Payable
+	for rows.Next() {
+		var p models.Payable
+		var lot sql.NullInt64
+		var paidAt sql.NullString
+		if err := rows.Scan(
+			&p.ID, &p.Description, &p.AmountCents, &p.DueOn, &p.Status,
+			&lot, &paidAt, &p.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan payable: %w", err)
+		}
+		if lot.Valid {
+			v := lot.Int64
+			p.LotID = &v
+		}
+		if paidAt.Valid {
+			v := paidAt.String
+			p.PaidAt = &v
+		}
+		out = append(out, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 // SettlePayable marks an open payable as paid and records a cash out entry.
 func (s *SQLiteStore) SettlePayable(id, accountID int64, paidAt string) error {

@@ -376,6 +376,102 @@ func (s *SQLiteStore) ListPayablesByLot(lotID int64) ([]models.Payable, error) {
 	return out, nil
 }
 
+// LotListItem is a lot row with aggregate cost and item count for index pages.
+type LotListItem struct {
+	ID             int64
+	Name           string
+	PurchasedAt    string
+	Status         string
+	TotalCostCents int64
+	ItemCount      int
+}
+
+func (s *SQLiteStore) ListLots() ([]LotListItem, error) {
+	rows, err := s.db.Query(
+		`SELECT l.id, l.name, l.purchased_at, l.status,
+		        COALESCE((SELECT SUM(pc.amount_cents) FROM purchase_costs pc WHERE pc.lot_id = l.id), 0),
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.lot_id = l.id), 0)
+		 FROM lots l
+		 ORDER BY l.id DESC`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list lots: %w", err)
+	}
+	defer rows.Close()
+
+	var out []LotListItem
+	for rows.Next() {
+		var row LotListItem
+		if err := rows.Scan(
+			&row.ID, &row.Name, &row.PurchasedAt, &row.Status,
+			&row.TotalCostCents, &row.ItemCount,
+		); err != nil {
+			return nil, fmt.Errorf("scan lot: %w", err)
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (s *SQLiteStore) ListCashAccounts() ([]models.CashAccount, error) {
+	rows, err := s.db.Query(
+		`SELECT id, name, kind, opening_balance_cents, created_at
+		 FROM cash_accounts ORDER BY id`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list cash accounts: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.CashAccount
+	for rows.Next() {
+		var a models.CashAccount
+		if err := rows.Scan(&a.ID, &a.Name, &a.Kind, &a.OpeningBalanceCents, &a.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan cash account: %w", err)
+		}
+		out = append(out, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (s *SQLiteStore) ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error) {
+	rows, err := s.db.Query(
+		`SELECT id, lot_id, label, amount_cents, payable_id, created_at
+		 FROM purchase_costs WHERE lot_id = ? ORDER BY id`,
+		lotID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list purchase costs by lot: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.PurchaseCost
+	for rows.Next() {
+		var c models.PurchaseCost
+		var payableID sql.NullInt64
+		if err := rows.Scan(
+			&c.ID, &c.LotID, &c.Label, &c.AmountCents, &payableID, &c.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan purchase cost: %w", err)
+		}
+		if payableID.Valid {
+			v := payableID.Int64
+			c.PayableID = &v
+		}
+		out = append(out, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CashBalance returns opening_balance + sum(in) - sum(out) for the account.
 func (s *SQLiteStore) CashBalance(accountID int64) (int64, error) {
 	var opening int64
