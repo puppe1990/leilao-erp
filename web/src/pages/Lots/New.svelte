@@ -16,7 +16,7 @@
   })
 
   function submit() {
-    $form.post('/lots')
+    form.post('/lots')
   }
 </script>
 
@@ -33,7 +33,7 @@
       <input
         id="name"
         type="text"
-        bind:value={$form.name}
+        bind:value={form.name}
         class="block w-full border p-2 rounded"
         placeholder="Ex: Monitores — leilão Jul/2026"
       />
@@ -45,7 +45,7 @@
       <input
         id="purchased_at"
         type="date"
-        bind:value={$form.purchased_at}
+        bind:value={form.purchased_at}
         class="block w-full border p-2 rounded"
       />
       {#if errors.purchased_at}<p class="text-red-600 text-sm mt-1">{errors.purchased_at}</p>{/if}
@@ -56,7 +56,7 @@
       <input
         id="item_title"
         type="text"
-        bind:value={$form.item_title}
+        bind:value={form.item_title}
         class="block w-full border p-2 rounded"
         placeholder="Ex: Monitor"
       />
@@ -69,7 +69,7 @@
         id="item_qty"
         type="number"
         min="1"
-        bind:value={$form.item_qty}
+        bind:value={form.item_qty}
         class="block w-full border p-2 rounded"
       />
       {#if errors.item_qty}<p class="text-red-600 text-sm mt-1">{errors.item_qty}</p>{/if}
@@ -82,7 +82,7 @@
         <input
           id="cost_label"
           type="text"
-          bind:value={$form.cost_label}
+          bind:value={form.cost_label}
           class="block w-full border p-2 rounded"
         />
       </div>
@@ -91,22 +91,22 @@
         <input
           id="cost_amount"
           type="text"
-          bind:value={$form.cost_amount}
+          bind:value={form.cost_amount}
           class="block w-full border p-2 rounded"
           placeholder="603,00"
         />
         {#if errors.cost_amount}<p class="text-red-600 text-sm mt-1">{errors.cost_amount}</p>{/if}
       </div>
       <label class="flex items-center gap-2 text-sm text-stone-700">
-        <input type="checkbox" bind:checked={$form.already_paid} />
+        <input type="checkbox" bind:checked={form.already_paid} />
         Já paguei
       </label>
-      {#if $form.already_paid}
+      {#if form.already_paid}
         <div class="mt-3">
           <label class="block text-sm text-stone-600 mb-1" for="cash_account_id">Conta de caixa</label>
           <select
             id="cash_account_id"
-            bind:value={$form.cash_account_id}
+            bind:value={form.cash_account_id}
             class="block w-full border p-2 rounded"
           >
             <option value="">Selecione…</option>
@@ -122,7 +122,7 @@
     </div>
 
     <div class="flex gap-3 pt-2">
-      <button type="submit" class="px-4 py-2 bg-stone-800 text-white rounded" disabled={$form.processing}>
+      <button type="submit" class="px-4 py-2 bg-stone-800 text-white rounded" disabled={form.processing}>
         Salvar lote
       </button>
       <a href="/lots" use:inertia class="px-4 py-2 border rounded text-stone-700">Cancelar</a>

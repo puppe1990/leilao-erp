@@ -4,7 +4,7 @@
   export let token = ''
   let form = useForm({ token, password: '', password_confirmation: '' })
   function submit() {
-    $form.post('/reset-password')
+    form.post('/reset-password')
   }
 </script>
 
@@ -12,12 +12,12 @@
   <h1 class="text-xl font-semibold text-stone-800 mb-4">Redefinir senha</h1>
   {#if errors.token}<p class="text-red-600 text-sm mb-2">{errors.token}</p>{/if}
   <form on:submit|preventDefault={submit} class="space-y-3">
-    <input type="hidden" bind:value={$form.token} />
+    <input type="hidden" bind:value={form.token} />
     <div>
       <label class="block text-sm text-stone-600 mb-1" for="password">Nova senha</label>
       <input
         id="password"
-        bind:value={$form.password}
+        bind:value={form.password}
         type="password"
         class="block w-full border p-2 rounded"
         autocomplete="new-password"
@@ -28,7 +28,7 @@
       <label class="block text-sm text-stone-600 mb-1" for="password_confirmation">Confirmar senha</label>
       <input
         id="password_confirmation"
-        bind:value={$form.password_confirmation}
+        bind:value={form.password_confirmation}
         type="password"
         class="block w-full border p-2 rounded"
         autocomplete="new-password"
@@ -40,7 +40,7 @@
     <button
       type="submit"
       class="w-full bg-stone-800 text-white px-4 py-2 rounded"
-      disabled={$form.processing}
+      disabled={form.processing}
     >
       Salvar senha
     </button>

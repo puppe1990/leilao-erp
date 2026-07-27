@@ -3,7 +3,7 @@
   export let errors = {}
   let form = useForm({ email: '' })
   function submit() {
-    $form.post('/forgot-password')
+    form.post('/forgot-password')
   }
 </script>
 
@@ -18,7 +18,7 @@
       <input
         id="email"
         type="email"
-        bind:value={$form.email}
+        bind:value={form.email}
         class="block w-full p-2 border rounded"
         autocomplete="username"
       />
@@ -27,7 +27,7 @@
     <button
       type="submit"
       class="w-full bg-stone-800 text-white px-4 py-2 rounded"
-      disabled={$form.processing}
+      disabled={form.processing}
     >
       Enviar link
     </button>

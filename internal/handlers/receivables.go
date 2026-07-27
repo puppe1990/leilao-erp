@@ -77,7 +77,7 @@ func (h *ReceivablesHandler) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ReceivablesHandler) Settle(w http.ResponseWriter, r *http.Request, id int64) {
-	if err := r.ParseForm(); err != nil {
+	if err := parseFormOrJSON(r); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

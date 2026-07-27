@@ -4,7 +4,7 @@
   export let site = {}
   let form = useForm({ email: '', password: '' })
   function submit() {
-    $form.post('/login')
+    form.post('/login')
   }
 </script>
 
@@ -16,7 +16,7 @@
       <input
         id="email"
         type="email"
-        bind:value={$form.email}
+        bind:value={form.email}
         class="block w-full p-2 border rounded"
         autocomplete="username"
       />
@@ -27,12 +27,12 @@
       <input
         id="password"
         type="password"
-        bind:value={$form.password}
+        bind:value={form.password}
         class="block w-full p-2 border rounded"
         autocomplete="current-password"
       />
     </div>
-    <button type="submit" class="mt-2 w-full bg-stone-800 text-white px-4 py-2 rounded" disabled={$form.processing}>
+    <button type="submit" class="mt-2 w-full bg-stone-800 text-white px-4 py-2 rounded" disabled={form.processing}>
       Entrar
     </button>
   </form>

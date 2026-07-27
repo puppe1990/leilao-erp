@@ -19,7 +19,7 @@
   })
 
   function submit() {
-    $form.post('/sales')
+    form.post('/sales')
   }
 </script>
 
@@ -41,7 +41,7 @@
         <label class="block text-sm text-stone-600 mb-1" for="item_id">Item</label>
         <select
           id="item_id"
-          bind:value={$form.item_id}
+          bind:value={form.item_id}
           class="block w-full border p-2 rounded"
         >
           <option value="">Selecione…</option>
@@ -58,7 +58,7 @@
         <label class="block text-sm text-stone-600 mb-1" for="channel">Canal</label>
         <select
           id="channel"
-          bind:value={$form.channel}
+          bind:value={form.channel}
           class="block w-full border p-2 rounded"
         >
           {#each channels as ch}
@@ -73,7 +73,7 @@
         <input
           id="sold_at"
           type="date"
-          bind:value={$form.sold_at}
+          bind:value={form.sold_at}
           class="block w-full border p-2 rounded"
         />
       </div>
@@ -83,7 +83,7 @@
         <input
           id="gross"
           type="text"
-          bind:value={$form.gross}
+          bind:value={form.gross}
           class="block w-full border p-2 rounded"
           placeholder="150,00"
         />
@@ -96,7 +96,7 @@
           <input
             id="fee"
             type="text"
-            bind:value={$form.fee}
+            bind:value={form.fee}
             class="block w-full border p-2 rounded"
             placeholder="0,00"
           />
@@ -107,7 +107,7 @@
           <input
             id="shipping"
             type="text"
-            bind:value={$form.shipping}
+            bind:value={form.shipping}
             class="block w-full border p-2 rounded"
             placeholder="0,00"
           />
@@ -118,23 +118,23 @@
       <fieldset class="border rounded p-3 space-y-2">
         <legend class="text-sm text-stone-600 px-1">Pagamento</legend>
         <label class="flex items-center gap-2 text-sm text-stone-700">
-          <input type="radio" bind:group={$form.payment_status} value="received" />
+          <input type="radio" bind:group={form.payment_status} value="received" />
           Recebi agora
         </label>
         <label class="flex items-center gap-2 text-sm text-stone-700">
-          <input type="radio" bind:group={$form.payment_status} value="pending" />
+          <input type="radio" bind:group={form.payment_status} value="pending" />
           A receber
         </label>
         {#if errors.payment_status}
           <p class="text-red-600 text-sm">{errors.payment_status}</p>
         {/if}
 
-        {#if $form.payment_status === 'received'}
+        {#if form.payment_status === 'received'}
           <div class="pt-2">
             <label class="block text-sm text-stone-600 mb-1" for="cash_account_id">Conta de caixa</label>
             <select
               id="cash_account_id"
-              bind:value={$form.cash_account_id}
+              bind:value={form.cash_account_id}
               class="block w-full border p-2 rounded"
             >
               <option value="">Selecione…</option>
@@ -148,13 +148,13 @@
           </div>
         {/if}
 
-        {#if $form.payment_status === 'pending'}
+        {#if form.payment_status === 'pending'}
           <div class="pt-2">
             <label class="block text-sm text-stone-600 mb-1" for="due_on">Vencimento</label>
             <input
               id="due_on"
               type="date"
-              bind:value={$form.due_on}
+              bind:value={form.due_on}
               class="block w-full border p-2 rounded"
             />
             {#if errors.due_on}<p class="text-red-600 text-sm mt-1">{errors.due_on}</p>{/if}
@@ -166,7 +166,7 @@
         <button
           type="submit"
           class="px-4 py-2 bg-stone-800 text-white rounded"
-          disabled={$form.processing}
+          disabled={form.processing}
         >
           Salvar venda
         </button>

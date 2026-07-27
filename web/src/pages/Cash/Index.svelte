@@ -17,7 +17,7 @@
   })
 
   function submit() {
-    $form.post('/cash/entries')
+    form.post('/cash/entries')
   }
 </script>
 
@@ -53,7 +53,7 @@
         <label class="block text-sm text-stone-600 mb-1" for="account_id">Conta</label>
         <select
           id="account_id"
-          bind:value={$form.account_id}
+          bind:value={form.account_id}
           class="block w-full border p-2 rounded"
         >
           <option value="">Selecione…</option>
@@ -68,7 +68,7 @@
         <label class="block text-sm text-stone-600 mb-1" for="direction">Direção</label>
         <select
           id="direction"
-          bind:value={$form.direction}
+          bind:value={form.direction}
           class="block w-full border p-2 rounded"
         >
           <option value="in">Entrada</option>
@@ -82,7 +82,7 @@
         <input
           id="amount"
           type="text"
-          bind:value={$form.amount}
+          bind:value={form.amount}
           placeholder="0,00"
           class="block w-full border p-2 rounded"
         />
@@ -94,7 +94,7 @@
         <input
           id="occurred_at"
           type="date"
-          bind:value={$form.occurred_at}
+          bind:value={form.occurred_at}
           class="block w-full border p-2 rounded"
         />
       </div>
@@ -104,7 +104,7 @@
         <input
           id="memo"
           type="text"
-          bind:value={$form.memo}
+          bind:value={form.memo}
           placeholder="Opcional"
           class="block w-full border p-2 rounded"
         />
@@ -114,7 +114,7 @@
         <button
           type="submit"
           class="px-4 py-2 bg-stone-800 text-white text-sm rounded"
-          disabled={$form.processing}
+          disabled={form.processing}
         >
           Registrar ajuste
         </button>

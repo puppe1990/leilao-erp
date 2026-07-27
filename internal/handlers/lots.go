@@ -65,7 +65,7 @@ func (h *LotsHandler) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LotsHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	if err := parseFormOrJSON(r); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -225,7 +225,7 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 }
 
 func (h *LotsHandler) AddCost(w http.ResponseWriter, r *http.Request, id int64) {
-	if err := r.ParseForm(); err != nil {
+	if err := parseFormOrJSON(r); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

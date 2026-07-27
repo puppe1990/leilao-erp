@@ -97,7 +97,7 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	if err := parseFormOrJSON(r); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
