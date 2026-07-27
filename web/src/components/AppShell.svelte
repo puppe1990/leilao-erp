@@ -1,5 +1,5 @@
 <script>
-  import { inertia } from '@inertiajs/svelte'
+  import { inertia, router } from '@inertiajs/svelte'
 
   /** @type {'dashboard'|'lots'|'sales'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
@@ -9,6 +9,10 @@
   export let hideBottomNav = false
 
   $: brand = title || companyName || 'AuctionHQ'
+
+  function logout() {
+    router.post('/logout')
+  }
 
   const tabs = [
     { href: '/dashboard', key: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -62,17 +66,16 @@
         <span class="material-symbols-outlined {active === 'config' ? 'fill' : ''}">settings</span>
       </a>
       {#if showLogout}
-        <form method="post" action="/logout" use:inertia>
-          <button
-            type="submit"
-            class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant
-              hover:bg-surface-container-low active:scale-95 transition-all"
-            title="Sair"
-            aria-label="Sair"
-          >
-            <span class="material-symbols-outlined">logout</span>
-          </button>
-        </form>
+        <button
+          type="button"
+          on:click={logout}
+          class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant
+            hover:bg-surface-container-low active:scale-95 transition-all"
+          title="Sair"
+          aria-label="Sair"
+        >
+          <span class="material-symbols-outlined">logout</span>
+        </button>
       {/if}
     </div>
   </header>
