@@ -58,7 +58,7 @@ func TestAuth_LoginPost_validCredentials_redirects(t *testing.T) {
 	t.Cleanup(func() { _ = s.Close() })
 	h := NewAuthHandler(setupTestRenderer(t), s, testSite(), s.Sessions(), cais.Config{}, i18n.DefaultCatalog(), setupTestInertia(t))
 
-	form := url.Values{"email": {"demo@example.com"}, "password": {"password"}}
+	form := url.Values{"email": {"admin@leilao.local"}, "password": {"change-me-now"}}
 	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()

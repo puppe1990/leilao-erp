@@ -26,6 +26,47 @@ func TestStore_Migrations(t *testing.T) {
 	}
 }
 
+func TestSeedAuthData_adminIdempotent(t *testing.T) {
+	s, err := NewSQLiteStore(":memory:", "development")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	user, err := s.FindUserByEmail(seedAdminEmail)
+	if err != nil {
+		t.Fatalf("admin not seeded: %v", err)
+	}
+	if user.Email != seedAdminEmail {
+		t.Errorf("email = %q, want %q", user.Email, seedAdminEmail)
+	}
+
+	if err := seedAuthData(s.DB(), "development"); err != nil {
+		t.Fatalf("second seed: %v", err)
+	}
+
+	var count int
+	if err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE email = ?", seedAdminEmail).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("user count = %d, want 1 after re-seed", count)
+	}
+}
+
+func TestSeedAuthData_skipsNonDevelopment(t *testing.T) {
+	s, err := NewSQLiteStore(":memory:", "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	_, err = s.FindUserByEmail(seedAdminEmail)
+	if err == nil {
+		t.Fatal("expected no admin seed in production env")
+	}
+}
+
 func TestStore_InsertContact(t *testing.T) {
 	s := newTestStore(t)
 

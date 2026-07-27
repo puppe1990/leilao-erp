@@ -71,6 +71,13 @@ func NewSQLiteStore(dsn string, env string) (*SQLiteStore, error) {
 	return &SQLiteStore{db: wrapped}, nil
 }
 
+const (
+	seedAdminEmail    = "admin@leilao.local"
+	seedAdminPassword = "change-me-now"
+)
+
+// seedAuthData inserts the single admin user in development if missing.
+// Idempotent: INSERT OR IGNORE on unique email.
 func seedAuthData(db *sql.DB, env string) error {
 	if env != "development" {
 		return nil
@@ -78,11 +85,14 @@ func seedAuthData(db *sql.DB, env string) error {
 	if err := session.EnsureSQLiteSchema(db); err != nil {
 		return err
 	}
-	hash, err := session.HashPassword("password")
+	hash, err := session.HashPassword(seedAdminPassword)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec("INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)", "demo@example.com", hash)
+	_, err = db.Exec(
+		"INSERT OR IGNORE INTO users (email, password_hash) VALUES (?, ?)",
+		seedAdminEmail, hash,
+	)
 	return err
 }
 

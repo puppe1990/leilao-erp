@@ -61,7 +61,7 @@ func TestAuth_ForgotPasswordPost_knownEmail_notifiesAndRedirects(t *testing.T) {
 	notify := &captureNotifier{}
 	h := newAuthHandlerForReset(t, s, notify)
 
-	form := url.Values{"email": {"demo@example.com"}}
+	form := url.Values{"email": {"admin@leilao.local"}}
 	req := httptest.NewRequest(http.MethodPost, "/forgot-password", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()
@@ -70,7 +70,7 @@ func TestAuth_ForgotPasswordPost_knownEmail_notifiesAndRedirects(t *testing.T) {
 	if rr.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want 303", rr.Code)
 	}
-	if len(notify.emails) != 1 || notify.emails[0] != "demo@example.com" {
+	if len(notify.emails) != 1 || notify.emails[0] != "admin@leilao.local" {
 		t.Fatalf("notify emails = %v", notify.emails)
 	}
 	if len(notify.tokens) != 1 || notify.tokens[0] == "" {
@@ -96,7 +96,7 @@ func TestAuth_ResetPasswordPost_validToken_updatesPassword(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = s.Close() })
 
-	user, err := s.FindUserByEmail("demo@example.com")
+	user, err := s.FindUserByEmail("admin@leilao.local")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestAuth_ResetPasswordPost_validToken_updatesPassword(t *testing.T) {
 		t.Errorf("Location = %q, want /login", rr.Header().Get("Location"))
 	}
 
-	updated, err := s.FindUserByEmail("demo@example.com")
+	updated, err := s.FindUserByEmail("admin@leilao.local")
 	if err != nil {
 		t.Fatal(err)
 	}
