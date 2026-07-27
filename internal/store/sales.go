@@ -136,6 +136,117 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 	return saleID, nil
 }
 
+// CancelPendingSale cancels a pending sale: reverts the item to in_stock,
+// cancels the open receivable (if any), and refreshes the lot status.
+// Received sales cannot be cancelled in v1.
+func (s *SQLiteStore) CancelPendingSale(saleID int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var itemID int64
+	var paymentStatus string
+	err = tx.QueryRow(
+		`SELECT item_id, payment_status FROM sales WHERE id = ?`,
+		saleID,
+	).Scan(&itemID, &paymentStatus)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("sale %d not found", saleID)
+		}
+		return fmt.Errorf("load sale: %w", err)
+	}
+
+	if paymentStatus == "received" {
+		return fmt.Errorf("cannot cancel sale %d: payment already received", saleID)
+	}
+	if paymentStatus != "pending" {
+		return fmt.Errorf("cannot cancel sale %d: payment_status=%s", saleID, paymentStatus)
+	}
+
+	// Related receivable must be open or absent (e.g. net=0 pending sale).
+	var recID sql.NullInt64
+	var recStatus sql.NullString
+	err = tx.QueryRow(
+		`SELECT id, status FROM receivables WHERE sale_id = ?`,
+		saleID,
+	).Scan(&recID, &recStatus)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("load receivable: %w", err)
+	}
+	if err == nil {
+		if !recStatus.Valid || recStatus.String != "open" {
+			status := "unknown"
+			if recStatus.Valid {
+				status = recStatus.String
+			}
+			return fmt.Errorf("cannot cancel sale %d: receivable is %s (must be open)", saleID, status)
+		}
+	}
+
+	if _, err := tx.Exec(
+		`UPDATE sales SET payment_status = 'cancelled' WHERE id = ?`,
+		saleID,
+	); err != nil {
+		return fmt.Errorf("cancel sale: %w", err)
+	}
+
+	if recID.Valid {
+		if _, err := tx.Exec(
+			`UPDATE receivables SET status = 'cancelled' WHERE id = ?`,
+			recID.Int64,
+		); err != nil {
+			return fmt.Errorf("cancel receivable: %w", err)
+		}
+	}
+
+	var lotID int64
+	err = tx.QueryRow(`SELECT lot_id FROM items WHERE id = ?`, itemID).Scan(&lotID)
+	if err != nil {
+		return fmt.Errorf("load item lot: %w", err)
+	}
+
+	if _, err := tx.Exec(
+		`UPDATE items SET status = 'in_stock' WHERE id = ?`,
+		itemID,
+	); err != nil {
+		return fmt.Errorf("restore item in_stock: %w", err)
+	}
+
+	var total, inStock, sold int
+	if err := tx.QueryRow(
+		`SELECT COUNT(*),
+		        COALESCE(SUM(CASE WHEN status = 'in_stock' THEN 1 ELSE 0 END), 0),
+		        COALESCE(SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END), 0)
+		 FROM items WHERE lot_id = ?`,
+		lotID,
+	).Scan(&total, &inStock, &sold); err != nil {
+		return fmt.Errorf("count lot items: %w", err)
+	}
+
+	lotStatus := "partial"
+	switch {
+	case total > 0 && inStock == total:
+		lotStatus = "open"
+	case total > 0 && sold == total:
+		lotStatus = "sold"
+	}
+
+	if _, err := tx.Exec(
+		`UPDATE lots SET status = ? WHERE id = ?`,
+		lotStatus, lotID,
+	); err != nil {
+		return fmt.Errorf("update lot status: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit cancel sale: %w", err)
+	}
+	return nil
+}
+
 func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 	rows, err := s.db.Query(
 		`SELECT id, item_id, sold_at, channel, gross_cents, fee_cents, shipping_cents,
