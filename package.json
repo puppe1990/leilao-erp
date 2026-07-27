@@ -16,7 +16,7 @@
     "build": "vite build",
     "dev:fe": "vite",
     "test:fe": "vitest run",
-    "test": "npm run format:check"
+    "test": "npm run format:check && vitest run"
   },
   "dependencies": {
     "@inertiajs/svelte": "^3.6.0",

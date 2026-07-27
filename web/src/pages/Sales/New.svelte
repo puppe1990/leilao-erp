@@ -1,6 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import { onMount } from 'svelte'
 
   export let errors = {}
   export let items = []
@@ -9,38 +10,48 @@
   export let site = {}
   export let companyName = 'AuctionHQ'
 
-  $: mains = items.filter((it) => !it.isAccessory)
-  $: accessories = items.filter((it) => it.isAccessory)
-  $: mainOptions = mains.length > 0 ? mains : items
+  function isAccessory(it) {
+    return !!it?.isAccessory
+  }
+
+  $: mains = (items || []).filter((it) => !isAccessory(it))
+  $: accessories = (items || []).filter((it) => isAccessory(it))
+  $: mainOptions = mains.length > 0 ? mains : items || []
+
+  function defaultItemId() {
+    if (typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('item_id')
+      if (q) return String(q)
+    }
+    const first = mainOptions[0] || (items && items[0])
+    return first?.id != null ? String(first.id) : ''
+  }
 
   let form = useForm({
-    item_id: mainOptions[0]?.id?.toString() || items[0]?.id?.toString() || '',
+    item_id: defaultItemId(),
     accessory_ids: [],
     channel: 'direct',
     gross: '',
     fee: '0',
     shipping: '0',
     payment_status: 'received',
-    cash_account_id: cashAccounts[0]?.id?.toString() || '',
+    cash_account_id: cashAccounts[0]?.id != null ? String(cashAccounts[0].id) : '',
     due_on: '',
     sold_at: new Date().toISOString().slice(0, 10),
   })
 
-  $: selectedMain = items.find((it) => String(it.id) === String(form.item_id))
+  function accessoryIds() {
+    const raw = form.accessory_ids
+    return Array.isArray(raw) ? raw : []
+  }
+
+  $: selectedMain = (items || []).find((it) => String(it.id) === String(form.item_id))
   $: selectedAccessories = accessories.filter((it) =>
-    form.accessory_ids.map(String).includes(String(it.id)),
+    accessoryIds().map(String).includes(String(it.id)),
   )
   $: totalCostRaw =
-    (selectedMain?.unitCostRaw || 0) +
-    selectedAccessories.reduce((sum, it) => sum + (it.unitCostRaw || 0), 0)
-
-  let lastPrefillItem = ''
-  $: if (selectedMain && String(selectedMain.id) !== lastPrefillItem) {
-    lastPrefillItem = String(selectedMain.id)
-    if (selectedMain.salePriceRaw) {
-      form.gross = formatCentsInput(selectedMain.salePriceRaw)
-    }
-  }
+    (Number(selectedMain?.unitCostRaw) || 0) +
+    selectedAccessories.reduce((sum, it) => sum + (Number(it.unitCostRaw) || 0), 0)
 
   function formatCents(cents) {
     const n = Number(cents) || 0
@@ -50,24 +61,52 @@
     return neg ? `-R$ ${s}` : `R$ ${s}`
   }
 
+  /** salePriceRaw from server is integer cents */
   function formatCentsInput(cents) {
     const n = Number(cents) || 0
     const abs = Math.abs(n)
     return `${Math.floor(abs / 100)},${String(abs % 100).padStart(2, '0')}`
   }
 
+  function prefillGrossFromItem(item) {
+    if (!item) return
+    const raw = item.salePriceRaw
+    if (raw != null && raw !== '' && Number(raw) > 0) {
+      form.gross = formatCentsInput(raw)
+    }
+  }
+
+  let lastPrefillId = ''
+  $: if (selectedMain && String(selectedMain.id) !== lastPrefillId) {
+    lastPrefillId = String(selectedMain.id)
+    prefillGrossFromItem(selectedMain)
+  }
+
+  onMount(() => {
+    // Ensure item_id from query after mount (SSR-safe)
+    const q = new URLSearchParams(window.location.search).get('item_id')
+    if (q) {
+      form.item_id = String(q)
+    } else if (!form.item_id && mainOptions[0]) {
+      form.item_id = String(mainOptions[0].id)
+    }
+    if (!Array.isArray(form.accessory_ids)) {
+      form.accessory_ids = []
+    }
+  })
+
   function toggleAccessory(id) {
     const sid = String(id)
-    const cur = form.accessory_ids.map(String)
+    const cur = accessoryIds().map(String)
     if (cur.includes(sid)) {
-      form.accessory_ids = form.accessory_ids.filter((x) => String(x) !== sid)
+      form.accessory_ids = accessoryIds().filter((x) => String(x) !== sid)
     } else {
-      form.accessory_ids = [...form.accessory_ids, id]
+      form.accessory_ids = [...accessoryIds(), id]
     }
   }
 
   function isChecked(id) {
-    return form.accessory_ids.map(String).includes(String(id))
+    return accessoryIds().map(String).includes(String(id))
   }
 
   /** Pick first free cabo de força + VGA + HDMI (kit completo). */
@@ -97,6 +136,9 @@
   }
 
   function submit() {
+    if (!Array.isArray(form.accessory_ids)) {
+      form.accessory_ids = []
+    }
     form.post('/sales')
   }
 </script>
@@ -117,10 +159,12 @@
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
-  {#if items.length === 0}
+  {#if !items || items.length === 0}
     <div class="ahq-card p-6 border-dashed text-on-surface-variant text-sm">
       <p class="mb-2">Nenhum item em estoque para vender.</p>
       <a href="/lots" use:inertia class="text-secondary font-medium">Ver lotes</a>
+      <span class="mx-2">·</span>
+      <a href="/stock" use:inertia class="text-secondary font-medium">Ver estoque</a>
     </div>
   {:else}
     <form on:submit|preventDefault={submit} class="ahq-card p-5 space-y-4">
@@ -130,13 +174,16 @@
           <option value="">Selecione…</option>
           {#each mainOptions as it}
             <option value={String(it.id)}>
-              #{it.id} — {it.title} (custo {it.unitCost}{it.salePriceHint ? ` · venda ${it.salePriceHint}` : ''})
+              #{it.id} — {it.title} (custo {it.unitCost}{it.salePriceHint
+                ? ` · venda ${it.salePriceHint}`
+                : ''})
             </option>
           {/each}
         </select>
         {#if selectedMain?.salePriceHint}
           <p class="text-on-surface-variant text-xs mt-1">
-            Preço sugerido: <span class="font-mono font-semibold text-secondary">{selectedMain.salePriceHint}</span>
+            Preço sugerido:
+            <span class="font-mono font-semibold text-secondary">{selectedMain.salePriceHint}</span>
             (preenchido no bruto — pode editar)
           </p>
         {/if}
@@ -147,11 +194,7 @@
         <fieldset class="border border-outline-variant rounded-lg p-4 space-y-3">
           <legend class="ahq-label px-1">Acessórios (cabos)</legend>
           <div class="flex flex-wrap gap-2 mb-2">
-            <button
-              type="button"
-              class="ahq-btn-primary h-9 px-3 text-xs"
-              on:click={selectCompleteKit}
-            >
+            <button type="button" class="ahq-btn-primary h-9 px-3 text-xs" on:click={selectCompleteKit}>
               <span class="material-symbols-outlined text-[16px] mr-1">package_2</span>
               Kit completo
             </button>

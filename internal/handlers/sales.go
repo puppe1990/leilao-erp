@@ -268,34 +268,6 @@ func (h *SalesHandler) inStockItemProps() ([]map[string]any, error) {
 	return out, nil
 }
 
-// isAccessoryTitle flags stock items that are typically sold with a monitor.
-func isAccessoryTitle(title string) bool {
-	t := strings.ToLower(title)
-	return strings.Contains(t, "cabo") ||
-		strings.Contains(t, "vga") ||
-		strings.Contains(t, "hdmi") ||
-		strings.Contains(t, "força") ||
-		strings.Contains(t, "forca") ||
-		strings.Contains(t, "power")
-}
-
-// parseAccessoryIDs reads accessory_ids from form (repeated keys and/or CSV).
-func parseAccessoryIDs(r *http.Request) []int64 {
-	var out []int64
-	seen := map[int64]bool{}
-	for _, raw := range r.Form["accessory_ids"] {
-		for _, part := range strings.Split(raw, ",") {
-			id, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
-			if err != nil || id <= 0 || seen[id] {
-				continue
-			}
-			seen[id] = true
-			out = append(out, id)
-		}
-	}
-	return out
-}
-
 func (h *SalesHandler) cashAccountProps() ([]map[string]any, error) {
 	accounts, err := h.store.ListCashAccounts()
 	if err != nil {
@@ -310,55 +282,6 @@ func (h *SalesHandler) cashAccountProps() ([]map[string]any, error) {
 		})
 	}
 	return out, nil
-}
-
-func channelLabel(channel string) string {
-	switch channel {
-	case "direct":
-		return "Direto"
-	case "mercadolivre":
-		return "Mercado Livre"
-	case "shopee":
-		return "Shopee"
-	case "olx":
-		return "OLX"
-	case "other":
-		return "Outro"
-	default:
-		return channel
-	}
-}
-
-func channelOptions() []map[string]string {
-	return []map[string]string{
-		{"value": "direct", "label": "Direto"},
-		{"value": "mercadolivre", "label": "Mercado Livre"},
-		{"value": "shopee", "label": "Shopee"},
-		{"value": "olx", "label": "OLX"},
-		{"value": "other", "label": "Outro"},
-	}
-}
-
-func validChannel(channel string) bool {
-	switch channel {
-	case "direct", "mercadolivre", "shopee", "olx", "other":
-		return true
-	default:
-		return false
-	}
-}
-
-func paymentStatusLabel(status string) string {
-	switch status {
-	case "received":
-		return "Recebido"
-	case "pending":
-		return "A receber"
-	case "cancelled":
-		return "Cancelado"
-	default:
-		return status
-	}
 }
 
 func (h *SalesHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
@@ -445,7 +368,7 @@ func (h *SalesHandler) Edit(w http.ResponseWriter, r *http.Request, id int64) {
 		"sale": map[string]any{
 			"id":        sale.ID,
 			"itemTitle": sale.ItemTitle,
-			"soldAt":    sale.SoldAt[:min(10, len(sale.SoldAt))],
+			"soldAt":    sale.SoldAt[:minInt(10, len(sale.SoldAt))],
 			"channel":   sale.Channel,
 			"gross":     formatCentsInput(sale.GrossCents),
 			"fee":       formatCentsInput(sale.FeeCents),
@@ -500,23 +423,4 @@ func (h *SalesHandler) Destroy(w http.ResponseWriter, r *http.Request, id int64)
 		return
 	}
 	h.inertia.Redirect(w, r, "/sales", http.StatusSeeOther)
-}
-
-func formatCentsInput(cents int64) string {
-	neg := cents < 0
-	if neg {
-		cents = -cents
-	}
-	s := fmt.Sprintf("%d,%02d", cents/100, cents%100)
-	if neg {
-		return "-" + s
-	}
-	return s
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
