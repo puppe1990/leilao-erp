@@ -3,9 +3,100 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/puppe1990/leilao-erp/internal/models"
 )
+
+// ListCashEntries returns cash ledger rows, newest first.
+// If accountID > 0, filters by that account; otherwise returns all accounts.
+func (s *SQLiteStore) ListCashEntries(accountID int64) ([]models.CashEntry, error) {
+	q := `SELECT id, account_id, direction, amount_cents, occurred_at, category, memo,
+	             sale_id, payable_id, receivable_id, lot_id, created_at
+	      FROM cash_entries`
+	var args []any
+	if accountID > 0 {
+		q += ` WHERE account_id = ?`
+		args = append(args, accountID)
+	}
+	q += ` ORDER BY id DESC`
+
+	rows, err := s.db.Query(q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list cash entries: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.CashEntry
+	for rows.Next() {
+		var e models.CashEntry
+		var memo sql.NullString
+		var saleID, payableID, receivableID, lotID sql.NullInt64
+		if err := rows.Scan(
+			&e.ID, &e.AccountID, &e.Direction, &e.AmountCents, &e.OccurredAt, &e.Category, &memo,
+			&saleID, &payableID, &receivableID, &lotID, &e.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan cash entry: %w", err)
+		}
+		if memo.Valid {
+			v := memo.String
+			e.Memo = &v
+		}
+		if saleID.Valid {
+			v := saleID.Int64
+			e.SaleID = &v
+		}
+		if payableID.Valid {
+			v := payableID.Int64
+			e.PayableID = &v
+		}
+		if receivableID.Valid {
+			v := receivableID.Int64
+			e.ReceivableID = &v
+		}
+		if lotID.Valid {
+			v := lotID.Int64
+			e.LotID = &v
+		}
+		out = append(out, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// InsertManualCashEntry records a manual ledger adjustment (category always "ajuste").
+func (s *SQLiteStore) InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, memo string) (int64, error) {
+	direction = strings.TrimSpace(direction)
+	if direction != "in" && direction != "out" {
+		return 0, fmt.Errorf("direction must be in or out")
+	}
+	if amountCents <= 0 {
+		return 0, fmt.Errorf("amount must be positive")
+	}
+	if accountID <= 0 {
+		return 0, fmt.Errorf("account_id required")
+	}
+	if strings.TrimSpace(occurredAt) == "" {
+		return 0, fmt.Errorf("occurred_at required")
+	}
+
+	var memoArg any
+	if m := strings.TrimSpace(memo); m != "" {
+		memoArg = m
+	}
+
+	result, err := s.db.Exec(
+		`INSERT INTO cash_entries (account_id, direction, amount_cents, occurred_at, category, memo)
+		 VALUES (?, ?, ?, ?, 'ajuste', ?)`,
+		accountID, direction, amountCents, occurredAt, memoArg,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("insert manual cash entry: %w", err)
+	}
+	return result.LastInsertId()
+}
 
 func (s *SQLiteStore) ListPayables() ([]models.Payable, error) {
 	rows, err := s.db.Query(

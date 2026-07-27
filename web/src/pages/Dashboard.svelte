@@ -14,6 +14,9 @@
     <a href="/lots" use:inertia class="underline">Lotes</a>
     <a href="/lots/new" use:inertia class="underline">Novo lote</a>
     <a href="/sales" use:inertia class="underline">Vendas</a>
+    <a href="/cash" use:inertia class="underline">Caixa</a>
+    <a href="/payables" use:inertia class="underline">A pagar</a>
+    <a href="/receivables" use:inertia class="underline">A receber</a>
   </nav>
   <form method="post" action="/logout" use:inertia>
     <button class="mt-4">Logout</button>

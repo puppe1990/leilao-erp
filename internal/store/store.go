@@ -48,6 +48,8 @@ type Store interface {
 	SettleReceivable(id, accountID int64, receivedAt string) error
 	ListReceivables() ([]models.Receivable, error)
 	ListPayables() ([]models.Payable, error)
+	ListCashEntries(accountID int64) ([]models.CashEntry, error) // accountID 0 = all
+	InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, memo string) (int64, error)
 	DashboardSummary() (DashboardSummary, error)
 
 	Sessions() session.Store

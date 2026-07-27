@@ -75,5 +75,8 @@
   <nav class="mt-6 text-sm space-x-4">
     <a href="/dashboard" use:inertia class="underline">Dashboard</a>
     <a href="/lots" use:inertia class="underline">Lotes</a>
+    <a href="/cash" use:inertia class="underline">Caixa</a>
+    <a href="/payables" use:inertia class="underline">A pagar</a>
+    <a href="/receivables" use:inertia class="underline">A receber</a>
   </nav>
 </div>
