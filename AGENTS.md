@@ -30,18 +30,18 @@ Admin (dev only): `admin@leilao.local` / `change-me-now`
 
 ## Architecture (predictable paths)
 
-| Path | Role |
-|------|------|
-| `cmd/server` | entry |
-| `internal/app` | routes, bootstrap |
-| `internal/handlers` | HTTP + Inertia props |
-| `internal/store` | SQLite, migrations in `store/migrations/` |
-| `internal/domain` | pure money/margin/allocate (no DB) |
-| `internal/models` | structs only |
-| `internal/db` | seeds (`RunSeeds` idempotent) |
-| `web/src/pages` | Inertia Svelte pages (`Sales/New` → `web/src/pages/Sales/New.svelte`) |
-| `web/src/lib` | pure JS helpers (filter/sort) |
-| `web/static/build` | **gitignored** Vite output — always rebuild after FE change |
+| Path                | Role                                                                  |
+| ------------------- | --------------------------------------------------------------------- |
+| `cmd/server`        | entry                                                                 |
+| `internal/app`      | routes, bootstrap                                                     |
+| `internal/handlers` | HTTP + Inertia props                                                  |
+| `internal/store`    | SQLite, migrations in `store/migrations/`                             |
+| `internal/domain`   | pure money/margin/allocate (no DB)                                    |
+| `internal/models`   | structs only                                                          |
+| `internal/db`       | seeds (`RunSeeds` idempotent)                                         |
+| `web/src/pages`     | Inertia Svelte pages (`Sales/New` → `web/src/pages/Sales/New.svelte`) |
+| `web/src/lib`       | pure JS helpers (filter/sort)                                         |
+| `web/static/build`  | **gitignored** Vite output — always rebuild after FE change           |
 
 Money: integer **cents** BRL. Net = gross − fee − shipping. Margin = net − unit_cost_at_sale (sum of sale_lines).
 
