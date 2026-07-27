@@ -11,6 +11,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Entrar · AuctionHQ</title>
+</svelte:head>
+
 <div class="min-h-screen bg-background flex flex-col">
   <header class="h-16 px-container-margin flex items-center border-b border-outline-variant bg-surface-container-lowest">
     <div class="flex items-center gap-3">

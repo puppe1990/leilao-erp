@@ -36,7 +36,25 @@
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
     return (parts[0][0] + parts[1][0]).toUpperCase()
   }
+
+  const pageTitles = {
+    dashboard: 'Dashboard',
+    lots: 'Lotes',
+    sales: 'Vendas',
+    cash: 'Caixa',
+    payables: 'A pagar',
+    receivables: 'A receber',
+    config: 'Configurações',
+  }
+
+  $: docTitle = pageTitles[active]
+    ? `${pageTitles[active]} · ${brand}`
+    : brand
 </script>
+
+<svelte:head>
+  <title>{docTitle}</title>
+</svelte:head>
 
 <div class="min-h-screen bg-background font-body-md text-body-md text-on-surface">
   <!-- Top bar -->

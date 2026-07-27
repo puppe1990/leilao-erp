@@ -8,6 +8,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Redefinir senha · AuctionHQ</title>
+</svelte:head>
+
 <div class="max-w-sm mx-auto mt-10 p-6 border rounded">
   <h1 class="text-xl font-semibold text-stone-800 mb-4">Redefinir senha</h1>
   {#if errors.token}<p class="text-red-600 text-sm mb-2">{errors.token}</p>{/if}

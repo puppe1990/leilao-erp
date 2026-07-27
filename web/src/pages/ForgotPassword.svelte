@@ -7,6 +7,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Esqueci a senha · AuctionHQ</title>
+</svelte:head>
+
 <div class="max-w-sm mx-auto mt-10 p-6 border rounded">
   <h1 class="text-xl font-semibold text-stone-800 mb-4">Esqueci a senha</h1>
   <p class="text-sm text-stone-600 mb-4">

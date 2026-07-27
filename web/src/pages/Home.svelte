@@ -4,6 +4,10 @@
   export let site = {}
 </script>
 
+<svelte:head>
+  <title>{title || 'AuctionHQ'}</title>
+</svelte:head>
+
 <div class="min-h-screen bg-background flex flex-col items-center justify-center px-container-margin text-center">
   <div class="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-lg mb-4">
     AQ

@@ -1,11 +1,11 @@
 {
-  "name": "leilao-erp",
-  "short_name": "leilao-erp",
-  "description": "leilao-erp — powered by Cais",
+  "name": "AuctionHQ",
+  "short_name": "AuctionHQ",
+  "description": "ERP de gestão de leilões — financeiro, lotes e vendas",
   "start_url": "/",
-  "display": "fullscreen",
-  "background_color": "#f8fafc",
-  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "background_color": "#f7f9fb",
+  "theme_color": "#0a192f",
   "orientation": "portrait-primary",
   "icons": [
     {
