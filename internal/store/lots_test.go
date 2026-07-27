@@ -187,3 +187,188 @@ func TestCreateLotPurchase_Validation(t *testing.T) {
 		t.Fatal("expected error when paid cost lacks cash account")
 	}
 }
+
+func TestAddPurchaseCost_RecalcInStockOnly(t *testing.T) {
+	st := newTestStore(t)
+
+	accountID, err := st.InsertCashAccount("PIX principal", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create lot with 2 items total cost 1000 cents → 500 each
+	lotID, err := st.CreateLotPurchase(CreateLotInput{
+		Name:        "Lote frete extra",
+		PurchasedAt: "2026-07-20",
+		ItemTitle:   "Item",
+		ItemQty:     2,
+		Costs: []CostInput{
+			{Label: "Arremate", AmountCents: 1000, AlreadyPaid: true},
+		},
+		CashAccountID: accountID,
+		PaidAt:        "2026-07-20T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	items, err := st.ListItemsByLot(lotID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("items=%d", len(items))
+	}
+	for _, it := range items {
+		if it.UnitCostCents != 500 {
+			t.Fatalf("initial unit_cost=%d want 500", it.UnitCostCents)
+		}
+	}
+
+	// Force item[0] status to sold
+	if _, err := st.db.Exec(`UPDATE items SET status='sold' WHERE id=?`, items[0].ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// AddPurchaseCost +200 cents AlreadyPaid on same cash account
+	err = st.AddPurchaseCost(lotID, CostInput{
+		Label:       "Frete",
+		AmountCents: 200,
+		AlreadyPaid: true,
+	}, accountID, "2026-07-21T10:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	items, err = st.ListItemsByLot(lotID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 2 {
+		t.Fatalf("items=%d", len(items))
+	}
+
+	// items ordered by id; [0] was sold
+	if items[0].Status != "sold" {
+		t.Fatalf("item[0] status=%s want sold", items[0].Status)
+	}
+	if items[0].UnitCostCents != 500 {
+		t.Fatalf("sold item unit_cost=%d want 500 (frozen)", items[0].UnitCostCents)
+	}
+	if items[1].Status != "in_stock" {
+		t.Fatalf("item[1] status=%s want in_stock", items[1].Status)
+	}
+	// remaining for 1 item = (1000+200) - 500 = 700
+	if items[1].UnitCostCents != 700 {
+		t.Fatalf("in_stock unit_cost=%d want 700", items[1].UnitCostCents)
+	}
+
+	// CashBalance decreases by 200 more (was -1000)
+	bal, err := st.CashBalance(accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bal != -1200 {
+		t.Fatalf("balance=%d want -1200", bal)
+	}
+
+	// New payable paid exists
+	pays, err := st.ListPayablesByLot(lotID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pays) != 2 {
+		t.Fatalf("payables=%d want 2", len(pays))
+	}
+	var foundNew bool
+	for _, p := range pays {
+		if p.AmountCents == 200 {
+			foundNew = true
+			if p.Status != "paid" {
+				t.Fatalf("new payable status=%s want paid", p.Status)
+			}
+			if p.PaidAt == nil || *p.PaidAt == "" {
+				t.Fatalf("expected paid_at set on new payable")
+			}
+		}
+	}
+	if !foundNew {
+		t.Fatal("expected payable with amount 200")
+	}
+}
+
+func TestAddPurchaseCost_Unpaid(t *testing.T) {
+	st := newTestStore(t)
+
+	accountID, err := st.InsertCashAccount("PIX principal", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lotID, err := st.CreateLotPurchase(CreateLotInput{
+		Name:        "Lote frete a pagar",
+		PurchasedAt: "2026-07-21",
+		ItemTitle:   "Caixa",
+		ItemQty:     2,
+		Costs: []CostInput{
+			{Label: "Arremate", AmountCents: 1000, AlreadyPaid: false},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = st.AddPurchaseCost(lotID, CostInput{
+		Label:       "Frete",
+		AmountCents: 200,
+		AlreadyPaid: false,
+	}, 0, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	items, err := st.ListItemsByLot(lotID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// both still in_stock; remaining = 1200 across 2 → 600 each
+	var sum int64
+	for _, it := range items {
+		if it.Status != "in_stock" {
+			t.Fatalf("status=%s", it.Status)
+		}
+		sum += it.UnitCostCents
+	}
+	if sum != 1200 {
+		t.Fatalf("cost sum=%d want 1200", sum)
+	}
+	for _, it := range items {
+		if it.UnitCostCents != 600 {
+			t.Fatalf("unit_cost=%d want 600", it.UnitCostCents)
+		}
+	}
+
+	pays, err := st.ListPayablesByLot(lotID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pays) != 2 {
+		t.Fatalf("payables=%d want 2", len(pays))
+	}
+	for _, p := range pays {
+		if p.Status != "open" {
+			t.Fatalf("status=%s want open", p.Status)
+		}
+		if p.PaidAt != nil {
+			t.Fatalf("expected nil paid_at, got %v", *p.PaidAt)
+		}
+	}
+
+	bal, err := st.CashBalance(accountID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bal != 0 {
+		t.Fatalf("balance=%d want 0 (no cash movement)", bal)
+	}
+}

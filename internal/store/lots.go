@@ -157,6 +157,146 @@ func (s *SQLiteStore) CreateLotPurchase(input CreateLotInput) (lotID int64, err 
 	return lotID, nil
 }
 
+// AddPurchaseCost appends a cost to an existing lot, inserts payable (+ cash if paid),
+// and reallocates unit_cost_cents across non-sold items only.
+// Sold items keep their unit_cost_cents; remaining cost is allocated to in_stock + reserved.
+func (s *SQLiteStore) AddPurchaseCost(lotID int64, cost CostInput, cashAccountID int64, paidAt string) error {
+	if cost.AmountCents <= 0 {
+		return fmt.Errorf("cost amount_cents must be > 0")
+	}
+	if cost.AlreadyPaid && cashAccountID <= 0 {
+		return fmt.Errorf("cash account required when cost is already paid")
+	}
+	if cost.AlreadyPaid && paidAt == "" {
+		return fmt.Errorf("paid_at required when cost is already paid")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var lotName, purchasedAt string
+	err = tx.QueryRow(
+		`SELECT name, purchased_at FROM lots WHERE id = ?`,
+		lotID,
+	).Scan(&lotName, &purchasedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("lot %d not found", lotID)
+		}
+		return fmt.Errorf("load lot: %w", err)
+	}
+
+	status := "open"
+	var paidAtVal any
+	if cost.AlreadyPaid {
+		status = "paid"
+		paidAtVal = paidAt
+	}
+
+	desc := cost.Label
+	if lotName != "" {
+		desc = fmt.Sprintf("%s — %s", cost.Label, lotName)
+	}
+
+	pres, err := tx.Exec(
+		`INSERT INTO payables (description, amount_cents, due_on, status, lot_id, paid_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		desc, cost.AmountCents, purchasedAt, status, lotID, paidAtVal,
+	)
+	if err != nil {
+		return fmt.Errorf("insert payable: %w", err)
+	}
+	payableID, err := pres.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("payable id: %w", err)
+	}
+
+	if _, err := tx.Exec(
+		`INSERT INTO purchase_costs (lot_id, label, amount_cents, payable_id)
+		 VALUES (?, ?, ?, ?)`,
+		lotID, cost.Label, cost.AmountCents, payableID,
+	); err != nil {
+		return fmt.Errorf("insert purchase cost: %w", err)
+	}
+
+	if cost.AlreadyPaid {
+		if _, err := tx.Exec(
+			`INSERT INTO cash_entries
+			 (account_id, direction, amount_cents, occurred_at, category, payable_id, lot_id)
+			 VALUES (?, 'out', ?, ?, 'compra_lote', ?, ?)`,
+			cashAccountID, cost.AmountCents, paidAt, payableID, lotID,
+		); err != nil {
+			return fmt.Errorf("insert cash entry: %w", err)
+		}
+	}
+
+	// totalCosts = sum of all purchase_costs for the lot
+	var totalCosts int64
+	if err := tx.QueryRow(
+		`SELECT COALESCE(SUM(amount_cents), 0) FROM purchase_costs WHERE lot_id = ?`,
+		lotID,
+	).Scan(&totalCosts); err != nil {
+		return fmt.Errorf("sum purchase costs: %w", err)
+	}
+
+	// sold items keep unit_cost; remaining allocated to in_stock + reserved
+	rows, err := tx.Query(
+		`SELECT id, unit_cost_cents, status FROM items WHERE lot_id = ? ORDER BY id`,
+		lotID,
+	)
+	if err != nil {
+		return fmt.Errorf("list items for reallocation: %w", err)
+	}
+	defer rows.Close()
+
+	var soldCostSum int64
+	type openItem struct {
+		id int64
+	}
+	var open []openItem
+	for rows.Next() {
+		var id, unitCost int64
+		var itemStatus string
+		if err := rows.Scan(&id, &unitCost, &itemStatus); err != nil {
+			return fmt.Errorf("scan item: %w", err)
+		}
+		if itemStatus == "sold" {
+			soldCostSum += unitCost
+			continue
+		}
+		// in_stock + reserved
+		open = append(open, openItem{id: id})
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// close rows before further Exec on same connection
+	if err := rows.Close(); err != nil {
+		return err
+	}
+
+	if len(open) > 0 {
+		remaining := totalCosts - soldCostSum
+		units := domain.AllocateUnitCosts(remaining, len(open))
+		for i, it := range open {
+			if _, err := tx.Exec(
+				`UPDATE items SET unit_cost_cents = ? WHERE id = ?`,
+				units[i], it.id,
+			); err != nil {
+				return fmt.Errorf("update item unit cost: %w", err)
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit add purchase cost: %w", err)
+	}
+	return nil
+}
+
 func (s *SQLiteStore) ListItemsByLot(lotID int64) ([]models.Item, error) {
 	rows, err := s.db.Query(
 		`SELECT id, lot_id, sku, title, condition, unit_cost_cents, status,
