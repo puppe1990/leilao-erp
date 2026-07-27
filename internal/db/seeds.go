@@ -20,11 +20,16 @@ const (
 func RunSeeds(s store.Store) error {
 	// cais:recurring-seeds
 	// cais:seeds
-	if _, err := s.InsertContact(models.Contact{
-		Name:  "Demo",
-		Email: "demo@example.com",
-	}); err != nil {
+	// Optional scaffold demo contact once (skip if any contact exists).
+	if n, err := s.CountContacts(); err != nil {
 		return err
+	} else if n == 0 {
+		if _, err := s.InsertContact(models.Contact{
+			Name:  "Demo",
+			Email: "demo@example.com",
+		}); err != nil {
+			return err
+		}
 	}
 
 	if err := ensurePIXAccount(s); err != nil {
