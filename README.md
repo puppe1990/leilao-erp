@@ -70,6 +70,17 @@ cmd/server/        → entry point
 
 Health check: GET /health → {"status":"ok"}
 
+## Auth / admin bootstrap
+
+Public signup is disabled. There is no `/signup` route.
+
+**Development only:** when `ENV=development`, the app seeds a single admin if missing:
+
+- Email: `admin@leilao.local`
+- Password: `change-me-now`
+
+**Production:** no auto-seed. Create the first admin via `cais console` (e.g. `store.CreateUser` with a bcrypt hash), or temporarily boot once with `ENV=development` so the seed runs, then switch back to production and change the password. A dedicated seed/console command may be added later.
+
 ## Testing on phone (LAN)
 
 1. Run `cais dev` and note the **LAN** URL printed at boot (e.g. `http://192.168.1.10:8080`).

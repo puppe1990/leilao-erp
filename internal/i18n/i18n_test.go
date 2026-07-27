@@ -7,8 +7,8 @@ func TestDefaultCatalog_english(t *testing.T) {
 	if got := c.T("auth.welcome"); got != "Welcome!" {
 		t.Errorf("T(auth.welcome) = %q", got)
 	}
-	if got := c.T("auth.signup_prompt"); got != "Don't have an account?" {
-		t.Errorf("T(auth.signup_prompt) = %q", got)
+	if got := c.T("auth.login_title"); got != "Sign in" {
+		t.Errorf("T(auth.login_title) = %q", got)
 	}
 }
 

@@ -2,7 +2,7 @@
   import { useForm } from '@inertiajs/svelte'
   export let errors = {}
   export let site = {}
-  let form = useForm({ email: 'admin@leilao.local', password: 'change-me-now' })
+  let form = useForm({ email: '', password: '' })
   function submit() { $form.post('/login') }
 </script>
 

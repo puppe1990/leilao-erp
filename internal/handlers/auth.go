@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -49,12 +48,6 @@ type resetPasswordData struct {
 	Token  string
 	Errors validate.FieldErrors
 	Error  string
-}
-
-type signupData struct {
-	meta.Site
-	Email  string
-	Errors validate.FieldErrors
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -116,101 +109,6 @@ func (h *AuthHandler) LogoutPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.SeeOther(w, r, "/login")
-}
-
-func (h *AuthHandler) SignUp(w http.ResponseWriter, r *http.Request) {
-	if _, ok := session.UserID(r); ok {
-		if h.inertia != nil {
-			h.inertia.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-			return
-		}
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-		return
-	}
-	if h.inertia != nil {
-		_ = h.inertia.Render(w, r, "Signup", inertia.Props{"site": meta.ForRequest(h.site, r)})
-		return
-	}
-	httpx.RenderOrError(w, h.renderer, "base", "signup", signupData{Site: meta.ForRequest(h.site, r)}, h.cfg)
-}
-
-func (h *AuthHandler) SignUpPost(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	email := strings.TrimSpace(r.FormValue("email"))
-	password := r.FormValue("password")
-	confirm := r.FormValue("password_confirmation")
-
-	var errs validate.FieldErrors
-	if err := validate.Email(email); err != nil {
-		errs.Add("email", h.catalog.T("contact.email_invalid"))
-	}
-	if err := validate.MinLength(password, 8); err != nil {
-		errs.Add("password", h.catalog.T("auth.password_too_short"))
-	}
-	if password != confirm {
-		errs.Add("password_confirmation", h.catalog.T("auth.password_mismatch"))
-	}
-	if errs.Any() {
-		if h.inertia != nil {
-			ve := make(inertia.ValidationErrors)
-			for k, v := range errs {
-				ve[k] = v
-			}
-			ctx := inertia.SetValidationErrors(r.Context(), ve)
-			_ = h.inertia.Render(w, r.WithContext(ctx), "Signup", inertia.Props{})
-			return
-		}
-		httpx.RenderOrError(w, h.renderer, "base", "signup", signupData{
-			Site:   meta.ForRequest(h.site, r),
-			Email:  email,
-			Errors: errs,
-		}, h.cfg)
-		return
-	}
-
-	hash, err := session.HashPassword(password)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	userID, err := h.store.CreateUser(email, hash)
-	if err != nil {
-		if errors.Is(err, store.ErrEmailTaken) {
-			if h.inertia != nil {
-				ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{
-					"email": h.catalog.T("auth.email_taken"),
-				})
-				_ = h.inertia.Render(w, r.WithContext(ctx), "Signup", inertia.Props{})
-				return
-			}
-			httpx.RenderOrError(w, h.renderer, "base", "signup", signupData{
-				Site:  meta.ForRequest(h.site, r),
-				Email: email,
-				Errors: validate.FieldErrors{
-					"email": h.catalog.T("auth.email_taken"),
-				},
-			}, h.cfg)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := session.SignIn(w, h.sessions, r, userID, session.CookieOptionsFromConfig(h.cfg)); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if h.inertia != nil {
-		ctx := inertia.SetFlash(r.Context(), inertia.Flash{"notice": h.catalog.T("auth.welcome")})
-		h.inertia.Redirect(w, r.WithContext(ctx), "/dashboard", http.StatusSeeOther)
-		return
-	}
-	flash.Set(w, "notice", h.catalog.T("auth.welcome"), h.cfg.CookieSecure())
-	httpx.SeeOther(w, r, "/dashboard")
 }
 
 func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {

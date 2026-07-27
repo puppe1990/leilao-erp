@@ -78,6 +78,8 @@ const (
 
 // seedAuthData inserts the single admin user in development if missing.
 // Idempotent: INSERT OR IGNORE on unique email.
+// Production does not auto-seed — create the admin via `cais console`
+// (store.CreateUser) or temporarily run once with ENV=development.
 func seedAuthData(db *sql.DB, env string) error {
 	if env != "development" {
 		return nil
