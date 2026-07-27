@@ -258,6 +258,142 @@ func TestCreateSale_MarketplacePending(t *testing.T) {
 	}
 }
 
+func TestCreateSale_WithAccessories(t *testing.T) {
+	st := newTestStore(t)
+
+	accountID, err := st.InsertCashAccount("PIX principal", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	monitorLot, err := st.CreateLotPurchase(CreateLotInput{
+		Name: "Monitores kit", PurchasedAt: "2026-07-20", ItemTitle: "Monitor", ItemQty: 2,
+		Costs:         []CostInput{{Label: "Arremate", AmountCents: 5000, AlreadyPaid: true}},
+		CashAccountID: accountID, PaidAt: "2026-07-20T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	powerLot, err := st.CreateLotPurchase(CreateLotInput{
+		Name: "Cabos força", PurchasedAt: "2026-07-21", ItemTitle: "Cabo de força", ItemQty: 2,
+		Costs:         []CostInput{{Label: "Compra", AmountCents: 400, AlreadyPaid: true}},
+		CashAccountID: accountID, PaidAt: "2026-07-21T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hdmiLot, err := st.CreateLotPurchase(CreateLotInput{
+		Name: "Cabos HDMI", PurchasedAt: "2026-07-21", ItemTitle: "Cabo HDMI", ItemQty: 2,
+		Costs:         []CostInput{{Label: "Compra", AmountCents: 600, AlreadyPaid: true}},
+		CashAccountID: accountID, PaidAt: "2026-07-21T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	monitors, _ := st.ListItemsByLot(monitorLot)
+	powers, _ := st.ListItemsByLot(powerLot)
+	hdmis, _ := st.ListItemsByLot(hdmiLot)
+
+	wantCost := monitors[0].UnitCostCents + powers[0].UnitCostCents + hdmis[0].UnitCostCents
+	const gross int64 = 20000
+
+	saleID, err := st.CreateSale(CreateSaleInput{
+		ItemID:        monitors[0].ID,
+		AccessoryIDs:  []int64{powers[0].ID, hdmis[0].ID},
+		SoldAt:        "2026-07-25T12:00:00Z",
+		Channel:       "direct",
+		GrossCents:    gross,
+		PaymentStatus: "received",
+		CashAccountID: accountID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sale, err := st.FindSaleByID(saleID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sale.UnitCostCentsAtSale != wantCost {
+		t.Fatalf("total cost at sale=%d want %d", sale.UnitCostCentsAtSale, wantCost)
+	}
+
+	lines, err := st.ListSaleLines(saleID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 3 {
+		t.Fatalf("lines=%d want 3", len(lines))
+	}
+	roles := map[string]int{}
+	for _, ln := range lines {
+		roles[ln.Role]++
+	}
+	if roles["main"] != 1 || roles["accessory"] != 2 {
+		t.Fatalf("roles=%v", roles)
+	}
+
+	// All three items sold
+	for _, lotID := range []int64{monitorLot, powerLot, hdmiLot} {
+		items, _ := st.ListItemsByLot(lotID)
+		var sold, stock int
+		for _, it := range items {
+			if it.Status == "sold" {
+				sold++
+			}
+			if it.Status == "in_stock" {
+				stock++
+			}
+		}
+		if sold != 1 || stock != 1 {
+			t.Fatalf("lot %d: sold=%d stock=%d want 1/1", lotID, sold, stock)
+		}
+	}
+
+	sales, err := st.ListSales()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sales[0].LineCount != 3 {
+		t.Fatalf("line count=%d", sales[0].LineCount)
+	}
+	if sales[0].Composition == "" || sales[0].Composition == sales[0].ItemTitle {
+		t.Fatalf("composition=%q", sales[0].Composition)
+	}
+
+	// Cancel path: pending multi-line restores all
+	sale2, err := st.CreateSale(CreateSaleInput{
+		ItemID:        monitors[1].ID,
+		AccessoryIDs:  []int64{powers[1].ID, hdmis[1].ID},
+		SoldAt:        "2026-07-26T12:00:00Z",
+		Channel:       "mercadolivre",
+		GrossCents:    18000,
+		FeeCents:      1000,
+		PaymentStatus: "pending",
+		DueOn:         "2026-08-10",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CancelPendingSale(sale2); err != nil {
+		t.Fatal(err)
+	}
+	for _, lotID := range []int64{monitorLot, powerLot, hdmiLot} {
+		items, _ := st.ListItemsByLot(lotID)
+		var stock int
+		for _, it := range items {
+			if it.Status == "in_stock" {
+				stock++
+			}
+		}
+		// one still sold from first sale, one restored
+		if stock != 1 {
+			t.Fatalf("after cancel lot %d stock=%d want 1", lotID, stock)
+		}
+	}
+}
+
 func TestCreateSale_RejectsSoldItem(t *testing.T) {
 	st := newTestStore(t)
 

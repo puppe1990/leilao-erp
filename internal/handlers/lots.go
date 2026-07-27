@@ -180,14 +180,25 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		if it.SKU != nil {
 			sku = *it.SKU
 		}
+		saleHint := ""
+		salePriceRaw := ""
+		margin := ""
+		if it.SalePriceHintCents != nil {
+			saleHint = domain.FormatBRL(*it.SalePriceHintCents)
+			salePriceRaw = formatCentsInput(*it.SalePriceHintCents)
+			margin = domain.FormatBRL(domain.Margin(*it.SalePriceHintCents, it.UnitCostCents))
+		}
 		itemRows = append(itemRows, map[string]any{
-			"id":          it.ID,
-			"title":       it.Title,
-			"sku":         sku,
-			"unitCost":    domain.FormatBRL(it.UnitCostCents),
-			"status":      it.Status,
-			"statusLabel": itemStatusLabel(it.Status),
-			"canEdit":     it.Status == "in_stock" || it.Status == "reserved",
+			"id":            it.ID,
+			"title":         it.Title,
+			"sku":           sku,
+			"unitCost":      domain.FormatBRL(it.UnitCostCents),
+			"salePriceHint": saleHint,
+			"salePriceRaw":  salePriceRaw,
+			"marginHint":    margin,
+			"status":        it.Status,
+			"statusLabel":   itemStatusLabel(it.Status),
+			"canEdit":       it.Status == "in_stock" || it.Status == "reserved",
 		})
 	}
 
@@ -431,10 +442,29 @@ func (h *LotsHandler) UpdateItem(w http.ResponseWriter, r *http.Request, lotID i
 		http.Error(w, "item inválido", http.StatusBadRequest)
 		return
 	}
-	if err := h.store.UpdateItem(itemID, r.FormValue("title"), r.FormValue("sku")); err != nil {
+	in := store.UpdateItemInput{
+		Title: r.FormValue("title"),
+		SKU:   r.FormValue("sku"),
+	}
+	if raw := strings.TrimSpace(r.FormValue("sale_price_hint")); raw != "" {
+		cents, err := domain.ParseBRLToCents(raw)
+		if err != nil || cents < 0 {
+			ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": "Preço de venda inválido"})
+			r = r.WithContext(ctx)
+			h.Show(w, r, lotID)
+			return
+		}
+		in.SalePriceHintCents = &cents
+	}
+	if err := h.store.UpdateItem(itemID, in); err != nil {
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
 		r = r.WithContext(ctx)
 		h.Show(w, r, lotID)
+		return
+	}
+	// Prefer return path from stock page when provided
+	if ret := strings.TrimSpace(r.FormValue("return_to")); ret == "/stock" {
+		h.inertia.Redirect(w, r, "/stock", http.StatusSeeOther)
 		return
 	}
 	h.inertia.Redirect(w, r, fmt.Sprintf("/lots/%d", lotID), http.StatusSeeOther)

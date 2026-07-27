@@ -69,6 +69,18 @@
                   <p class="text-[10px] text-on-surface-variant uppercase mt-0.5">{item.statusLabel}</p>
                 </div>
               </div>
+              {#if item.salePriceHint}
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span class="ahq-label text-[10px]">Preço venda</span>
+                    <p class="font-mono font-semibold text-secondary">{item.salePriceHint}</p>
+                  </div>
+                  <div>
+                    <span class="ahq-label text-[10px]">Margem pot.</span>
+                    <p class="font-mono font-semibold">{item.marginHint || '—'}</p>
+                  </div>
+                </div>
+              {/if}
               {#if item.canEdit}
                 <form
                   class="grid grid-cols-2 gap-2"
@@ -76,11 +88,14 @@
                     router.post(`/lots/${lot.id}/items/${item.id}`, {
                       title: item._title ?? item.title,
                       sku: item._sku ?? item.sku ?? '',
+                      sale_price_hint: item._sale ?? item.salePriceRaw ?? '',
                     })
                   }}
                 >
-                  <input class="ahq-input h-10 text-sm" placeholder="Título" value={item.title}
+                  <input class="ahq-input h-10 text-sm col-span-2" placeholder="Título" value={item.title}
                     on:input={(e) => (item._title = e.currentTarget.value)} />
+                  <input class="ahq-input h-10 text-sm font-mono" placeholder="Preço venda" value={item.salePriceRaw || ''}
+                    on:input={(e) => (item._sale = e.currentTarget.value)} />
                   <input class="ahq-input h-10 text-sm font-mono" placeholder="SKU" value={item.sku || ''}
                     on:input={(e) => (item._sku = e.currentTarget.value)} />
                   <button type="submit" class="col-span-2 ahq-btn-ghost h-10 text-sm">Salvar item</button>
