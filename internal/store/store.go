@@ -24,10 +24,18 @@ type Store interface {
 	FindContact(id int64) (models.Contact, error)
 	CountContacts() (int64, error)
 	FindUserByEmail(email string) (models.User, error)
+	FindUserByID(id int64) (models.User, error)
 	CreateUser(email, passwordHash string) (int64, error)
+	UpdateUserPassword(userID int64, passwordHash string) error
 	CreatePasswordResetToken(userID int64) (string, error)
 	FindPasswordResetUserID(token string) (int64, bool)
 	ResetPasswordWithToken(token, passwordHash string) error
+
+	// Settings
+	GetSetting(key string) (string, error)
+	SetSetting(key, value string) error
+	CompanyName() (string, error)
+	SetCompanyName(name string) error
 
 	// Finance / lots
 	InsertCashAccount(name, kind string, openingBalanceCents int64) (int64, error)

@@ -7,6 +7,7 @@
   export let cashAccounts = []
   export let errors = {}
   export let site = {}
+  export let companyName = 'AuctionHQ'
 
   function settle(id) {
     if (!confirm('Quitar este recebimento? Será gerada uma entrada no caixa.')) return
@@ -21,7 +22,7 @@
   }
 </script>
 
-<AppShell active="receivables">
+<AppShell {companyName} active="receivables">
   <div class="mb-section-padding">
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">A receber</h1>
     <p class="text-on-surface-variant text-body-md mt-1">Marketplace e liberações.</p>

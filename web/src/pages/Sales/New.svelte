@@ -7,6 +7,7 @@
   export let cashAccounts = []
   export let channels = []
   export let site = {}
+  export let companyName = 'AuctionHQ'
 
   let form = useForm({
     item_id: items[0]?.id?.toString() || '',
@@ -25,7 +26,7 @@
   }
 </script>
 
-<AppShell active="sales">
+<AppShell {companyName} active="sales">
   <div class="mb-section-padding">
     <a href="/sales" use:inertia class="text-sm text-secondary flex items-center gap-1 mb-3">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>

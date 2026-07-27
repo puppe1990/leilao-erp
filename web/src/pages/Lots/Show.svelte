@@ -9,6 +9,7 @@
   export let cashAccounts = []
   export let errors = {}
   export let site = {}
+  export let companyName = 'AuctionHQ'
 
   let costForm = useForm({
     cost_label: 'Frete',
@@ -22,7 +23,7 @@
   }
 </script>
 
-<AppShell active="lots">
+<AppShell {companyName} active="lots">
   <div class="mb-section-padding">
     <a href="/lots" use:inertia class="text-sm text-secondary flex items-center gap-1 mb-3">
       <span class="material-symbols-outlined text-[18px]">arrow_back</span>

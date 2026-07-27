@@ -60,7 +60,7 @@ func (h *DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	monthProfitFormatted := domain.FormatBRL(summary.MonthProfitCents)
 
 	if h.inertia != nil {
-		_ = h.inertia.Render(w, r, "Dashboard", inertia.Props{
+		_ = h.inertia.Render(w, r, "Dashboard", withCompany(h.store, inertia.Props{
 			"site":                     meta.ForRequest(h.site, r),
 			"balances":                 balances,
 			"totalCashFormatted":       totalCashFormatted,
@@ -72,7 +72,7 @@ func (h *DashboardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"lotCount":                 summary.LotCount,
 			"ctaLot":                   ctaLot,
 			"env":                      h.cfg.Env,
-		})
+		}))
 		return
 	}
 	httpx.RenderOrError(w, h.renderer, "base", "dashboard", DashboardData{

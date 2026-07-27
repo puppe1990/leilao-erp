@@ -46,10 +46,10 @@ func (h *LotsHandler) Index(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	_ = h.inertia.Render(w, r, "Lots/Index", inertia.Props{
+	_ = h.inertia.Render(w, r, "Lots/Index", withCompany(h.store, inertia.Props{
 		"site": meta.ForRequest(h.site, r),
 		"lots": rows,
-	})
+	}))
 }
 
 func (h *LotsHandler) New(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +58,10 @@ func (h *LotsHandler) New(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	_ = h.inertia.Render(w, r, "Lots/New", inertia.Props{
+	_ = h.inertia.Render(w, r, "Lots/New", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"cashAccounts": accounts,
-	})
+	}))
 }
 
 func (h *LotsHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -205,7 +205,7 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		notes = *lot.Notes
 	}
 
-	_ = h.inertia.Render(w, r, "Lots/Show", inertia.Props{
+	_ = h.inertia.Render(w, r, "Lots/Show", withCompany(h.store, inertia.Props{
 		"site": meta.ForRequest(h.site, r),
 		"lot": map[string]any{
 			"id":            lot.ID,
@@ -221,7 +221,7 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		"costs":        costRows,
 		"payables":     payableRows,
 		"cashAccounts": accounts,
-	})
+	}))
 }
 
 func (h *LotsHandler) AddCost(w http.ResponseWriter, r *http.Request, id int64) {
@@ -284,10 +284,10 @@ func (h *LotsHandler) renderNewWithErrors(w http.ResponseWriter, r *http.Request
 	}
 	ctx := inertia.SetValidationErrors(r.Context(), ve)
 	// gonertia Render always writes 200; validation surfaces via props.errors
-	_ = h.inertia.Render(w, r.WithContext(ctx), "Lots/New", inertia.Props{
+	_ = h.inertia.Render(w, r.WithContext(ctx), "Lots/New", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"cashAccounts": accounts,
-	})
+	}))
 }
 
 func (h *LotsHandler) cashAccountProps() ([]map[string]any, error) {

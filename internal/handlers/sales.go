@@ -51,10 +51,10 @@ func (h *SalesHandler) Index(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	_ = h.inertia.Render(w, r, "Sales/Index", inertia.Props{
+	_ = h.inertia.Render(w, r, "Sales/Index", withCompany(h.store, inertia.Props{
 		"site":  meta.ForRequest(h.site, r),
 		"sales": rows,
-	})
+	}))
 }
 
 func (h *SalesHandler) New(w http.ResponseWriter, r *http.Request) {
@@ -68,12 +68,12 @@ func (h *SalesHandler) New(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	_ = h.inertia.Render(w, r, "Sales/New", inertia.Props{
+	_ = h.inertia.Render(w, r, "Sales/New", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"items":        items,
 		"cashAccounts": accounts,
 		"channels":     channelOptions(),
-	})
+	}))
 }
 
 func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -199,10 +199,10 @@ func (h *SalesHandler) Cancel(w http.ResponseWriter, r *http.Request, id int64) 
 			})
 		}
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
-		_ = h.inertia.Render(w, r.WithContext(ctx), "Sales/Index", inertia.Props{
+		_ = h.inertia.Render(w, r.WithContext(ctx), "Sales/Index", withCompany(h.store, inertia.Props{
 			"site":  meta.ForRequest(h.site, r),
 			"sales": rows,
-		})
+		}))
 		return
 	}
 	h.inertia.Redirect(w, r, "/sales", http.StatusSeeOther)
@@ -220,12 +220,12 @@ func (h *SalesHandler) renderNewWithErrors(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	ctx := inertia.SetValidationErrors(r.Context(), ve)
-	_ = h.inertia.Render(w, r.WithContext(ctx), "Sales/New", inertia.Props{
+	_ = h.inertia.Render(w, r.WithContext(ctx), "Sales/New", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"items":        items,
 		"cashAccounts": accounts,
 		"channels":     channelOptions(),
-	})
+	}))
 }
 
 func (h *SalesHandler) inStockItemProps() ([]map[string]any, error) {

@@ -9,6 +9,7 @@
   export let filterAccountId = 0
   export let errors = {}
   export let site = {}
+  export let companyName = 'AuctionHQ'
 
   let form = useForm({
     account_id: cashAccounts[0]?.id?.toString() || '',
@@ -23,7 +24,7 @@
   }
 </script>
 
-<AppShell active="cash">
+<AppShell {companyName} active="cash">
   <div class="mb-section-padding">
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Relatórios Financeiros</h1>
     <p class="text-on-surface-variant text-body-md mt-1">Caixa, extrato e ajustes.</p>

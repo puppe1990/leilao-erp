@@ -13,9 +13,10 @@
   export let ctaLot = false
   export let env = ''
   export let site = {}
+  export let companyName = 'AuctionHQ'
 </script>
 
-<AppShell active="dashboard">
+<AppShell {companyName} active="dashboard">
   <section class="mb-section-padding">
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Dashboard</h1>
     <p class="text-on-surface-variant text-body-md mt-1">Visão financeira do seu negócio de leilão.</p>

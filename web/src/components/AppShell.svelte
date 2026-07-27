@@ -1,11 +1,14 @@
 <script>
   import { inertia } from '@inertiajs/svelte'
 
-  /** @type {'dashboard'|'lots'|'sales'|'cash'|'payables'|'receivables'|''} */
+  /** @type {'dashboard'|'lots'|'sales'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
-  export let title = 'AuctionHQ'
+  export let title = ''
+  export let companyName = 'AuctionHQ'
   export let showLogout = true
   export let hideBottomNav = false
+
+  $: brand = title || companyName || 'AuctionHQ'
 
   const tabs = [
     { href: '/dashboard', key: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -19,6 +22,16 @@
     if (key === 'cash' && (active === 'payables' || active === 'receivables')) return true
     return false
   }
+
+  function initials(name) {
+    const parts = String(name || 'AQ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+    if (parts.length === 0) return 'AQ'
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
 </script>
 
 <div class="min-h-screen bg-background font-body-md text-body-md text-on-surface">
@@ -27,15 +40,27 @@
     class="fixed top-0 left-0 right-0 z-50 h-16 px-container-margin flex items-center justify-between
       bg-surface-container-lowest border-b border-outline-variant"
   >
-    <div class="flex items-center gap-3 min-w-0">
+    <a href="/dashboard" use:inertia class="flex items-center gap-3 min-w-0">
       <div
         class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 font-bold text-sm"
       >
-        AQ
+        {initials(brand)}
       </div>
-      <span class="font-headline-md text-headline-md font-bold text-primary truncate">{title}</span>
-    </div>
+      <span class="font-headline-md text-headline-md font-bold text-primary truncate">{brand}</span>
+    </a>
     <div class="flex items-center gap-1">
+      <a
+        href="/config"
+        use:inertia
+        class="w-10 h-10 flex items-center justify-center rounded-full transition-all
+          {active === 'config'
+          ? 'bg-secondary-container text-on-secondary-container'
+          : 'text-on-surface-variant hover:bg-surface-container-low active:scale-95'}"
+        title="Configurações"
+        aria-label="Configurações"
+      >
+        <span class="material-symbols-outlined {active === 'config' ? 'fill' : ''}">settings</span>
+      </a>
       {#if showLogout}
         <form method="post" action="/logout" use:inertia>
           <button

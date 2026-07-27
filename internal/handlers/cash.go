@@ -87,13 +87,13 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	_ = h.inertia.Render(w, r, "Cash/Index", inertia.Props{
+	_ = h.inertia.Render(w, r, "Cash/Index", withCompany(h.store, inertia.Props{
 		"site":            meta.ForRequest(h.site, r),
 		"balances":        balances,
 		"entries":         entryRows,
 		"cashAccounts":    accountOptions,
 		"filterAccountId": accountFilter,
-	})
+	}))
 }
 
 func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
@@ -200,13 +200,13 @@ func (h *CashHandler) renderIndexWithErrors(w http.ResponseWriter, r *http.Reque
 			"kind": a.Kind,
 		})
 	}
-	_ = h.inertia.Render(w, r.WithContext(ctx), "Cash/Index", inertia.Props{
+	_ = h.inertia.Render(w, r.WithContext(ctx), "Cash/Index", withCompany(h.store, inertia.Props{
 		"site":            meta.ForRequest(h.site, r),
 		"balances":        balances,
 		"entries":         entryRows,
 		"cashAccounts":    accountOptions,
 		"filterAccountId": int64(0),
-	})
+	}))
 }
 
 func cashDirectionLabel(direction string) string {

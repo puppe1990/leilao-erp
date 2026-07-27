@@ -69,11 +69,11 @@ func (h *ReceivablesHandler) Index(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	_ = h.inertia.Render(w, r, "Receivables/Index", inertia.Props{
+	_ = h.inertia.Render(w, r, "Receivables/Index", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"receivables":  rows,
 		"cashAccounts": accountOptions,
-	})
+	}))
 }
 
 func (h *ReceivablesHandler) Settle(w http.ResponseWriter, r *http.Request, id int64) {

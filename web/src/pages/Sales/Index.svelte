@@ -5,6 +5,7 @@
   export let sales = []
   export let errors = {}
   export let site = {}
+  export let companyName = 'AuctionHQ'
 
   function cancelSale(id) {
     if (!confirm('Cancelar esta venda pendente? O item voltará ao estoque.')) return
@@ -20,7 +21,7 @@
   }
 </script>
 
-<AppShell active="sales">
+<AppShell {companyName} active="sales">
   <div class="flex items-start justify-between gap-3 mb-section-padding">
     <div>
       <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Vendas</h1>

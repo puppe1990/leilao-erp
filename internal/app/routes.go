@@ -17,6 +17,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	cash := handlers.NewCashHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	payables := handlers.NewPayablesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	receivables := handlers.NewReceivablesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
+	configH := handlers.NewConfigHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	auth := handlers.NewAuthHandler(deps.Renderer, deps.Store, deps.Site, deps.Store.Sessions(), cfg, deps.Catalog, deps.Inertia)
 
 	loginLimit := middleware.NewRateLimiter(10, cfg)
@@ -53,4 +54,8 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/payables/{id}/settle", middleware.RequireAuthFunc("/login", cais.IntParam("id", payables.Settle)))
 	r.Get("/receivables", middleware.RequireAuthFunc("/login", receivables.Index))
 	r.Post("/receivables/{id}/settle", middleware.RequireAuthFunc("/login", cais.IntParam("id", receivables.Settle)))
+
+	r.Get("/config", middleware.RequireAuthFunc("/login", configH.Index))
+	r.Post("/config/company", middleware.RequireAuthFunc("/login", configH.UpdateCompany))
+	r.Post("/config/password", middleware.RequireAuthFunc("/login", configH.UpdatePassword))
 }

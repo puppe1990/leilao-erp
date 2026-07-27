@@ -4,6 +4,7 @@
 
   export let lots = []
   export let site = {}
+  export let companyName = 'AuctionHQ'
 
   function statusBadge(status) {
     const s = (status || '').toLowerCase()
@@ -14,7 +15,7 @@
   }
 </script>
 
-<AppShell active="lots">
+<AppShell {companyName} active="lots">
   <div class="flex items-start justify-between gap-3 mb-section-padding">
     <div>
       <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Gestão de Lotes</h1>
