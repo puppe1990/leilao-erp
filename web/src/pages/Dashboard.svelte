@@ -13,6 +13,7 @@
   <nav class="mt-4 space-x-4 text-sm">
     <a href="/lots" use:inertia class="underline">Lotes</a>
     <a href="/lots/new" use:inertia class="underline">Novo lote</a>
+    <a href="/sales" use:inertia class="underline">Vendas</a>
   </nav>
   <form method="post" action="/logout" use:inertia>
     <button class="mt-4">Logout</button>

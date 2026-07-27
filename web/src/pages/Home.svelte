@@ -16,6 +16,7 @@
     <a href="/login" use:inertia class="underline">Login</a>
     <a href="/dashboard" use:inertia class="underline">Dashboard</a>
     <a href="/lots" use:inertia class="underline">Lotes</a>
+    <a href="/sales" use:inertia class="underline">Vendas</a>
   </nav>
   <p class="mt-6 text-xs text-stone-500">Inertia component: {title}</p>
 </div>

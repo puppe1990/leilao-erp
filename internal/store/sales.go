@@ -249,9 +249,12 @@ func (s *SQLiteStore) CancelPendingSale(saleID int64) error {
 
 func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 	rows, err := s.db.Query(
-		`SELECT id, item_id, sold_at, channel, gross_cents, fee_cents, shipping_cents,
-		        net_cents, payment_status, unit_cost_cents_at_sale, created_at
-		 FROM sales ORDER BY id`,
+		`SELECT s.id, s.item_id, COALESCE(i.title, ''), s.sold_at, s.channel,
+		        s.gross_cents, s.fee_cents, s.shipping_cents,
+		        s.net_cents, s.payment_status, s.unit_cost_cents_at_sale, s.created_at
+		 FROM sales s
+		 LEFT JOIN items i ON i.id = s.item_id
+		 ORDER BY s.id DESC`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list sales: %w", err)
@@ -262,7 +265,7 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 	for rows.Next() {
 		var sale models.Sale
 		if err := rows.Scan(
-			&sale.ID, &sale.ItemID, &sale.SoldAt, &sale.Channel,
+			&sale.ID, &sale.ItemID, &sale.ItemTitle, &sale.SoldAt, &sale.Channel,
 			&sale.GrossCents, &sale.FeeCents, &sale.ShippingCents,
 			&sale.NetCents, &sale.PaymentStatus, &sale.UnitCostCentsAtSale,
 			&sale.CreatedAt,
@@ -270,6 +273,47 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 			return nil, fmt.Errorf("scan sale: %w", err)
 		}
 		out = append(out, sale)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListItemsInStock returns items available for sale (status = in_stock).
+func (s *SQLiteStore) ListItemsInStock() ([]models.Item, error) {
+	rows, err := s.db.Query(
+		`SELECT id, lot_id, sku, title, condition, unit_cost_cents, status,
+		        sale_price_hint_cents, created_at
+		 FROM items WHERE status = 'in_stock' ORDER BY id`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list items in stock: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.Item
+	for rows.Next() {
+		var it models.Item
+		var sku, condition sql.NullString
+		var hint sql.NullInt64
+		if err := rows.Scan(
+			&it.ID, &it.LotID, &sku, &it.Title, &condition,
+			&it.UnitCostCents, &it.Status, &hint, &it.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan item: %w", err)
+		}
+		if sku.Valid {
+			it.SKU = &sku.String
+		}
+		if condition.Valid {
+			it.Condition = &condition.String
+		}
+		if hint.Valid {
+			v := hint.Int64
+			it.SalePriceHintCents = &v
+		}
+		out = append(out, it)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

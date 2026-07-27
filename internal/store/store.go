@@ -38,6 +38,7 @@ type Store interface {
 	FindLot(id int64) (models.Lot, error)
 	ListLots() ([]LotListItem, error)
 	ListItemsByLot(lotID int64) ([]models.Item, error)
+	ListItemsInStock() ([]models.Item, error)
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)

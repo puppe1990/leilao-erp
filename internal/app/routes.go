@@ -13,6 +13,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	contact := handlers.NewContactHandler(deps.Renderer, deps.Store, deps.Site, deps.Catalog, cfg, deps.Inertia)
 	dashboard := handlers.NewDashboardHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	lots := handlers.NewLotsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
+	sales := handlers.NewSalesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	auth := handlers.NewAuthHandler(deps.Renderer, deps.Store, deps.Site, deps.Store.Sessions(), cfg, deps.Catalog, deps.Inertia)
 
 	loginLimit := middleware.NewRateLimiter(10, cfg)
@@ -37,4 +38,9 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/lots", middleware.RequireAuthFunc("/login", lots.Create))
 	r.Get("/lots/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", lots.Show)))
 	r.Post("/lots/{id}/costs", middleware.RequireAuthFunc("/login", cais.IntParam("id", lots.AddCost)))
+
+	r.Get("/sales", middleware.RequireAuthFunc("/login", sales.Index))
+	r.Get("/sales/new", middleware.RequireAuthFunc("/login", sales.New))
+	r.Post("/sales", middleware.RequireAuthFunc("/login", sales.Create))
+	r.Post("/sales/{id}/cancel", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.Cancel)))
 }
