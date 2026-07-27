@@ -19,10 +19,27 @@ func newTestStore(t *testing.T) *SQLiteStore {
 func TestStore_Migrations(t *testing.T) {
 	s := newTestStore(t)
 
-	var name string
-	err := s.db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='contacts'").Scan(&name)
-	if err != nil {
-		t.Fatalf("contacts table not found: %v", err)
+	tables := []string{
+		"contacts",
+		"users",
+		"cash_accounts",
+		"lots",
+		"payables",
+		"purchase_costs",
+		"items",
+		"sales",
+		"receivables",
+		"cash_entries",
+	}
+	for _, table := range tables {
+		var name string
+		err := s.db.QueryRow(
+			"SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+			table,
+		).Scan(&name)
+		if err != nil {
+			t.Fatalf("%s table not found: %v", table, err)
+		}
 	}
 }
 
