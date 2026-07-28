@@ -458,7 +458,18 @@
               {:else}
                 <tr class="hover:bg-surface-container-low/80 transition-colors">
                   <td class="px-3 py-2.5">
-                    <p class="font-medium text-primary leading-snug">{item.title}</p>
+                    {#if item.productId}
+                      <a
+                        href={`/products/${item.productId}`}
+                        use:inertia
+                        class="font-medium text-primary leading-snug hover:underline hover:text-secondary"
+                        title="Ver produto"
+                      >
+                        {item.title}
+                      </a>
+                    {:else}
+                      <p class="font-medium text-primary leading-snug">{item.title}</p>
+                    {/if}
                     {#if item.lotId}
                       <p class="text-[11px] font-mono text-on-surface-variant mt-0.5">
                         lote
@@ -470,7 +481,14 @@
                           {item.lotId}
                         </a>
                         {#if item.productId}
-                          · prod #{item.productId}
+                          ·
+                          <a
+                            href={`/products/${item.productId}`}
+                            use:inertia
+                            class="hover:text-secondary hover:underline"
+                          >
+                            prod #{item.productId}
+                          </a>
                         {/if}
                       </p>
                     {/if}

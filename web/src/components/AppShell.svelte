@@ -1,7 +1,7 @@
 <script>
   import { inertia, router } from '@inertiajs/svelte'
 
-  /** @type {'dashboard'|'lots'|'stock'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
+  /** @type {'dashboard'|'lots'|'stock'|'products'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
   export let title = ''
   export let companyName = 'AuctionHQ'
@@ -18,6 +18,7 @@
     { href: '/dashboard', key: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/lots', key: 'lots', label: 'Lotes', icon: 'gavel' },
     { href: '/stock', key: 'stock', label: 'Estoque', icon: 'inventory_2' },
+    { href: '/products', key: 'products', label: 'Produtos', icon: 'category' },
     { href: '/sales', key: 'sales', label: 'Vendas', icon: 'sell' },
     { href: '/clients', key: 'clients', label: 'Clientes', icon: 'group' },
     { href: '/cash', key: 'cash', label: 'Finanças', icon: 'analytics' },
@@ -43,6 +44,7 @@
     dashboard: 'Dashboard',
     lots: 'Lotes',
     stock: 'Estoque',
+    products: 'Produtos',
     sales: 'Vendas',
     clients: 'Clientes',
     cash: 'Caixa',

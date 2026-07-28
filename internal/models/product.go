@@ -17,5 +17,8 @@ type Product struct {
 	// PhotoCount / VideoCount filled by ListProducts.
 	PhotoCount int
 	VideoCount int
-	CreatedAt  time.Time
+	// Description: technical specs; ListingText: marketplace copy (ML/OLX).
+	Description string
+	ListingText string
+	CreatedAt   time.Time
 }

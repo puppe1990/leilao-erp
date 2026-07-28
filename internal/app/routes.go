@@ -55,6 +55,8 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Get("/stock/export.csv", middleware.RequireAuthFunc("/login", stock.ExportCSV))
 
 	r.Get("/products", middleware.RequireAuthFunc("/login", products.Index))
+	r.Get("/products/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.Show)))
+	r.Get("/products/{id}/edit", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.Edit)))
 	r.Post("/products/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.Update)))
 	r.Post("/products/{id}/media", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.AddMedia)))
 	r.Post("/products/{id}/media/{mediaId}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.DestroyMedia)))
@@ -75,6 +77,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 
 	r.Get("/cash", middleware.RequireAuthFunc("/login", cash.Index))
 	r.Post("/cash/entries", middleware.RequireAuthFunc("/login", cash.CreateManual))
+	r.Post("/cash/entries/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", cash.UpdateEntry)))
 	r.Post("/cash/entries/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", cash.DestroyEntry)))
 	r.Post("/cash/accounts", middleware.RequireAuthFunc("/login", cash.CreateAccount))
 	r.Post("/cash/accounts/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", cash.UpdateAccount)))
@@ -82,11 +85,15 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 
 	r.Get("/payables", middleware.RequireAuthFunc("/login", payables.Index))
 	r.Post("/payables", middleware.RequireAuthFunc("/login", payables.Create))
+	r.Post("/payables/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", payables.Update)))
+	r.Post("/payables/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", payables.Destroy)))
 	r.Post("/payables/{id}/settle", middleware.RequireAuthFunc("/login", cais.IntParam("id", payables.Settle)))
 	r.Post("/payables/{id}/cancel", middleware.RequireAuthFunc("/login", cais.IntParam("id", payables.Cancel)))
 
 	r.Get("/receivables", middleware.RequireAuthFunc("/login", receivables.Index))
 	r.Post("/receivables", middleware.RequireAuthFunc("/login", receivables.Create))
+	r.Post("/receivables/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", receivables.Update)))
+	r.Post("/receivables/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", receivables.Destroy)))
 	r.Post("/receivables/{id}/settle", middleware.RequireAuthFunc("/login", cais.IntParam("id", receivables.Settle)))
 	r.Post("/receivables/{id}/cancel", middleware.RequireAuthFunc("/login", cais.IntParam("id", receivables.Cancel)))
 

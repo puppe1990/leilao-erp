@@ -29,34 +29,9 @@ func (s *SQLiteStore) ListCashEntries(accountID int64) ([]models.CashEntry, erro
 
 	var out []models.CashEntry
 	for rows.Next() {
-		var e models.CashEntry
-		var memo sql.NullString
-		var saleID, payableID, receivableID, lotID sql.NullInt64
-		if err := rows.Scan(
-			&e.ID, &e.AccountID, &e.Direction, &e.AmountCents, &e.OccurredAt, &e.Category, &memo,
-			&saleID, &payableID, &receivableID, &lotID, &e.CreatedAt,
-		); err != nil {
+		e, err := scanCashEntry(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan cash entry: %w", err)
-		}
-		if memo.Valid {
-			v := memo.String
-			e.Memo = &v
-		}
-		if saleID.Valid {
-			v := saleID.Int64
-			e.SaleID = &v
-		}
-		if payableID.Valid {
-			v := payableID.Int64
-			e.PayableID = &v
-		}
-		if receivableID.Valid {
-			v := receivableID.Int64
-			e.ReceivableID = &v
-		}
-		if lotID.Valid {
-			v := lotID.Int64
-			e.LotID = &v
 		}
 		out = append(out, e)
 	}
@@ -66,8 +41,27 @@ func (s *SQLiteStore) ListCashEntries(accountID int64) ([]models.CashEntry, erro
 	return out, nil
 }
 
-// InsertManualCashEntry records a manual ledger adjustment (category always "ajuste").
-func (s *SQLiteStore) InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, memo string) (int64, error) {
+// ManualCashCategories are categories allowed for free-form cash ledger rows.
+var ManualCashCategories = map[string]bool{
+	"ajuste":  true,
+	"despesa": true,
+	"frete":   true,
+	"taxa":    true,
+}
+
+func normalizeManualCashCategory(category string) (string, error) {
+	c := strings.TrimSpace(strings.ToLower(category))
+	if c == "" {
+		c = "ajuste"
+	}
+	if !ManualCashCategories[c] {
+		return "", fmt.Errorf("%w: category must be ajuste, despesa, frete or taxa", ErrInvalidInput)
+	}
+	return c, nil
+}
+
+// InsertManualCashEntry records a free-form ledger row (not linked to sale/lot/payable).
+func (s *SQLiteStore) InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, category, memo string) (int64, error) {
 	direction = strings.TrimSpace(direction)
 	if direction != "in" && direction != "out" {
 		return 0, fmt.Errorf("direction must be in or out")
@@ -81,6 +75,10 @@ func (s *SQLiteStore) InsertManualCashEntry(accountID int64, direction string, a
 	if strings.TrimSpace(occurredAt) == "" {
 		return 0, fmt.Errorf("occurred_at required")
 	}
+	cat, err := normalizeManualCashCategory(category)
+	if err != nil {
+		return 0, err
+	}
 
 	var memoArg any
 	if m := strings.TrimSpace(memo); m != "" {
@@ -89,13 +87,117 @@ func (s *SQLiteStore) InsertManualCashEntry(accountID int64, direction string, a
 
 	result, err := s.db.Exec(
 		`INSERT INTO cash_entries (account_id, direction, amount_cents, occurred_at, category, memo)
-		 VALUES (?, ?, ?, ?, 'ajuste', ?)`,
-		accountID, direction, amountCents, occurredAt, memoArg,
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		accountID, direction, amountCents, occurredAt, cat, memoArg,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert manual cash entry: %w", err)
 	}
 	return result.LastInsertId()
+}
+
+func scanCashEntry(row interface {
+	Scan(dest ...any) error
+}) (models.CashEntry, error) {
+	var e models.CashEntry
+	var memo sql.NullString
+	var saleID, payableID, receivableID, lotID sql.NullInt64
+	if err := row.Scan(
+		&e.ID, &e.AccountID, &e.Direction, &e.AmountCents, &e.OccurredAt, &e.Category, &memo,
+		&saleID, &payableID, &receivableID, &lotID, &e.CreatedAt,
+	); err != nil {
+		return models.CashEntry{}, err
+	}
+	if memo.Valid {
+		v := memo.String
+		e.Memo = &v
+	}
+	if saleID.Valid {
+		v := saleID.Int64
+		e.SaleID = &v
+	}
+	if payableID.Valid {
+		v := payableID.Int64
+		e.PayableID = &v
+	}
+	if receivableID.Valid {
+		v := receivableID.Int64
+		e.ReceivableID = &v
+	}
+	if lotID.Valid {
+		v := lotID.Int64
+		e.LotID = &v
+	}
+	return e, nil
+}
+
+// CashEntryIsManual reports whether the entry can be freely edited/deleted.
+func CashEntryIsManual(e models.CashEntry) bool {
+	if e.SaleID != nil || e.PayableID != nil || e.ReceivableID != nil || e.LotID != nil {
+		return false
+	}
+	return ManualCashCategories[e.Category]
+}
+
+func (s *SQLiteStore) FindCashEntry(id int64) (models.CashEntry, error) {
+	e, err := scanCashEntry(s.db.QueryRow(
+		`SELECT id, account_id, direction, amount_cents, occurred_at, category, memo,
+		        sale_id, payable_id, receivable_id, lot_id, created_at
+		 FROM cash_entries WHERE id = ?`, id,
+	))
+	if err == sql.ErrNoRows {
+		return models.CashEntry{}, ErrNotFound
+	}
+	if err != nil {
+		return models.CashEntry{}, fmt.Errorf("find cash entry: %w", err)
+	}
+	return e, nil
+}
+
+// UpdateCashEntry updates a free-form ledger row.
+func (s *SQLiteStore) UpdateCashEntry(id int64, accountID int64, direction string, amountCents int64, occurredAt, category, memo string) error {
+	cur, err := s.FindCashEntry(id)
+	if err != nil {
+		return err
+	}
+	if !CashEntryIsManual(cur) {
+		return fmt.Errorf("%w: only manual cash entries can be edited", ErrCannotUpdate)
+	}
+	direction = strings.TrimSpace(direction)
+	if direction != "in" && direction != "out" {
+		return fmt.Errorf("%w: direction must be in or out", ErrInvalidInput)
+	}
+	if amountCents <= 0 {
+		return fmt.Errorf("%w: amount must be positive", ErrInvalidInput)
+	}
+	if accountID <= 0 {
+		return fmt.Errorf("%w: account_id required", ErrInvalidInput)
+	}
+	if strings.TrimSpace(occurredAt) == "" {
+		return fmt.Errorf("%w: occurred_at required", ErrInvalidInput)
+	}
+	cat, err := normalizeManualCashCategory(category)
+	if err != nil {
+		return err
+	}
+	var memoArg any
+	if m := strings.TrimSpace(memo); m != "" {
+		memoArg = m
+	}
+	res, err := s.db.Exec(
+		`UPDATE cash_entries
+		 SET account_id = ?, direction = ?, amount_cents = ?, occurred_at = ?, category = ?, memo = ?
+		 WHERE id = ?`,
+		accountID, direction, amountCents, occurredAt, cat, memoArg, id,
+	)
+	if err != nil {
+		return fmt.Errorf("update cash entry: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *SQLiteStore) ListPayables() ([]models.Payable, error) {

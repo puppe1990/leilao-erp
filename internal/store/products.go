@@ -51,6 +51,7 @@ func (s *SQLiteStore) EnsureProductByName(name, kind string, saleHint *int64) (i
 func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	rows, err := s.db.Query(
 		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
+		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
 		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0)
@@ -67,8 +68,9 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 		var p models.Product
 		var hint sql.NullInt64
 		if err := rows.Scan(
-			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt, &p.QtyInStock,
-			&p.PhotoCount, &p.VideoCount,
+			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
+			&p.Description, &p.ListingText,
+			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 		); err != nil {
 			return nil, fmt.Errorf("scan product: %w", err)
 		}
@@ -79,6 +81,52 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 		out = append(out, p)
 	}
 	return out, rows.Err()
+}
+
+// FindProduct returns one catalog product with stock/media counts.
+func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
+	var p models.Product
+	var hint sql.NullInt64
+	err := s.db.QueryRow(
+		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
+		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
+		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
+		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0)
+		 FROM products p WHERE p.id = ?`,
+		id,
+	).Scan(
+		&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
+		&p.Description, &p.ListingText,
+		&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
+	)
+	if err == sql.ErrNoRows {
+		return models.Product{}, ErrNotFound
+	}
+	if err != nil {
+		return models.Product{}, fmt.Errorf("find product: %w", err)
+	}
+	if hint.Valid {
+		v := hint.Int64
+		p.SalePriceHintCents = &v
+	}
+	return p, nil
+}
+
+// UpdateProductDescriptions sets technical description and marketplace listing text.
+func (s *SQLiteStore) UpdateProductDescriptions(productID int64, description, listingText string) error {
+	res, err := s.db.Exec(
+		`UPDATE products SET description = ?, listing_text = ? WHERE id = ?`,
+		strings.TrimSpace(description), strings.TrimSpace(listingText), productID,
+	)
+	if err != nil {
+		return fmt.Errorf("update product descriptions: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // ListStockProductGroups aggregates in-stock units by product (or title fallback).

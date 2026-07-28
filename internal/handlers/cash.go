@@ -12,6 +12,7 @@ import (
 	inertia "github.com/romsar/gonertia/v3"
 
 	"github.com/puppe1990/leilao-erp/internal/domain"
+	"github.com/puppe1990/leilao-erp/internal/models"
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
@@ -29,6 +30,13 @@ func NewCashHandler(renderer *cais.Renderer, s store.Store, site meta.Site, cfg 
 
 func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 	accountFilter, _ := strconv.ParseInt(strings.TrimSpace(r.URL.Query().Get("account_id")), 10, 64)
+	h.renderIndex(w, r, accountFilter, nil)
+}
+
+func (h *CashHandler) renderIndex(w http.ResponseWriter, r *http.Request, accountFilter int64, ve inertia.ValidationErrors) {
+	if ve != nil {
+		r = r.WithContext(inertia.SetValidationErrors(r.Context(), ve))
+	}
 
 	accounts, err := h.store.ListCashAccounts()
 	if err != nil {
@@ -64,23 +72,7 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 	entryRows := make([]map[string]any, 0, len(entries))
 	for _, e := range entries {
-		memo := ""
-		if e.Memo != nil {
-			memo = *e.Memo
-		}
-		entryRows = append(entryRows, map[string]any{
-			"id":             e.ID,
-			"accountId":      e.AccountID,
-			"accountName":    accountNameByID[e.AccountID],
-			"direction":      e.Direction,
-			"directionLabel": cashDirectionLabel(e.Direction),
-			"amount":         domain.FormatBRL(e.AmountCents),
-			"occurredAt":     e.OccurredAt,
-			"category":       e.Category,
-			"canDelete":      e.Category == "ajuste",
-			"categoryLabel":  cashCategoryLabel(e.Category),
-			"memo":           memo,
-		})
+		entryRows = append(entryRows, cashEntryRow(e, accountNameByID[e.AccountID]))
 	}
 
 	accountOptions := make([]map[string]any, 0, len(accounts))
@@ -98,7 +90,45 @@ func (h *CashHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"entries":         entryRows,
 		"cashAccounts":    accountOptions,
 		"filterAccountId": accountFilter,
+		"categories":      manualCashCategoryOptions(),
 	}))
+}
+
+func cashEntryRow(e models.CashEntry, accountName string) map[string]any {
+	memo := ""
+	if e.Memo != nil {
+		memo = *e.Memo
+	}
+	manual := store.CashEntryIsManual(e)
+	occurredDate := e.OccurredAt
+	if len(occurredDate) >= 10 {
+		occurredDate = occurredDate[:10]
+	}
+	return map[string]any{
+		"id":             e.ID,
+		"accountId":      e.AccountID,
+		"accountName":    accountName,
+		"direction":      e.Direction,
+		"directionLabel": cashDirectionLabel(e.Direction),
+		"amount":         domain.FormatBRL(e.AmountCents),
+		"amountRaw":      formatCashInput(e.AmountCents),
+		"occurredAt":     e.OccurredAt,
+		"occurredDate":   occurredDate,
+		"category":       e.Category,
+		"canEdit":        manual,
+		"canDelete":      manual,
+		"categoryLabel":  cashCategoryLabel(e.Category),
+		"memo":           memo,
+	}
+}
+
+func manualCashCategoryOptions() []map[string]string {
+	return []map[string]string{
+		{"value": "despesa", "label": "Despesa"},
+		{"value": "ajuste", "label": "Ajuste"},
+		{"value": "frete", "label": "Frete"},
+		{"value": "taxa", "label": "Taxa"},
+	}
 }
 
 func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +141,7 @@ func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
 	direction := strings.TrimSpace(r.FormValue("direction"))
 	amountStr := strings.TrimSpace(r.FormValue("amount"))
 	memo := strings.TrimSpace(r.FormValue("memo"))
+	category := strings.TrimSpace(r.FormValue("category"))
 	occurredAt := strings.TrimSpace(r.FormValue("occurred_at"))
 	if occurredAt == "" {
 		occurredAt = time.Now().UTC().Format("2006-01-02")
@@ -129,7 +160,7 @@ func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(ve) > 0 {
-		h.renderIndexWithErrors(w, r, ve)
+		h.renderIndex(w, r, 0, ve)
 		return
 	}
 
@@ -138,83 +169,59 @@ func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
 		occurredAtValue = occurredAt + "T12:00:00Z"
 	}
 
-	// category is fixed to "ajuste" inside the store method
-	if _, err := h.store.InsertManualCashEntry(accountID, direction, amountCents, occurredAtValue, memo); err != nil {
+	if _, err := h.store.InsertManualCashEntry(accountID, direction, amountCents, occurredAtValue, category, memo); err != nil {
 		ve["form"] = err.Error()
-		h.renderIndexWithErrors(w, r, ve)
+		h.renderIndex(w, r, 0, ve)
 		return
 	}
 
 	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
 }
 
-func (h *CashHandler) renderIndexWithErrors(w http.ResponseWriter, r *http.Request, ve inertia.ValidationErrors) {
-	ctx := inertia.SetValidationErrors(r.Context(), ve)
-	// Re-render Index with same props as Index (without filter for simplicity on error)
-	accounts, err := h.store.ListCashAccounts()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+func (h *CashHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	accountNameByID := make(map[int64]string, len(accounts))
-	balances := make([]map[string]any, 0, len(accounts))
-	for _, a := range accounts {
-		accountNameByID[a.ID] = a.Name
-		bal, err := h.store.CashBalance(a.ID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		balances = append(balances, map[string]any{
-			"id":           a.ID,
-			"name":         a.Name,
-			"kind":         a.Kind,
-			"opening":      domain.FormatBRL(a.OpeningBalanceCents),
-			"openingRaw":   formatCashInput(a.OpeningBalanceCents),
-			"balance":      domain.FormatBRL(bal),
-			"balanceCents": bal,
-		})
+
+	accountID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("account_id")), 10, 64)
+	direction := strings.TrimSpace(r.FormValue("direction"))
+	amountStr := strings.TrimSpace(r.FormValue("amount"))
+	memo := strings.TrimSpace(r.FormValue("memo"))
+	category := strings.TrimSpace(r.FormValue("category"))
+	occurredAt := strings.TrimSpace(r.FormValue("occurred_at"))
+	if occurredAt == "" {
+		occurredAt = time.Now().UTC().Format("2006-01-02")
 	}
-	entries, err := h.store.ListCashEntries(0)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+	ve := make(inertia.ValidationErrors)
+	if accountID <= 0 {
+		ve["account_id"] = "Selecione a conta de caixa"
+	}
+	if direction != "in" && direction != "out" {
+		ve["direction"] = "Selecione entrada ou saída"
+	}
+	amountCents, err := domain.ParseBRLToCents(amountStr)
+	if err != nil || amountCents <= 0 {
+		ve["amount"] = "Valor inválido"
+	}
+	if len(ve) > 0 {
+		h.renderIndex(w, r, 0, ve)
 		return
 	}
-	entryRows := make([]map[string]any, 0, len(entries))
-	for _, e := range entries {
-		memo := ""
-		if e.Memo != nil {
-			memo = *e.Memo
-		}
-		entryRows = append(entryRows, map[string]any{
-			"id":             e.ID,
-			"accountId":      e.AccountID,
-			"accountName":    accountNameByID[e.AccountID],
-			"direction":      e.Direction,
-			"directionLabel": cashDirectionLabel(e.Direction),
-			"amount":         domain.FormatBRL(e.AmountCents),
-			"occurredAt":     e.OccurredAt,
-			"category":       e.Category,
-			"canDelete":      e.Category == "ajuste",
-			"categoryLabel":  cashCategoryLabel(e.Category),
-			"memo":           memo,
-		})
+
+	occurredAtValue := occurredAt
+	if len(occurredAt) == 10 {
+		occurredAtValue = occurredAt + "T12:00:00Z"
 	}
-	accountOptions := make([]map[string]any, 0, len(accounts))
-	for _, a := range accounts {
-		accountOptions = append(accountOptions, map[string]any{
-			"id":   a.ID,
-			"name": a.Name,
-			"kind": a.Kind,
-		})
+
+	if err := h.store.UpdateCashEntry(id, accountID, direction, amountCents, occurredAtValue, category, memo); err != nil {
+		ve["form"] = err.Error()
+		h.renderIndex(w, r, 0, ve)
+		return
 	}
-	_ = h.inertia.Render(w, r.WithContext(ctx), "Cash/Index", withCompany(h.store, inertia.Props{
-		"site":            meta.ForRequest(h.site, r),
-		"balances":        balances,
-		"entries":         entryRows,
-		"cashAccounts":    accountOptions,
-		"filterAccountId": int64(0),
-	}))
+
+	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
 }
 
 func cashDirectionLabel(direction string) string {
@@ -263,15 +270,11 @@ func (h *CashHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	opening, _ := domain.ParseBRLToCents(r.FormValue("opening_balance"))
 	if name == "" {
-		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"name": "Nome obrigatório"})
-		r = r.WithContext(ctx)
-		h.Index(w, r)
+		h.renderIndex(w, r, 0, inertia.ValidationErrors{"name": "Nome obrigatório"})
 		return
 	}
 	if _, err := h.store.InsertCashAccount(name, kind, opening); err != nil {
-		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
-		r = r.WithContext(ctx)
-		h.Index(w, r)
+		h.renderIndex(w, r, 0, inertia.ValidationErrors{"form": err.Error()})
 		return
 	}
 	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
@@ -286,9 +289,7 @@ func (h *CashHandler) UpdateAccount(w http.ResponseWriter, r *http.Request, id i
 	kind := strings.TrimSpace(r.FormValue("kind"))
 	opening, _ := domain.ParseBRLToCents(r.FormValue("opening_balance"))
 	if err := h.store.UpdateCashAccount(id, name, kind, opening); err != nil {
-		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
-		r = r.WithContext(ctx)
-		h.Index(w, r)
+		h.renderIndex(w, r, 0, inertia.ValidationErrors{"form": err.Error()})
 		return
 	}
 	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
@@ -296,9 +297,7 @@ func (h *CashHandler) UpdateAccount(w http.ResponseWriter, r *http.Request, id i
 
 func (h *CashHandler) DestroyAccount(w http.ResponseWriter, r *http.Request, id int64) {
 	if err := h.store.DeleteCashAccount(id); err != nil {
-		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
-		r = r.WithContext(ctx)
-		h.Index(w, r)
+		h.renderIndex(w, r, 0, inertia.ValidationErrors{"form": err.Error()})
 		return
 	}
 	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
@@ -306,9 +305,7 @@ func (h *CashHandler) DestroyAccount(w http.ResponseWriter, r *http.Request, id 
 
 func (h *CashHandler) DestroyEntry(w http.ResponseWriter, r *http.Request, id int64) {
 	if err := h.store.DeleteCashEntry(id); err != nil {
-		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
-		r = r.WithContext(ctx)
-		h.Index(w, r)
+		h.renderIndex(w, r, 0, inertia.ValidationErrors{"form": err.Error()})
 		return
 	}
 	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)

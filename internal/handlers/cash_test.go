@@ -54,6 +54,7 @@ func TestCashHandler_CreateManual_Redirects(t *testing.T) {
 		"account_id":  {fmt.Sprintf("%d", accountID)},
 		"direction":   {"in"},
 		"amount":      {"100,00"},
+		"category":    {"ajuste"},
 		"memo":        {"Ajuste de teste"},
 		"occurred_at": {"2026-07-25"},
 	}
@@ -84,5 +85,83 @@ func TestCashHandler_CreateManual_Redirects(t *testing.T) {
 	}
 	if entries[0].Direction != "in" {
 		t.Errorf("direction = %s, want in", entries[0].Direction)
+	}
+}
+
+func TestCashHandler_CreateManual_Despesa(t *testing.T) {
+	h, s := newCashHandler(t)
+	accountID, err := s.InsertCashAccount("PIX principal", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := url.Values{
+		"account_id":  {fmt.Sprintf("%d", accountID)},
+		"direction":   {"out"},
+		"amount":      {"41,55"},
+		"category":    {"despesa"},
+		"memo":        {"Cabo HDMI VGA"},
+		"occurred_at": {"2026-07-28"},
+	}
+	req := inertiaRequest(http.MethodPost, "/cash/entries", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	h.CreateManual(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	entries, err := s.ListCashEntries(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Category != "despesa" || entries[0].AmountCents != 4155 {
+		t.Fatalf("entry=%+v", entries)
+	}
+}
+
+func TestCashHandler_UpdateAndDeleteEntry(t *testing.T) {
+	h, s := newCashHandler(t)
+	accountID, err := s.InsertCashAccount("PIX principal", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := s.InsertManualCashEntry(accountID, "out", 1000, "2026-07-28T12:00:00Z", "despesa", "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	form := url.Values{
+		"account_id":  {fmt.Sprintf("%d", accountID)},
+		"direction":   {"out"},
+		"amount":      {"50,00"},
+		"category":    {"frete"},
+		"memo":        {"atualizado"},
+		"occurred_at": {"2026-07-29"},
+	}
+	req := inertiaRequest(http.MethodPost, fmt.Sprintf("/cash/entries/%d", id), strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	h.UpdateEntry(rr, req, id)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("update status=%d body=%s", rr.Code, rr.Body.String())
+	}
+
+	e, err := s.FindCashEntry(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.AmountCents != 5000 || e.Category != "frete" || e.Memo == nil || *e.Memo != "atualizado" {
+		t.Fatalf("updated=%+v", e)
+	}
+
+	reqDel := inertiaRequest(http.MethodPost, fmt.Sprintf("/cash/entries/%d/delete", id), nil)
+	rrDel := httptest.NewRecorder()
+	h.DestroyEntry(rrDel, reqDel, id)
+	if rrDel.Code != http.StatusSeeOther {
+		t.Fatalf("delete status=%d", rrDel.Code)
+	}
+	if _, err := s.FindCashEntry(id); err == nil {
+		t.Fatal("expected not found after delete")
 	}
 }

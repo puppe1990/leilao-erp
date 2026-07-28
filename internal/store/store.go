@@ -59,9 +59,11 @@ type Store interface {
 	RenameItemsByTitle(fromTitle, toTitle string) (int64, error)
 	EnsureProductByName(name, kind string, saleHint *int64) (int64, error)
 	ListProducts() ([]models.Product, error)
+	FindProduct(id int64) (models.Product, error)
 	ListStockProductGroups() ([]models.Product, error)
 	ListInStockUnitsByProduct(productID int64, title string) ([]models.Item, error)
 	UpdateProductSaleHint(productID int64, hintCents *int64) error
+	UpdateProductDescriptions(productID int64, description, listingText string) error
 	RenameProduct(productID int64, newName string) error
 	AddProductMedia(productID int64, in ProductMediaInput) (int64, error)
 	ListProductMedia(productID int64) ([]models.ProductMedia, error)
@@ -88,11 +90,17 @@ type Store interface {
 	CancelPayable(id int64) error
 	CancelReceivable(id int64) error
 	CreatePayable(in CreatePayableInput) (int64, error)
+	UpdatePayable(id int64, in CreatePayableInput) error
+	DeletePayable(id int64) error
 	CreateReceivable(in CreateReceivableInput) (int64, error)
+	UpdateReceivable(id int64, in CreateReceivableInput) error
+	DeleteReceivable(id int64) error
 	ListReceivables() ([]models.Receivable, error)
 	ListPayables() ([]models.Payable, error)
 	ListCashEntries(accountID int64) ([]models.CashEntry, error) // accountID 0 = all
-	InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, memo string) (int64, error)
+	FindCashEntry(id int64) (models.CashEntry, error)
+	InsertManualCashEntry(accountID int64, direction string, amountCents int64, occurredAt, category, memo string) (int64, error)
+	UpdateCashEntry(id int64, accountID int64, direction string, amountCents int64, occurredAt, category, memo string) error
 	DeleteCashEntry(id int64) error
 	DashboardSummary() (DashboardSummary, error)
 
