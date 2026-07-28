@@ -1,6 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
   import { onMount } from 'svelte'
 
   export let errors = {}
@@ -38,10 +39,25 @@
     sold_at: new Date().toISOString().slice(0, 10),
   })
 
-  // Local UI state (not form fields) — avoid Svelte 5 $state mutation in $: blocks
+  // Local UI state — avoid Svelte 5 $state mutation inside $:
   let selectedAccessoryIds = []
   let selectedMain = stockItems.find((it) => String(it.id) === String(initialId)) || null
   let totalCostRaw = Number(selectedMain?.unitCostRaw) || 0
+  let accessoryQuery = ''
+
+  $: mainSelectOptions = mainOptions.map((it) => ({
+    value: String(it.id),
+    label: `#${it.id} — ${it.title} (custo ${it.unitCost}${it.salePriceHint ? ` · venda ${it.salePriceHint}` : ''})`,
+  }))
+
+  $: filteredAccessories = (() => {
+    const q = accessoryQuery.trim().toLowerCase()
+    if (!q) return accessories
+    return accessories.filter((acc) => {
+      const hay = `#${acc.id} ${acc.title} ${acc.unitCost || ''}`.toLowerCase()
+      return hay.includes(q)
+    })
+  })()
 
   function formatCents(cents) {
     const n = Number(cents) || 0
@@ -161,21 +177,15 @@
     <form on:submit|preventDefault={submit} class="ahq-card p-5 space-y-4">
       <div>
         <label class="ahq-label block mb-1.5" for="item_id">Item principal</label>
-        <select
+        <SearchableSelect
           id="item_id"
+          options={mainSelectOptions}
           bind:value={form.item_id}
-          class="ahq-select"
-          on:change={onMainChange}
-        >
-          <option value="">Selecione…</option>
-          {#each mainOptions as it}
-            <option value={String(it.id)}>
-              #{it.id} — {it.title} (custo {it.unitCost}{it.salePriceHint
-                ? ` · venda ${it.salePriceHint}`
-                : ''})
-            </option>
-          {/each}
-        </select>
+          placeholder="Buscar e selecionar item…"
+          searchPlaceholder="Digite modelo, id…"
+          emptyLabel="Nenhum item encontrado"
+          onChange={onMainChange}
+        />
         {#if selectedMain?.salePriceHint}
           <p class="text-on-surface-variant text-xs mt-1">
             Preço sugerido:
@@ -198,11 +208,24 @@
               Só o item
             </button>
           </div>
-          <p class="text-on-surface-variant text-xs mb-2">
-            Kit completo = 1 cabo de força + 1 VGA + 1 HDMI (se houver em estoque).
+          <div class="relative">
+            <span
+              class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant"
+            >
+              search
+            </span>
+            <input
+              type="search"
+              class="ahq-input h-9 pl-9 w-full text-sm"
+              placeholder="Buscar cabo por nome ou id…"
+              bind:value={accessoryQuery}
+            />
+          </div>
+          <p class="text-on-surface-variant text-xs">
+            {filteredAccessories.length} de {accessories.length} · selecionados: {selectedAccessoryIds.length}
           </p>
           <div class="flex flex-col gap-2 max-h-48 overflow-y-auto">
-            {#each accessories as acc}
+            {#each filteredAccessories as acc}
               <label class="flex items-center gap-2 text-body-md cursor-pointer">
                 <input
                   type="checkbox"
@@ -213,6 +236,8 @@
                 <span class="flex-1">#{acc.id} — {acc.title}</span>
                 <span class="font-mono text-sm text-on-surface-variant">{acc.unitCost}</span>
               </label>
+            {:else}
+              <p class="text-sm text-on-surface-variant py-2">Nenhum acessório para essa busca.</p>
             {/each}
           </div>
           {#if errors.accessory_ids}

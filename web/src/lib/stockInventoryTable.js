@@ -22,20 +22,43 @@ export function baseOfTitle(title) {
   return 'unset'
 }
 
-/** salePriceRaw from server is integer cents (or empty). */
+/**
+ * Normalize sale price to integer cents for sorting.
+ * Accepts:
+ * - item.salePriceCents (preferred, int)
+ * - item.salePriceRaw as int cents (e.g. 39900)
+ * - item.salePriceRaw as BRL input string (e.g. "399,00" or "1.399,00")
+ */
 export function salePriceCents(item) {
-  if (item == null || item.salePriceRaw == null || item.salePriceRaw === '') return null
-  const n = Number(item.salePriceRaw)
-  if (!Number.isNaN(n) && Number.isFinite(n)) {
-    // Prefer integer cents from handler; if value looks like "399,00" parse as reais.
-    if (typeof item.salePriceRaw === 'string' && /[.,]/.test(item.salePriceRaw)) {
-      const reais = parseFloat(String(item.salePriceRaw).replace(/\./g, '').replace(',', '.'))
-      if (Number.isNaN(reais)) return null
-      return Math.round(reais * 100)
-    }
-    return Math.round(n)
+  if (item == null) return null
+
+  if (item.salePriceCents != null && item.salePriceCents !== '') {
+    const n = Number(item.salePriceCents)
+    if (Number.isFinite(n)) return Math.round(n)
   }
-  return null
+
+  const raw = item.salePriceRaw
+  if (raw == null || raw === '') return null
+
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) ? Math.round(raw) : null
+  }
+
+  const s = String(raw).trim()
+  if (s === '') return null
+
+  // Brazilian display/input first: "399,00" / "1.234,56"
+  // Number("399,00") is NaN in JS — that was breaking price sort.
+  if (s.includes(',')) {
+    const reais = parseFloat(s.replace(/\./g, '').replace(',', '.'))
+    return Number.isFinite(reais) ? Math.round(reais * 100) : null
+  }
+
+  // Plain digits: treat as cents (39900)
+  if (/^\d+$/.test(s)) return parseInt(s, 10)
+
+  const n = Number(s)
+  return Number.isFinite(n) ? Math.round(n) : null
 }
 
 export function marginCents(item) {
@@ -80,9 +103,11 @@ export function filterAndSortStockItems(items, opts = {}) {
     if (!query) return true
     const hay = [
       it.id,
+      it.productId,
       it.lotId,
       it.title,
       it.sku,
+      it.qty,
       it.unitCost,
       it.salePriceHint,
       brandOfTitle(it.title),
@@ -104,6 +129,8 @@ export function filterAndSortStockItems(items, opts = {}) {
         return (a.title || '').localeCompare(b.title || '', 'pt-BR') * dir
       case 'type':
         return ((a.isAccessory ? 1 : 0) - (b.isAccessory ? 1 : 0)) * dir
+      case 'qty':
+        return ((Number(a.qty) || 1) - (Number(b.qty) || 1)) * dir
       case 'unitCost':
         return ((Number(a.unitCostRaw) || 0) - (Number(b.unitCostRaw) || 0)) * dir
       case 'salePrice': {

@@ -57,6 +57,12 @@ type Store interface {
 	UpdateItem(id int64, in UpdateItemInput) error
 	SetSalePriceHintByTitle(title string, hintCents int64) (int64, error)
 	RenameItemsByTitle(fromTitle, toTitle string) (int64, error)
+	EnsureProductByName(name, kind string, saleHint *int64) (int64, error)
+	ListProducts() ([]models.Product, error)
+	ListStockProductGroups() ([]models.Product, error)
+	ListInStockUnitsByProduct(productID int64, title string) ([]models.Item, error)
+	UpdateProductSaleHint(productID int64, hintCents *int64) error
+	RenameProduct(productID int64, newName string) error
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)
