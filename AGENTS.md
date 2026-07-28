@@ -10,11 +10,12 @@ go test ./... -count=1
 make ci                    # test + golangci-lint + prettier check
 make format                # prettier
 gofmt -w internal/ cmd/
-npx vite build             # REQUIRED after web/src/** changes (cais dev does NOT rebuild Svelte)
+npx vite build             # one-shot FE build (usually not needed if cais dev is watching)
 npx tailwindcss -i ./input.css -o ./web/static/css/styles.css
 ```
 
 Dev server: `PORT=:8080 ENV=development cais dev` → http://127.0.0.1:8080  
+Requires **Cais CLI ≥ 0.8.1** (`cais version`) so `cais dev` runs `vite build --watch`.  
 Admin (dev only): `admin@leilao.local` / `change-me-now`
 
 ## Code style
@@ -41,7 +42,7 @@ Admin (dev only): `admin@leilao.local` / `change-me-now`
 | `internal/db`       | seeds (`RunSeeds` idempotent)                                         |
 | `web/src/pages`     | Inertia Svelte pages (`Sales/New` → `web/src/pages/Sales/New.svelte`) |
 | `web/src/lib`       | pure JS helpers (filter/sort)                                         |
-| `web/static/build`  | **gitignored** Vite output — always rebuild after FE change           |
+| `web/static/build`  | **gitignored** Vite output — rebuilt by `cais dev` watch (CLI ≥0.8.1) |
 
 Money: integer **cents** BRL. Net = gross − fee − shipping. Margin = net − unit_cost_at_sale (sum of sale_lines).
 
@@ -55,10 +56,13 @@ Money: integer **cents** BRL. Net = gross − fee − shipping. Margin = net −
 
 ## Frontend / Cais gotchas
 
-- **`cais dev` does not rebuild Svelte.** After any `web/src/**` edit run `npx vite build` or UI stays stale.
-- SPA entry is `web/static/build/assets/main.js` (stable name). Bump `?v=` in `web/templates/app.html` or hard-refresh; templates are `//go:embed` — rebuild Go after template change.
+- **Cais CLI ≥ 0.8.1:** `cais dev` = air + Tailwind + **`vite build --watch`** (rebuilds `web/src/**` → `web/static/build/`). Confirm boot log shows `vite build --watch`.
+- Still **not** Vite HMR (no live component swap). After FE rebuild, **refresh the browser** (or hard-refresh if SW cached).
+- Stale CLI (`cais version` &lt; 0.8.1): no Svelte watch — run `npx vite build` / upgrade CLI.
+- SPA entry is `web/static/build/assets/main.js` (stable name). Bump `?v=` in `web/templates/app.html` if SW/browser sticks to old bundle; templates are `//go:embed` — rebuild Go after template change.
 - Inertia root: `web/templates/app.html`. CSRF: cookie `cais_csrf` + header `X-CSRF-Token` (see `web/src/main.js`).
 - Svelte 5: `mount()` not `new App`. Prefer defensive `Array.isArray` on form arrays (`accessory_ids`).
+- Password fields: use `PasswordInput` (eye toggle on the **right**).
 
 ## Tests
 

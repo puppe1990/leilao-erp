@@ -1,5 +1,6 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
+  import PasswordInput from '@/components/PasswordInput.svelte'
 
   export let errors = {}
   export let site = {}
@@ -44,13 +45,7 @@
         </div>
         <div>
           <label class="ahq-label block mb-1.5" for="password">Senha</label>
-          <input
-            id="password"
-            type="password"
-            bind:value={form.password}
-            class="ahq-input"
-            autocomplete="current-password"
-          />
+          <PasswordInput id="password" bind:value={form.password} autocomplete="current-password" />
         </div>
         <button type="submit" class="ahq-btn-primary w-full" disabled={form.processing}>Entrar</button>
       </form>

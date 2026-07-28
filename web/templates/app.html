@@ -11,10 +11,17 @@
   <link rel="stylesheet" href="/static/css/styles.css" />
   <link rel="manifest" href="/static/manifest.webmanifest" />
   <meta name="theme-color" content="#0a192f" />
-  <link rel="icon" href="/static/icons/icon.png" type="image/png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AuctionHQ" />
+  <link rel="icon" href="/static/icons/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/static/icons/favicon-48.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/static/icons/icon.png" />
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
 </head>
 <body class="bg-background text-on-surface">
   {{ .inertia }}
-  <script type="module" src="/static/build/assets/main.js?v=24"></script>
+  <script type="module" src="/static/build/assets/main.js?v=26"></script>
 </body>
 </html>
