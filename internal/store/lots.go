@@ -63,6 +63,13 @@ func (s *SQLiteStore) CreateLotPurchase(input CreateLotInput) (lotID int64, err 
 		return 0, fmt.Errorf("paid_at required when any cost is already paid")
 	}
 
+	// Catalog product (outside lot tx so SQLite lock stays simple).
+	productID, err := s.EnsureProductByName(input.ItemTitle, productKindFromTitle(input.ItemTitle), nil)
+	if err != nil {
+		// Pre-migration: continue without product_id
+		productID = 0
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("begin tx: %w", err)
@@ -142,11 +149,21 @@ func (s *SQLiteStore) CreateLotPurchase(input CreateLotInput) (lotID int64, err 
 
 	units := domain.AllocateUnitCosts(total, input.ItemQty)
 	for i := 0; i < input.ItemQty; i++ {
-		if _, err := tx.Exec(
-			`INSERT INTO items (lot_id, title, unit_cost_cents, status)
-			 VALUES (?, ?, ?, 'in_stock')`,
-			lotID, input.ItemTitle, units[i],
-		); err != nil {
+		var err error
+		if productID > 0 {
+			_, err = tx.Exec(
+				`INSERT INTO items (lot_id, product_id, title, unit_cost_cents, status)
+				 VALUES (?, ?, ?, ?, 'in_stock')`,
+				lotID, productID, input.ItemTitle, units[i],
+			)
+		} else {
+			_, err = tx.Exec(
+				`INSERT INTO items (lot_id, title, unit_cost_cents, status)
+				 VALUES (?, ?, ?, 'in_stock')`,
+				lotID, input.ItemTitle, units[i],
+			)
+		}
+		if err != nil {
 			return 0, fmt.Errorf("insert item: %w", err)
 		}
 	}

@@ -23,14 +23,13 @@
   let filterBrand = 'all'
 
   /** @type {string} */
-  let sortKey = 'id'
+  let sortKey = 'title'
   /** @type {'asc'|'desc'} */
   let sortDir = 'asc'
 
   let editingId = null
   let editTitle = ''
   let editSale = ''
-  let editSku = ''
 
   $: brands = brandsFromItems(items)
   $: q = query.trim()
@@ -43,6 +42,7 @@
     sortKey,
     sortDir,
   })
+  $: filteredUnits = filtered.reduce((n, it) => n + (Number(it.qty) || 1), 0)
   $: hasActiveFilters =
     filterType !== 'all' ||
     filterPrice !== 'all' ||
@@ -64,7 +64,7 @@
       return
     }
     sortKey = key
-    if (key === 'id' || key === 'lotId' || key === 'title' || key === 'type') {
+    if (key === 'title' || key === 'type') {
       sortDir = 'asc'
     } else {
       sortDir = 'desc'
@@ -80,7 +80,6 @@
     editingId = item.id
     editTitle = item.title || ''
     editSale = item.salePriceRaw || ''
-    editSku = item.sku || ''
   }
 
   function cancelEdit() {
@@ -88,11 +87,29 @@
   }
 
   function saveItem(item) {
+    const productId = Number(item.productId) || 0
+    if (productId > 0) {
+      router.post(
+        `/products/${productId}`,
+        {
+          name: editTitle || item.title,
+          sale_price_hint: editSale,
+          return_to: '/stock',
+        },
+        {
+          onSuccess: () => {
+            editingId = null
+          },
+        },
+      )
+      return
+    }
+    // Fallback: unit-level edit via lot
     router.post(
-      `/lots/${item.lotId}/items/${item.id}`,
+      `/lots/${item.lotId}/items/${item.sampleItemId || item.id}`,
       {
         title: editTitle || item.title,
-        sku: editSku,
+        sku: '',
         sale_price_hint: editSale,
         return_to: '/stock',
       },
@@ -103,30 +120,103 @@
       },
     )
   }
+
+  function sellHref(item) {
+    const unitId = item.sampleItemId || item.id
+    return `/sales/new?item_id=${unitId}`
+  }
+
+  /** Export currently filtered product rows as CSV (client-side). */
+  function exportFilteredCSV() {
+    const rows = filtered || []
+    const sep = ';'
+    const header = [
+      'produto_id',
+      'titulo',
+      'qtd',
+      'tipo',
+      'custo_un',
+      'preco_venda',
+      'margem_un',
+      'margem_total',
+    ]
+    const esc = (v) => {
+      const s = v == null ? '' : String(v)
+      if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+      return s
+    }
+    const lines = [header.join(sep)]
+    for (const it of rows) {
+      lines.push(
+        [
+          it.productId || '',
+          it.title,
+          it.qty ?? 1,
+          it.isAccessory ? 'acessorio' : 'principal',
+          it.unitCost || '',
+          it.salePriceHint || '',
+          it.marginHint || '',
+          it.marginTotal || '',
+        ]
+          .map(esc)
+          .join(sep),
+      )
+    }
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const day = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `estoque-produtos-${day}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 </script>
 
 <AppShell {companyName} active="stock">
-  <div class="flex items-start justify-between gap-3 mb-section-padding">
+  <div class="flex items-start justify-between gap-3 mb-section-padding flex-wrap">
     <div>
       <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Estoque</h1>
       <p class="text-on-surface-variant text-body-md mt-1">
-        Lista · busca, filtros e ordenação.
+        Produtos iguais agrupados com quantidade.
       </p>
     </div>
-    <a href="/sales/new" use:inertia class="ahq-btn-primary h-10 px-4 text-sm shrink-0">
-      <span class="material-symbols-outlined text-[18px] mr-1">sell</span>
-      Vender
-    </a>
+    <div class="flex flex-wrap gap-2 shrink-0">
+      <a href="/products" use:inertia class="ahq-btn-ghost h-10 px-4 text-sm inline-flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-1">category</span>
+        Catálogo
+      </a>
+      <a href="/stock/export.csv" class="ahq-btn-ghost h-10 px-4 text-sm inline-flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-1">download</span>
+        CSV (unidades)
+      </a>
+      <button
+        type="button"
+        class="ahq-btn-ghost h-10 px-4 text-sm inline-flex items-center"
+        on:click={exportFilteredCSV}
+        disabled={filtered.length === 0}
+      >
+        <span class="material-symbols-outlined text-[18px] mr-1">table_view</span>
+        CSV (produtos)
+      </button>
+      <a href="/sales/new" use:inertia class="ahq-btn-primary h-10 px-4 text-sm inline-flex items-center">
+        <span class="material-symbols-outlined text-[18px] mr-1">sell</span>
+        Vender
+      </a>
+    </div>
   </div>
 
   {#if errors.form}
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
-  <section class="grid grid-cols-2 md:grid-cols-4 gap-stack-gap mb-section-padding">
+  <section class="grid grid-cols-2 md:grid-cols-5 gap-stack-gap mb-section-padding">
     <div class="ahq-card p-4">
-      <span class="ahq-label">Itens</span>
+      <span class="ahq-label">Unidades</span>
       <p class="ahq-value text-primary">{summary.count ?? 0}</p>
+      <p class="text-[10px] text-on-surface-variant mt-1">
+        {summary.productCount ?? items.length} produtos
+      </p>
     </div>
     <div class="ahq-card p-4">
       <span class="ahq-label">Custo estoque</span>
@@ -135,6 +225,11 @@
     <div class="ahq-card p-4">
       <span class="ahq-label">Bruto potencial</span>
       <p class="ahq-value font-mono text-sm text-secondary">{summary.potentialGross || 'R$ 0,00'}</p>
+    </div>
+    <div class="ahq-card p-4">
+      <span class="ahq-label">Multiplicador</span>
+      <p class="ahq-value font-mono text-sm text-secondary">{summary.multiplier || '—'}</p>
+      <p class="text-[10px] text-on-surface-variant mt-1">bruto ÷ custo</p>
     </div>
     <div class="ahq-card p-4">
       <span class="ahq-label">Margem potencial</span>
@@ -150,7 +245,6 @@
     </div>
   {:else}
     <div class="ahq-card overflow-hidden">
-      <!-- Search + filters -->
       <div class="p-3 border-b border-outline-variant space-y-3">
         <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
           <div class="relative flex-1 max-w-md">
@@ -162,14 +256,16 @@
             <input
               type="search"
               class="ahq-input h-10 pl-10 w-full"
-              placeholder="Buscar por modelo, id, lote, SKU…"
+              placeholder="Buscar por modelo, marca…"
               bind:value={query}
               aria-label="Buscar no estoque"
             />
           </div>
           <p class="text-sm text-on-surface-variant shrink-0">
             {filtered.length}
-            {filtered.length === 1 ? 'item' : 'itens'}
+            {filtered.length === 1 ? 'produto' : 'produtos'}
+            · {filteredUnits}
+            {filteredUnits === 1 ? 'un.' : 'un.'}
             {#if hasActiveFilters}
               <span class="text-on-surface-variant/80"> de {items.length}</span>
             {/if}
@@ -212,11 +308,7 @@
             </select>
           </div>
           {#if hasActiveFilters}
-            <button
-              type="button"
-              class="ahq-btn-ghost h-9 px-3 text-sm"
-              on:click={clearFilters}
-            >
+            <button type="button" class="ahq-btn-ghost h-9 px-3 text-sm" on:click={clearFilters}>
               Limpar filtros
             </button>
           {/if}
@@ -227,22 +319,22 @@
         <table class="w-full text-sm text-left min-w-[720px]">
           <thead>
             <tr class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant">
-              <th class="px-1 py-1 w-14">
-                <button
-                  type="button"
-                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
-                  on:click={() => toggleSort('id')}
-                >
-                  # <span class="material-symbols-outlined text-[14px]">{sortIcon('id')}</span>
-                </button>
-              </th>
               <th class="px-1 py-1">
                 <button
                   type="button"
                   class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('title')}
                 >
-                  Título <span class="material-symbols-outlined text-[14px]">{sortIcon('title')}</span>
+                  Produto <span class="material-symbols-outlined text-[14px]">{sortIcon('title')}</span>
+                </button>
+              </th>
+              <th class="px-1 py-1 w-20">
+                <button
+                  type="button"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  on:click={() => toggleSort('qty')}
+                >
+                  Qtd <span class="material-symbols-outlined text-[14px]">{sortIcon('qty')}</span>
                 </button>
               </th>
               <th class="px-1 py-1 w-28">
@@ -260,7 +352,7 @@
                   class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('unitCost')}
                 >
-                  Custo <span class="material-symbols-outlined text-[14px]">{sortIcon('unitCost')}</span>
+                  Custo un. <span class="material-symbols-outlined text-[14px]">{sortIcon('unitCost')}</span>
                 </button>
               </th>
               <th class="px-1 py-1 w-28">
@@ -278,16 +370,7 @@
                   class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('margin')}
                 >
-                  Margem <span class="material-symbols-outlined text-[14px]">{sortIcon('margin')}</span>
-                </button>
-              </th>
-              <th class="px-1 py-1 w-16">
-                <button
-                  type="button"
-                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
-                  on:click={() => toggleSort('lotId')}
-                >
-                  Lote <span class="material-symbols-outlined text-[14px]">{sortIcon('lotId')}</span>
+                  Margem un. <span class="material-symbols-outlined text-[14px]">{sortIcon('margin')}</span>
                 </button>
               </th>
               <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-36">
@@ -299,14 +382,21 @@
             {#each filtered as item (item.id)}
               {#if editingId === item.id}
                 <tr class="bg-secondary-container/20">
-                  <td class="px-3 py-2 font-mono text-on-surface-variant align-top">{item.id}</td>
-                  <td class="px-3 py-2 align-top" colspan="2">
-                    <input class="ahq-input h-9 text-sm w-full mb-1.5" bind:value={editTitle} />
-                    <input
-                      class="ahq-input h-9 text-sm font-mono w-full"
-                      placeholder="SKU"
-                      bind:value={editSku}
-                    />
+                  <td class="px-3 py-2 align-top">
+                    <input class="ahq-input h-9 text-sm w-full" bind:value={editTitle} />
+                    {#if (item.qty || 1) > 1}
+                      <p class="text-[11px] text-on-surface-variant mt-1">
+                        Renomeia as {item.qty} unidades deste produto.
+                      </p>
+                    {/if}
+                  </td>
+                  <td class="px-3 py-2 font-mono text-right align-top font-semibold">{item.qty ?? 1}</td>
+                  <td class="px-3 py-2 align-top">
+                    {#if item.isAccessory}
+                      <span class="ahq-badge-sold text-[10px]">Acessório</span>
+                    {:else}
+                      <span class="ahq-badge-live text-[10px]">Principal</span>
+                    {/if}
                   </td>
                   <td class="px-3 py-2 font-mono text-right align-top">{item.unitCost}</td>
                   <td class="px-3 py-2 align-top">
@@ -319,7 +409,6 @@
                   <td class="px-3 py-2 font-mono text-right text-secondary align-top">
                     {item.marginHint || '—'}
                   </td>
-                  <td class="px-3 py-2 font-mono text-on-surface-variant align-top">{item.lotId}</td>
                   <td class="px-3 py-2 text-right align-top whitespace-nowrap">
                     <button
                       type="button"
@@ -335,12 +424,31 @@
                 </tr>
               {:else}
                 <tr class="hover:bg-surface-container-low/80 transition-colors">
-                  <td class="px-3 py-2.5 font-mono text-on-surface-variant">{item.id}</td>
                   <td class="px-3 py-2.5">
                     <p class="font-medium text-primary leading-snug">{item.title}</p>
-                    {#if item.sku}
-                      <p class="text-[11px] font-mono text-on-surface-variant mt-0.5">{item.sku}</p>
+                    {#if item.lotId}
+                      <p class="text-[11px] font-mono text-on-surface-variant mt-0.5">
+                        lote
+                        <a
+                          href={`/lots/${item.lotId}`}
+                          use:inertia
+                          class="hover:text-secondary hover:underline"
+                        >
+                          {item.lotId}
+                        </a>
+                        {#if item.productId}
+                          · prod #{item.productId}
+                        {/if}
+                      </p>
                     {/if}
+                  </td>
+                  <td class="px-3 py-2.5 text-right">
+                    <span
+                      class="inline-flex min-w-[2rem] justify-center px-2 py-0.5 rounded-full
+                        bg-secondary-container text-on-secondary-container font-mono font-semibold text-sm"
+                    >
+                      {item.qty ?? 1}
+                    </span>
                   </td>
                   <td class="px-3 py-2.5">
                     {#if item.isAccessory}
@@ -355,15 +463,11 @@
                   </td>
                   <td class="px-3 py-2.5 font-mono text-right text-secondary whitespace-nowrap">
                     {item.marginHint || '—'}
-                  </td>
-                  <td class="px-3 py-2.5 font-mono text-on-surface-variant">
-                    <a
-                      href={`/lots/${item.lotId}`}
-                      use:inertia
-                      class="hover:text-secondary hover:underline"
-                    >
-                      {item.lotId}
-                    </a>
+                    {#if item.marginTotal && (item.qty || 1) > 1}
+                      <span class="block text-[10px] text-on-surface-variant mt-0.5">
+                        tot. {item.marginTotal}
+                      </span>
+                    {/if}
                   </td>
                   <td class="px-3 py-2.5 text-right whitespace-nowrap">
                     <button
@@ -373,11 +477,7 @@
                     >
                       Editar
                     </button>
-                    <a
-                      href={`/sales/new?item_id=${item.id}`}
-                      use:inertia
-                      class="text-secondary font-medium text-sm"
-                    >
+                    <a href={sellHref(item)} use:inertia class="text-secondary font-medium text-sm">
                       Vender
                     </a>
                   </td>
@@ -385,8 +485,8 @@
               {/if}
             {:else}
               <tr>
-                <td colspan="8" class="px-3 py-10 text-center text-on-surface-variant">
-                  Nenhum item com esses filtros.
+                <td colspan="7" class="px-3 py-10 text-center text-on-surface-variant">
+                  Nenhum produto com esses filtros.
                   <button
                     type="button"
                     class="block mx-auto mt-2 text-secondary text-sm"
@@ -403,35 +503,10 @@
     </div>
 
     {#if groups.length > 0 && !hasActiveFilters}
-      <details class="mt-section-padding ahq-card p-4">
-        <summary class="cursor-pointer font-semibold text-primary select-none">
-          Resumo por modelo ({groups.length})
-        </summary>
-        <div class="mt-3 overflow-x-auto">
-          <table class="w-full text-sm min-w-[480px]">
-            <thead>
-              <tr class="text-on-surface-variant border-b border-outline-variant">
-                <th class="px-2 py-2 text-left text-[11px] uppercase">Modelo</th>
-                <th class="px-2 py-2 text-right text-[11px] uppercase">Qtd</th>
-                <th class="px-2 py-2 text-right text-[11px] uppercase">Custo un.</th>
-                <th class="px-2 py-2 text-right text-[11px] uppercase">Preço</th>
-                <th class="px-2 py-2 text-right text-[11px] uppercase">Margem pot.</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant">
-              {#each groups as g}
-                <tr>
-                  <td class="px-2 py-2 font-medium">{g.title}</td>
-                  <td class="px-2 py-2 text-right font-mono">{g.count}</td>
-                  <td class="px-2 py-2 text-right font-mono">{g.unitCost}</td>
-                  <td class="px-2 py-2 text-right font-mono">{g.salePriceHint}</td>
-                  <td class="px-2 py-2 text-right font-mono text-secondary">{g.potentialMargin}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
-      </details>
+      <p class="mt-4 text-xs text-on-surface-variant">
+        Nomes reutilizáveis no
+        <a href="/products" use:inertia class="text-secondary hover:underline">catálogo de produtos</a>.
+      </p>
     {/if}
   {/if}
 </AppShell>

@@ -238,6 +238,8 @@ func cashCategoryLabel(category string) string {
 		return "Recebimento"
 	case "compra_lote":
 		return "Compra de lote"
+	case "despesa":
+		return "Despesa"
 	case "venda":
 		return "Venda"
 	case "taxa":

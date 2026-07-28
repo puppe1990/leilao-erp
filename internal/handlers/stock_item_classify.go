@@ -7,14 +7,11 @@ import (
 )
 
 // isAccessoryTitle flags stock items typically sold with a monitor (cables).
+// Only "cabo" is used — matching "hdmi"/"vga" alone wrongly tags monitors
+// like "Prizi … PZ0018HDMI" as accessories.
 func isAccessoryTitle(title string) bool {
-	t := strings.ToLower(title)
-	return strings.Contains(t, "cabo") ||
-		strings.Contains(t, "vga") ||
-		strings.Contains(t, "hdmi") ||
-		strings.Contains(t, "força") ||
-		strings.Contains(t, "forca") ||
-		strings.Contains(t, "power")
+	t := strings.ToLower(strings.TrimSpace(title))
+	return strings.HasPrefix(t, "cabo") || strings.Contains(t, " cabo")
 }
 
 // parseAccessoryIDs reads accessory_ids from form (repeated keys and/or CSV).

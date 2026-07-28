@@ -5,6 +5,7 @@ import "time"
 type Item struct {
 	ID                 int64
 	LotID              int64
+	ProductID          *int64
 	SKU                *string
 	Title              string
 	Condition          *string
