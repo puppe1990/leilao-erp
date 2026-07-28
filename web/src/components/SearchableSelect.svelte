@@ -10,6 +10,11 @@
   export let searchPlaceholder = 'Buscar…'
   export let id = 'searchable-select'
   export let emptyLabel = 'Nenhuma opção'
+  /** Extra classes on the trigger button (defaults to full-width ahq-select). */
+  export let buttonClass =
+    'ahq-select w-full text-left flex items-center justify-between gap-2 min-h-[2.5rem]'
+  /** Show "Limpar seleção" when a value is set. */
+  export let allowClear = true
   /** Called when value changes: (value: string) => void */
   export let onChange = undefined
 
@@ -61,8 +66,8 @@
 <div class="relative" bind:this={rootEl}>
   <button
     type="button"
-    id={id}
-    class="ahq-select w-full text-left flex items-center justify-between gap-2 min-h-[2.5rem]"
+    {id}
+    class={buttonClass}
     aria-haspopup="listbox"
     aria-expanded={open}
     on:click|stopPropagation={() => {
@@ -83,12 +88,14 @@
       class="absolute z-40 left-0 right-0 mt-1 rounded-lg border border-outline-variant
         bg-surface-container-lowest shadow-float overflow-hidden"
       role="listbox"
+      tabindex="-1"
       on:click|stopPropagation
+      on:keydown|stopPropagation
     >
       <div class="p-2 border-b border-outline-variant">
         <div class="relative">
           <span
-            class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant"
+            class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant pointer-events-none"
           >
             search
           </span>
@@ -97,7 +104,7 @@
             class="ahq-input h-9 pl-9 w-full text-sm"
             placeholder={searchPlaceholder}
             bind:value={query}
-            autofocus
+            on:click|stopPropagation
           />
         </div>
       </div>
@@ -105,7 +112,7 @@
         {#if filtered.length === 0}
           <li class="px-3 py-2 text-sm text-on-surface-variant">{emptyLabel}</li>
         {:else}
-          {#each filtered as opt}
+          {#each filtered as opt (String(opt.value))}
             <li>
               <button
                 type="button"
@@ -123,7 +130,7 @@
           {/each}
         {/if}
       </ul>
-      {#if value}
+      {#if allowClear && value !== '' && value != null}
         <div class="border-t border-outline-variant p-1">
           <button
             type="button"

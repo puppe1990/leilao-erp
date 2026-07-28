@@ -13,15 +13,22 @@ import (
 )
 
 type ProductsHandler struct {
-	renderer *cais.Renderer
-	store    store.Store
-	site     meta.Site
-	cfg      cais.Config
-	inertia  *inertia.Inertia
+	renderer  *cais.Renderer
+	store     store.Store
+	site      meta.Site
+	cfg       cais.Config
+	inertia   *inertia.Inertia
+	staticDir string // web/static absolute path for product uploads
 }
 
 func NewProductsHandler(renderer *cais.Renderer, s store.Store, site meta.Site, cfg cais.Config, i *inertia.Inertia) *ProductsHandler {
 	return &ProductsHandler{renderer: renderer, store: s, site: site, cfg: cfg, inertia: i}
+}
+
+// WithStaticDir sets the directory served at /static (for media uploads).
+func (h *ProductsHandler) WithStaticDir(dir string) *ProductsHandler {
+	h.staticDir = dir
+	return h
 }
 
 // Index lists the product catalog (names reusable across stock units).
@@ -44,14 +51,26 @@ func (h *ProductsHandler) Index(w http.ResponseWriter, r *http.Request) {
 		if p.Kind == "accessory" {
 			kindLabel = "Acessório"
 		}
+		media, _ := h.store.ListProductMedia(p.ID)
+		mediaRows := make([]map[string]any, 0, len(media))
+		for _, m := range media {
+			mediaRows = append(mediaRows, map[string]any{
+				"id":   m.ID,
+				"kind": m.Kind,
+				"url":  m.URL,
+			})
+		}
 		rows = append(rows, map[string]any{
 			"id":            p.ID,
 			"name":          p.Name,
 			"kind":          p.Kind,
 			"kindLabel":     kindLabel,
 			"qtyInStock":    p.QtyInStock,
+			"photoCount":    p.PhotoCount,
+			"videoCount":    p.VideoCount,
 			"salePriceHint": sale,
 			"salePriceRaw":  saleRaw,
+			"media":         mediaRows,
 		})
 	}
 

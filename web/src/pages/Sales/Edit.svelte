@@ -1,6 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
 
   export let sale = {}
   export let channels = []
@@ -16,6 +17,11 @@
     shipping: sale.shipping || '0',
     due_on: sale.dueOn || '',
   })
+
+  $: channelOptions = (Array.isArray(channels) ? channels : []).map((ch) => ({
+    value: String(ch.value),
+    label: ch.label,
+  }))
 
   function submit() {
     form.post(`/sales/${sale.id}`)
@@ -44,11 +50,14 @@
       </div>
       <div>
         <label class="ahq-label block mb-1.5" for="channel">Canal</label>
-        <select id="channel" class="ahq-select" bind:value={form.channel}>
-          {#each channels as ch}
-            <option value={ch.value}>{ch.label}</option>
-          {/each}
-        </select>
+        <SearchableSelect
+          id="channel"
+          bind:value={form.channel}
+          options={channelOptions}
+          placeholder="Canal"
+          searchPlaceholder="Buscar canal…"
+          allowClear={false}
+        />
       </div>
     </div>
     <div>

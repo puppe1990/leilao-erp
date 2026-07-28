@@ -2,6 +2,7 @@
   import { useForm, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
   import Nav from '@/components/Nav.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
 
   export let balances = []
   export let entries = []
@@ -25,6 +26,27 @@
     opening_balance: '0,00',
   })
 
+  let filterAccount = filterAccountId > 0 ? String(filterAccountId) : ''
+
+  $: cashAccountOptions = (Array.isArray(cashAccounts) ? cashAccounts : []).map((a) => ({
+    value: String(a.id),
+    label: a.name,
+  }))
+  $: filterAccountOptions = [
+    { value: '', label: 'Todas as contas' },
+    ...cashAccountOptions,
+  ]
+  const kindOptions = [
+    { value: 'pix', label: 'PIX' },
+    { value: 'bank', label: 'Banco' },
+    { value: 'cash', label: 'Dinheiro' },
+    { value: 'other', label: 'Outro' },
+  ]
+  const directionOptions = [
+    { value: 'in', label: 'Entrada' },
+    { value: 'out', label: 'Saída' },
+  ]
+
   function submitEntry() {
     form.post('/cash/entries')
   }
@@ -43,6 +65,11 @@
   function deleteAccount(id) {
     if (!confirm('Excluir esta conta? Só funciona se não houver lançamentos.')) return
     router.post(`/cash/accounts/${id}/delete`)
+  }
+
+  function onFilterAccount(v) {
+    filterAccount = v
+    window.location = v ? `/cash?account_id=${v}` : '/cash'
   }
 </script>
 
@@ -93,12 +120,15 @@
       </div>
       <div>
         <label class="ahq-label block mb-1" for="acc_kind">Tipo</label>
-        <select id="acc_kind" class="ahq-select h-10" bind:value={accountForm.kind}>
-          <option value="pix">PIX</option>
-          <option value="bank">Banco</option>
-          <option value="cash">Dinheiro</option>
-          <option value="other">Outro</option>
-        </select>
+        <SearchableSelect
+          id="acc_kind"
+          bind:value={accountForm.kind}
+          options={kindOptions}
+          placeholder="Tipo"
+          searchPlaceholder="Buscar tipo…"
+          allowClear={false}
+          buttonClass="ahq-select h-10 w-full text-left flex items-center justify-between gap-2"
+        />
       </div>
       <div>
         <label class="ahq-label block mb-1" for="acc_open">Saldo inicial</label>
@@ -116,19 +146,24 @@
     <form on:submit|preventDefault={submitEntry} class="grid gap-3 sm:grid-cols-2">
       <div>
         <label class="ahq-label block mb-1.5" for="account_id">Conta</label>
-        <select id="account_id" bind:value={form.account_id} class="ahq-select">
-          <option value="">Selecione…</option>
-          {#each cashAccounts as a}
-            <option value={String(a.id)}>{a.name}</option>
-          {/each}
-        </select>
+        <SearchableSelect
+          id="account_id"
+          bind:value={form.account_id}
+          options={cashAccountOptions}
+          placeholder="Selecione…"
+          searchPlaceholder="Buscar conta…"
+        />
       </div>
       <div>
         <label class="ahq-label block mb-1.5" for="direction">Direção</label>
-        <select id="direction" bind:value={form.direction} class="ahq-select">
-          <option value="in">Entrada</option>
-          <option value="out">Saída</option>
-        </select>
+        <SearchableSelect
+          id="direction"
+          bind:value={form.direction}
+          options={directionOptions}
+          placeholder="Direção"
+          searchPlaceholder="Buscar…"
+          allowClear={false}
+        />
       </div>
       <div>
         <label class="ahq-label block mb-1.5" for="amount">Valor (R$)</label>
@@ -153,18 +188,18 @@
     <div class="flex items-center justify-between mb-stack-gap gap-2 flex-wrap">
       <h2 class="font-headline-md text-headline-md text-primary">Extrato</h2>
       {#if cashAccounts.length > 0}
-        <select
-          class="ahq-select h-10 w-auto min-w-[10rem]"
-          on:change={(e) => {
-            const v = e.currentTarget.value
-            window.location = v ? `/cash?account_id=${v}` : '/cash'
-          }}
-        >
-          <option value="" selected={!(filterAccountId > 0)}>Todas as contas</option>
-          {#each cashAccounts as a}
-            <option value={String(a.id)} selected={filterAccountId === a.id}>{a.name}</option>
-          {/each}
-        </select>
+        <div class="min-w-[12rem]">
+          <SearchableSelect
+            id="filter_account"
+            bind:value={filterAccount}
+            options={filterAccountOptions}
+            placeholder="Todas as contas"
+            searchPlaceholder="Buscar conta…"
+            allowClear={false}
+            buttonClass="ahq-select h-10 w-full text-left flex items-center justify-between gap-2"
+            onChange={onFilterAccount}
+          />
+        </div>
       {/if}
     </div>
 

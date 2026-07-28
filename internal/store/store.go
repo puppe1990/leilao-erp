@@ -63,6 +63,17 @@ type Store interface {
 	ListInStockUnitsByProduct(productID int64, title string) ([]models.Item, error)
 	UpdateProductSaleHint(productID int64, hintCents *int64) error
 	RenameProduct(productID int64, newName string) error
+	AddProductMedia(productID int64, in ProductMediaInput) (int64, error)
+	ListProductMedia(productID int64) ([]models.ProductMedia, error)
+	DeleteProductMedia(mediaID int64) error
+	FindProductMedia(mediaID int64) (models.ProductMedia, error)
+
+	CreateClient(in ClientInput) (int64, error)
+	UpdateClient(id int64, in ClientInput) error
+	DeleteClient(id int64) error
+	FindClient(id int64) (models.Client, error)
+	ListClients() ([]models.Client, error)
+	SearchClients(query string) ([]models.Client, error)
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)

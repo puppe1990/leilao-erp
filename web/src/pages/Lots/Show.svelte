@@ -1,6 +1,7 @@
 <script>
   import { useForm, inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
 
   export let lot = {}
   export let items = []
@@ -18,6 +19,11 @@
     already_paid: false,
     cash_account_id: cashAccounts[0]?.id?.toString() || '',
   })
+
+  $: cashAccountOptions = (Array.isArray(cashAccounts) ? cashAccounts : []).map((acc) => ({
+    value: String(acc.id),
+    label: acc.name,
+  }))
 
   function submitCost() {
     costForm.post(`/lots/${lot.id}/costs`)
@@ -164,12 +170,13 @@
       {#if costForm.already_paid}
         <div>
           <label class="ahq-label block mb-1.5" for="cash_account_id">Conta</label>
-          <select id="cash_account_id" bind:value={costForm.cash_account_id} class="ahq-select">
-            <option value="">Selecione…</option>
-            {#each cashAccounts as acc}
-              <option value={String(acc.id)}>{acc.name}</option>
-            {/each}
-          </select>
+          <SearchableSelect
+            id="cash_account_id"
+            bind:value={costForm.cash_account_id}
+            options={cashAccountOptions}
+            placeholder="Selecione…"
+            searchPlaceholder="Buscar conta…"
+          />
         </div>
       {/if}
       <button type="submit" class="ahq-btn-primary w-full" disabled={costForm.processing}>
