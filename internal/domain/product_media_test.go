@@ -11,8 +11,7 @@ func TestNormalizeProductMediaURL_PhotoPathAndVideoURL(t *testing.T) {
 	if err != nil || u == "" {
 		t.Fatalf("youtube: %q %v", u, err)
 	}
-	u, err = NormalizeProductMediaURL("video", "https://youtu.be/abc123")
-	if err != nil {
+	if _, err = NormalizeProductMediaURL("video", "https://youtu.be/abc123"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := NormalizeProductMediaURL("photo", "javascript:alert(1)"); err == nil {
