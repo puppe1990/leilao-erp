@@ -3,7 +3,7 @@ module github.com/puppe1990/leilao-erp
 go 1.26.4
 
 require (
-	github.com/puppe1990/cais v0.7.0
+	github.com/puppe1990/cais v0.8.1
 	github.com/romsar/gonertia/v3 v3.0.0
 	modernc.org/sqlite v1.53.0
 )

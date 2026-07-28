@@ -1,6 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import PasswordInput from '@/components/PasswordInput.svelte'
 
   export let email = ''
   export let companyName = 'AuctionHQ'
@@ -82,11 +83,9 @@
     <form on:submit|preventDefault={savePassword} class="space-y-4">
       <div>
         <label class="ahq-label block mb-1.5" for="current_password">Senha atual</label>
-        <input
+        <PasswordInput
           id="current_password"
-          type="password"
           bind:value={password.current_password}
-          class="ahq-input"
           autocomplete="current-password"
         />
         {#if errors.current_password}
@@ -95,11 +94,9 @@
       </div>
       <div>
         <label class="ahq-label block mb-1.5" for="new_password">Nova senha</label>
-        <input
+        <PasswordInput
           id="new_password"
-          type="password"
           bind:value={password.new_password}
-          class="ahq-input"
           autocomplete="new-password"
         />
         {#if errors.new_password}
@@ -109,11 +106,9 @@
       </div>
       <div>
         <label class="ahq-label block mb-1.5" for="new_password_confirmation">Confirmar nova senha</label>
-        <input
+        <PasswordInput
           id="new_password_confirmation"
-          type="password"
           bind:value={password.new_password_confirmation}
-          class="ahq-input"
           autocomplete="new-password"
         />
         {#if errors.new_password_confirmation}

@@ -1,5 +1,6 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
+  import PasswordInput from '@/components/PasswordInput.svelte'
   export let errors = {}
   export let token = ''
   let form = useForm({ token, password: '', password_confirmation: '' })
@@ -19,23 +20,21 @@
     <input type="hidden" bind:value={form.token} />
     <div>
       <label class="block text-sm text-stone-600 mb-1" for="password">Nova senha</label>
-      <input
+      <PasswordInput
         id="password"
         bind:value={form.password}
-        type="password"
-        class="block w-full border p-2 rounded"
         autocomplete="new-password"
+        inputClass="block w-full border p-2 rounded"
       />
       {#if errors.password}<p class="text-red-600 text-sm mt-1">{errors.password}</p>{/if}
     </div>
     <div>
       <label class="block text-sm text-stone-600 mb-1" for="password_confirmation">Confirmar senha</label>
-      <input
+      <PasswordInput
         id="password_confirmation"
         bind:value={form.password_confirmation}
-        type="password"
-        class="block w-full border p-2 rounded"
         autocomplete="new-password"
+        inputClass="block w-full border p-2 rounded"
       />
       {#if errors.password_confirmation}
         <p class="text-red-600 text-sm mt-1">{errors.password_confirmation}</p>
