@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -115,5 +114,5 @@ func (h *ProductsHandler) Update(w http.ResponseWriter, r *http.Request, id int6
 		h.inertia.Redirect(w, r, "/products", http.StatusSeeOther)
 		return
 	}
-	h.inertia.Redirect(w, r, fmt.Sprintf("/products"), http.StatusSeeOther)
+	h.inertia.Redirect(w, r, "/products", http.StatusSeeOther)
 }
