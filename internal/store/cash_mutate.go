@@ -66,18 +66,14 @@ func (s *SQLiteStore) DeleteCashAccount(id int64) error {
 	return nil
 }
 
-// DeleteCashEntry removes only manual adjustment entries.
+// DeleteCashEntry removes a free-form ledger row (not linked to sale/lot/payable/receivable).
 func (s *SQLiteStore) DeleteCashEntry(id int64) error {
-	var cat string
-	err := s.db.QueryRow(`SELECT category FROM cash_entries WHERE id = ?`, id).Scan(&cat)
-	if err == sql.ErrNoRows {
-		return ErrNotFound
-	}
+	e, err := s.FindCashEntry(id)
 	if err != nil {
 		return err
 	}
-	if cat != "ajuste" {
-		return fmt.Errorf("%w: only manual adjustments can be deleted", ErrCannotDelete)
+	if !CashEntryIsManual(e) {
+		return fmt.Errorf("%w: only manual cash entries can be deleted", ErrCannotDelete)
 	}
 	_, err = s.db.Exec(`DELETE FROM cash_entries WHERE id = ?`, id)
 	return err

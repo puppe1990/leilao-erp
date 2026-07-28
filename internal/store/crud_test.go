@@ -145,6 +145,61 @@ func TestCancelPayableAndCreate(t *testing.T) {
 	}
 }
 
+func TestCashEntryCRUD(t *testing.T) {
+	st := testStore(t)
+	acc, err := st.InsertCashAccount("PIX", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := st.InsertManualCashEntry(acc, "out", 4155, "2026-07-28T12:00:00Z", "despesa", "cabo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdateCashEntry(id, acc, "out", 5000, "2026-07-29T12:00:00Z", "frete", "cabo frete"); err != nil {
+		t.Fatal(err)
+	}
+	e, err := st.FindCashEntry(id)
+	if err != nil || e.AmountCents != 5000 || e.Category != "frete" {
+		t.Fatalf("%+v %v", e, err)
+	}
+	if err := st.DeleteCashEntry(id); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPayableReceivableUpdateDelete(t *testing.T) {
+	st := testStore(t)
+	pid, err := st.CreatePayable(store.CreatePayableInput{
+		Description: "Frete", AmountCents: 1000, DueOn: "2026-08-01",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdatePayable(pid, store.CreatePayableInput{
+		Description: "Frete atualizado", AmountCents: 2000, DueOn: "2026-08-10",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeletePayable(pid); err != nil {
+		t.Fatal(err)
+	}
+
+	rid, err := st.CreateReceivable(store.CreateReceivableInput{
+		Description: "Avulso", AmountCents: 3000, DueOn: "2026-08-01",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdateReceivable(rid, store.CreateReceivableInput{
+		Description: "Avulso 2", AmountCents: 4000, DueOn: "2026-08-05",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteReceivable(rid); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestUpdateItem(t *testing.T) {
 	st := testStore(t)
 	lotID, _ := seedLot(t, st, true)

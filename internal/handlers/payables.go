@@ -52,6 +52,7 @@ func (h *PayablesHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"id":          p.ID,
 			"description": p.Description,
 			"amount":      domain.FormatBRL(p.AmountCents),
+			"amountRaw":   formatCashInput(p.AmountCents),
 			"dueOn":       p.DueOn,
 			"status":      p.Status,
 			"statusLabel": payableStatusLabel(p.Status),
@@ -59,6 +60,8 @@ func (h *PayablesHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"paidAt":      paidAt,
 			"canSettle":   p.Status == "open",
 			"canCancel":   p.Status == "open",
+			"canEdit":     p.Status == "open",
+			"canDelete":   p.Status == "open",
 		})
 	}
 
@@ -152,6 +155,43 @@ func (h *PayablesHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *PayablesHandler) Cancel(w http.ResponseWriter, r *http.Request, id int64) {
 	if err := h.store.CancelPayable(id); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/payables", http.StatusSeeOther)
+}
+
+func (h *PayablesHandler) Update(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	amount, err := domain.ParseBRLToCents(r.FormValue("amount"))
+	if err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"amount": "Valor inválido"})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	lotID, _ := strconv.ParseInt(r.FormValue("lot_id"), 10, 64)
+	if err := h.store.UpdatePayable(id, store.CreatePayableInput{
+		Description: r.FormValue("description"),
+		AmountCents: amount,
+		DueOn:       strings.TrimSpace(r.FormValue("due_on")),
+		LotID:       lotID,
+	}); err != nil {
+		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
+		r = r.WithContext(ctx)
+		h.Index(w, r)
+		return
+	}
+	h.inertia.Redirect(w, r, "/payables", http.StatusSeeOther)
+}
+
+func (h *PayablesHandler) Destroy(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.DeletePayable(id); err != nil {
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
 		r = r.WithContext(ctx)
 		h.Index(w, r)

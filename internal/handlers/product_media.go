@@ -32,7 +32,7 @@ func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, produ
 
 	kind := strings.TrimSpace(strings.ToLower(r.FormValue("kind")))
 	if !domain.IsProductMediaKind(kind) {
-		h.mediaError(w, r, "Tipo deve ser foto ou vídeo")
+		h.mediaError(w, r, productID, "Tipo deve ser foto ou vídeo")
 		return
 	}
 
@@ -41,7 +41,7 @@ func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, produ
 		defer func() { _ = file.Close() }()
 		saved, err := h.saveProductUpload(productID, kind, hdr.Filename, file)
 		if err != nil {
-			h.mediaError(w, r, err.Error())
+			h.mediaError(w, r, productID, err.Error())
 			return
 		}
 		url = saved
@@ -49,7 +49,7 @@ func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, produ
 
 	norm, err := domain.NormalizeProductMediaURL(kind, url)
 	if err != nil {
-		h.mediaError(w, r, "URL/arquivo inválido: "+err.Error())
+		h.mediaError(w, r, productID, "URL/arquivo inválido: "+err.Error())
 		return
 	}
 
@@ -57,10 +57,10 @@ func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, produ
 		Kind: kind,
 		URL:  norm,
 	}); err != nil {
-		h.mediaError(w, r, err.Error())
+		h.mediaError(w, r, productID, err.Error())
 		return
 	}
-	h.inertia.Redirect(w, r, "/products", http.StatusSeeOther)
+	h.inertia.Redirect(w, r, fmt.Sprintf("/products/%d", productID), http.StatusSeeOther)
 }
 
 // DestroyMedia removes a media row (and local file if under uploads).
@@ -72,25 +72,25 @@ func (h *ProductsHandler) DestroyMedia(w http.ResponseWriter, r *http.Request, p
 	}
 	m, err := h.store.FindProductMedia(mediaID)
 	if err != nil {
-		h.mediaError(w, r, "Mídia não encontrada")
+		h.mediaError(w, r, productID, "Mídia não encontrada")
 		return
 	}
 	if m.ProductID != productID {
-		h.mediaError(w, r, "Mídia não pertence a este produto")
+		h.mediaError(w, r, productID, "Mídia não pertence a este produto")
 		return
 	}
 	if err := h.store.DeleteProductMedia(mediaID); err != nil {
-		h.mediaError(w, r, err.Error())
+		h.mediaError(w, r, productID, err.Error())
 		return
 	}
 	h.tryRemoveLocalUpload(m.URL)
-	h.inertia.Redirect(w, r, "/products", http.StatusSeeOther)
+	h.inertia.Redirect(w, r, fmt.Sprintf("/products/%d", productID), http.StatusSeeOther)
 }
 
-func (h *ProductsHandler) mediaError(w http.ResponseWriter, r *http.Request, msg string) {
+func (h *ProductsHandler) mediaError(w http.ResponseWriter, r *http.Request, productID int64, msg string) {
 	ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": msg})
 	r = r.WithContext(ctx)
-	h.Index(w, r)
+	h.Show(w, r, productID)
 }
 
 func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName string, src io.Reader) (string, error) {

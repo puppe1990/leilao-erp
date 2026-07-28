@@ -151,3 +151,131 @@ func (s *SQLiteStore) CreateReceivable(in CreateReceivableInput) (int64, error) 
 	}
 	return res.LastInsertId()
 }
+
+// UpdatePayable edits an open payable (description, amount, due date).
+func (s *SQLiteStore) UpdatePayable(id int64, in CreatePayableInput) error {
+	desc := strings.TrimSpace(in.Description)
+	if desc == "" || in.AmountCents <= 0 || strings.TrimSpace(in.DueOn) == "" {
+		return fmt.Errorf("%w: description, amount and due_on required", ErrInvalidInput)
+	}
+	var status string
+	err := s.db.QueryRow(`SELECT status FROM payables WHERE id = ?`, id).Scan(&status)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if status != "open" {
+		return fmt.Errorf("%w: only open payables can be edited", ErrCannotUpdate)
+	}
+	res, err := s.db.Exec(
+		`UPDATE payables SET description = ?, amount_cents = ?, due_on = ? WHERE id = ?`,
+		desc, in.AmountCents, strings.TrimSpace(in.DueOn), id,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// DeletePayable hard-deletes an open payable (not settled).
+func (s *SQLiteStore) DeletePayable(id int64) error {
+	var status string
+	err := s.db.QueryRow(`SELECT status FROM payables WHERE id = ?`, id).Scan(&status)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if status != "open" {
+		return fmt.Errorf("%w: only open payables can be deleted", ErrCannotDelete)
+	}
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM cash_entries WHERE payable_id = ?`, id).Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		return fmt.Errorf("%w: payable has cash entries", ErrCannotDelete)
+	}
+	res, err := s.db.Exec(`DELETE FROM payables WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateReceivable edits an open receivable (description, amount, due date).
+func (s *SQLiteStore) UpdateReceivable(id int64, in CreateReceivableInput) error {
+	desc := strings.TrimSpace(in.Description)
+	if desc == "" || in.AmountCents <= 0 || strings.TrimSpace(in.DueOn) == "" {
+		return fmt.Errorf("%w: description, amount and due_on required", ErrInvalidInput)
+	}
+	var status string
+	err := s.db.QueryRow(`SELECT status FROM receivables WHERE id = ?`, id).Scan(&status)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if status != "open" {
+		return fmt.Errorf("%w: only open receivables can be edited", ErrCannotUpdate)
+	}
+	res, err := s.db.Exec(
+		`UPDATE receivables SET description = ?, amount_cents = ?, due_on = ? WHERE id = ?`,
+		desc, in.AmountCents, strings.TrimSpace(in.DueOn), id,
+	)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// DeleteReceivable hard-deletes an open receivable not linked to a sale.
+func (s *SQLiteStore) DeleteReceivable(id int64) error {
+	var status string
+	var saleID sql.NullInt64
+	err := s.db.QueryRow(`SELECT status, sale_id FROM receivables WHERE id = ?`, id).Scan(&status, &saleID)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if status != "open" {
+		return fmt.Errorf("%w: only open receivables can be deleted", ErrCannotDelete)
+	}
+	if saleID.Valid {
+		return fmt.Errorf("%w: receivable linked to a sale — cancel instead", ErrCannotDelete)
+	}
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM cash_entries WHERE receivable_id = ?`, id).Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		return fmt.Errorf("%w: receivable has cash entries", ErrCannotDelete)
+	}
+	res, err := s.db.Exec(`DELETE FROM receivables WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	aff, _ := res.RowsAffected()
+	if aff == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
