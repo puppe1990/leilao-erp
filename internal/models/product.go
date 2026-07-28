@@ -14,5 +14,8 @@ type Product struct {
 	// SampleItemID first in_stock unit for "Vender"
 	SampleItemID int64
 	SampleLotID  int64
-	CreatedAt    time.Time
+	// PhotoCount / VideoCount filled by ListProducts.
+	PhotoCount int
+	VideoCount int
+	CreatedAt  time.Time
 }

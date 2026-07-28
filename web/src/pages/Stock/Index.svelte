@@ -1,6 +1,7 @@
 <script>
   import { inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
   import {
     brandsFromItems,
     filterAndSortStockItems,
@@ -32,6 +33,28 @@
   let editSale = ''
 
   $: brands = brandsFromItems(items)
+  $: typeOptions = [
+    { value: 'all', label: 'Todos' },
+    { value: 'main', label: 'Principal' },
+    { value: 'accessory', label: 'Acessório' },
+  ]
+  $: priceOptions = [
+    { value: 'all', label: 'Todos' },
+    { value: 'priced', label: 'Com preço' },
+    { value: 'unpriced', label: 'Sem preço' },
+  ]
+  $: baseOptions = [
+    { value: 'all', label: 'Todas' },
+    { value: 'with', label: 'Com base' },
+    { value: 'without', label: 'Sem base' },
+    { value: 'unset', label: 'Não informado' },
+  ]
+  $: brandOptions = [
+    { value: 'all', label: 'Todas' },
+    ...brands.map((b) => ({ value: b, label: b })),
+  ]
+  const filterSelectClass =
+    'ahq-select h-9 text-sm min-w-[8rem] w-full text-left flex items-center justify-between gap-2'
   $: q = query.trim()
   $: filtered = filterAndSortStockItems(items, {
     query,
@@ -273,39 +296,49 @@
         </div>
 
         <div class="flex flex-wrap gap-2 items-end">
-          <div>
+          <div class="min-w-[8rem]">
             <label class="ahq-label text-[10px] block mb-1" for="f-type">Tipo</label>
-            <select id="f-type" class="ahq-select h-9 text-sm min-w-[8rem]" bind:value={filterType}>
-              <option value="all">Todos</option>
-              <option value="main">Principal</option>
-              <option value="accessory">Acessório</option>
-            </select>
+            <SearchableSelect
+              id="f-type"
+              bind:value={filterType}
+              options={typeOptions}
+              searchPlaceholder="Buscar…"
+              allowClear={false}
+              buttonClass={filterSelectClass}
+            />
           </div>
-          <div>
+          <div class="min-w-[8rem]">
             <label class="ahq-label text-[10px] block mb-1" for="f-price">Preço venda</label>
-            <select id="f-price" class="ahq-select h-9 text-sm min-w-[8rem]" bind:value={filterPrice}>
-              <option value="all">Todos</option>
-              <option value="priced">Com preço</option>
-              <option value="unpriced">Sem preço</option>
-            </select>
+            <SearchableSelect
+              id="f-price"
+              bind:value={filterPrice}
+              options={priceOptions}
+              searchPlaceholder="Buscar…"
+              allowClear={false}
+              buttonClass={filterSelectClass}
+            />
           </div>
-          <div>
+          <div class="min-w-[8rem]">
             <label class="ahq-label text-[10px] block mb-1" for="f-base">Base</label>
-            <select id="f-base" class="ahq-select h-9 text-sm min-w-[8rem]" bind:value={filterBase}>
-              <option value="all">Todas</option>
-              <option value="with">Com base</option>
-              <option value="without">Sem base</option>
-              <option value="unset">Não informado</option>
-            </select>
+            <SearchableSelect
+              id="f-base"
+              bind:value={filterBase}
+              options={baseOptions}
+              searchPlaceholder="Buscar…"
+              allowClear={false}
+              buttonClass={filterSelectClass}
+            />
           </div>
-          <div>
+          <div class="min-w-[8rem]">
             <label class="ahq-label text-[10px] block mb-1" for="f-brand">Marca</label>
-            <select id="f-brand" class="ahq-select h-9 text-sm min-w-[8rem]" bind:value={filterBrand}>
-              <option value="all">Todas</option>
-              {#each brands as b}
-                <option value={b}>{b}</option>
-              {/each}
-            </select>
+            <SearchableSelect
+              id="f-brand"
+              bind:value={filterBrand}
+              options={brandOptions}
+              searchPlaceholder="Buscar marca…"
+              allowClear={false}
+              buttonClass={filterSelectClass}
+            />
           </div>
           {#if hasActiveFilters}
             <button type="button" class="ahq-btn-ghost h-9 px-3 text-sm" on:click={clearFilters}>

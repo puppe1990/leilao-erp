@@ -51,7 +51,9 @@ func (s *SQLiteStore) EnsureProductByName(name, kind string, saleHint *int64) (i
 func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	rows, err := s.db.Query(
 		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
-		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0)
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
+		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
+		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0)
 		 FROM products p
 		 ORDER BY p.name`,
 	)
@@ -64,7 +66,10 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	for rows.Next() {
 		var p models.Product
 		var hint sql.NullInt64
-		if err := rows.Scan(&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt, &p.QtyInStock); err != nil {
+		if err := rows.Scan(
+			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt, &p.QtyInStock,
+			&p.PhotoCount, &p.VideoCount,
+		); err != nil {
 			return nil, fmt.Errorf("scan product: %w", err)
 		}
 		if hint.Valid {

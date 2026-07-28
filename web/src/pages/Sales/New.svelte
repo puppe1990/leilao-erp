@@ -49,6 +49,14 @@
     value: String(it.id),
     label: `#${it.id} — ${it.title} (custo ${it.unitCost}${it.salePriceHint ? ` · venda ${it.salePriceHint}` : ''})`,
   }))
+  $: channelOptions = (Array.isArray(channels) ? channels : []).map((ch) => ({
+    value: String(ch.value),
+    label: ch.label,
+  }))
+  $: cashAccountOptions = (Array.isArray(cashAccounts) ? cashAccounts : []).map((acc) => ({
+    value: String(acc.id),
+    label: acc.name,
+  }))
 
   $: filteredAccessories = (() => {
     const q = accessoryQuery.trim().toLowerCase()
@@ -259,11 +267,14 @@
       <div class="grid grid-cols-2 gap-3">
         <div>
           <label class="ahq-label block mb-1.5" for="channel">Canal</label>
-          <select id="channel" bind:value={form.channel} class="ahq-select">
-            {#each channels as ch}
-              <option value={ch.value}>{ch.label}</option>
-            {/each}
-          </select>
+          <SearchableSelect
+            id="channel"
+            bind:value={form.channel}
+            options={channelOptions}
+            placeholder="Canal"
+            searchPlaceholder="Buscar canal…"
+            allowClear={false}
+          />
         </div>
         <div>
           <label class="ahq-label block mb-1.5" for="sold_at">Data</label>
@@ -314,12 +325,13 @@
         {#if form.payment_status === 'received'}
           <div>
             <label class="ahq-label block mb-1.5" for="cash_account_id">Conta de caixa</label>
-            <select id="cash_account_id" bind:value={form.cash_account_id} class="ahq-select">
-              <option value="">Selecione…</option>
-              {#each cashAccounts as acc}
-                <option value={String(acc.id)}>{acc.name}</option>
-              {/each}
-            </select>
+            <SearchableSelect
+              id="cash_account_id"
+              bind:value={form.cash_account_id}
+              options={cashAccountOptions}
+              placeholder="Selecione…"
+              searchPlaceholder="Buscar conta…"
+            />
             {#if errors.cash_account_id}
               <p class="text-error text-sm mt-1">{errors.cash_account_id}</p>
             {/if}

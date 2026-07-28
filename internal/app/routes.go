@@ -15,7 +15,8 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	dashboard := handlers.NewDashboardHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	lots := handlers.NewLotsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	stock := handlers.NewStockHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
-	products := handlers.NewProductsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
+	products := handlers.NewProductsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia).WithStaticDir(deps.StaticDir)
+	clients := handlers.NewClientsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	sales := handlers.NewSalesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	cash := handlers.NewCashHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	payables := handlers.NewPayablesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
@@ -55,6 +56,13 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 
 	r.Get("/products", middleware.RequireAuthFunc("/login", products.Index))
 	r.Post("/products/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.Update)))
+	r.Post("/products/{id}/media", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.AddMedia)))
+	r.Post("/products/{id}/media/{mediaId}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.DestroyMedia)))
+
+	r.Get("/clients", middleware.RequireAuthFunc("/login", clients.Index))
+	r.Post("/clients", middleware.RequireAuthFunc("/login", clients.Create))
+	r.Post("/clients/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", clients.Update)))
+	r.Post("/clients/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", clients.Destroy)))
 
 	r.Get("/sales", middleware.RequireAuthFunc("/login", sales.Index))
 	r.Get("/sales/new", middleware.RequireAuthFunc("/login", sales.New))

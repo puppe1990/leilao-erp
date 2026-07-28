@@ -1,6 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
 
   export let errors = {}
   export let cashAccounts = []
@@ -17,6 +18,11 @@
     already_paid: false,
     cash_account_id: cashAccounts[0]?.id?.toString() || '',
   })
+
+  $: cashAccountOptions = (Array.isArray(cashAccounts) ? cashAccounts : []).map((acc) => ({
+    value: String(acc.id),
+    label: acc.name,
+  }))
 
   function submit() {
     form.post('/lots')
@@ -106,12 +112,13 @@
         {#if form.already_paid}
           <div>
             <label class="ahq-label block mb-1.5" for="cash_account_id">Conta de caixa</label>
-            <select id="cash_account_id" bind:value={form.cash_account_id} class="ahq-select">
-              <option value="">Selecione…</option>
-              {#each cashAccounts as acc}
-                <option value={String(acc.id)}>{acc.name}</option>
-              {/each}
-            </select>
+            <SearchableSelect
+              id="cash_account_id"
+              bind:value={form.cash_account_id}
+              options={cashAccountOptions}
+              placeholder="Selecione…"
+              searchPlaceholder="Buscar conta…"
+            />
             {#if errors.cash_account_id}
               <p class="text-error text-sm mt-1">{errors.cash_account_id}</p>
             {/if}
