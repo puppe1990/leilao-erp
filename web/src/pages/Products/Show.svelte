@@ -117,6 +117,96 @@
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
+  {@const feats = product.features || {}}
+  {@const featureLabels = [
+    { key: 'curved', label: 'Curvo' },
+    { key: 'includesBox', label: 'Inclui caixa' },
+    { key: 'displayPort', label: 'Possui DisplayPort' },
+    { key: 'hdr', label: 'Possui HDR' },
+    { key: 'widescreen', label: 'Widescreen' },
+    { key: 'includesCables', label: 'Inclui cabos' },
+    { key: 'audio', label: 'Possui áudio' },
+    { key: 'hdmi', label: 'Possui HDMI' },
+    { key: 'ultrawide', label: 'Ultrawide' },
+  ]}
+  {@const activeFeatures = featureLabels.filter((f) => feats[f.key])}
+  {@const hasOlx =
+    product.screenType ||
+    product.maxResolution ||
+    product.refreshRate ||
+    product.condition ||
+    activeFeatures.length > 0}
+
+  <section class="ahq-card p-4 mb-4 space-y-3">
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h2 class="font-semibold text-primary">Atributos OLX</h2>
+      <a
+        href={`/products/${product.id}/edit`}
+        use:inertia
+        class="text-xs text-secondary font-medium"
+      >
+        Editar atributos
+      </a>
+    </div>
+    {#if !hasOlx}
+      <p class="text-sm text-on-surface-variant">
+        Ainda sem atributos. Preencha na edição para copiar no anúncio da OLX.
+      </p>
+    {:else}
+      <dl class="grid sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <div>
+          <dt class="text-on-surface-variant text-xs">Tipo de tela</dt>
+          <dd class="font-medium text-primary">{product.screenType || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-on-surface-variant text-xs">Resolução máxima</dt>
+          <dd class="font-medium text-primary">{product.maxResolution || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-on-surface-variant text-xs">Taxa de atualização</dt>
+          <dd class="font-medium text-primary">{product.refreshRate || '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-on-surface-variant text-xs">Condição</dt>
+          <dd class="font-medium text-primary">{product.condition || '—'}</dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-on-surface-variant text-xs">Entregar grátis pela OLX</dt>
+          <dd class="mt-0.5">
+            {#if product.olxFreeShipping}
+              <span
+                class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
+              >
+                <span class="material-symbols-outlined text-[16px]">local_shipping</span>
+                Sim — oferecer frete grátis
+              </span>
+            {:else}
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
+              >
+                Não — só retirada / frete do comprador
+              </span>
+            {/if}
+          </dd>
+        </div>
+      </dl>
+      {#if activeFeatures.length}
+        <div>
+          <p class="text-on-surface-variant text-xs mb-1.5">Características</p>
+          <ul class="flex flex-wrap gap-1.5">
+            {#each activeFeatures as f (f.key)}
+              <li
+                class="text-xs px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container"
+              >
+                {f.label}
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+    {/if}
+  </section>
+
   <div class="grid gap-4 lg:grid-cols-2">
     <section class="ahq-card p-4 space-y-3">
       <div class="flex items-center justify-between gap-2">

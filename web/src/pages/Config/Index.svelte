@@ -6,12 +6,18 @@
   export let email = ''
   export let companyName = 'AuctionHQ'
   export let companyForm = ''
+  export let whatsappPhone = ''
+  export let shopURL = '/loja'
   export let errors = {}
   export let flash = ''
   export let site = {}
 
   let company = useForm({
     company_name: companyForm || '',
+  })
+
+  let whatsapp = useForm({
+    whatsapp_phone: whatsappPhone || '',
   })
 
   let password = useForm({
@@ -22,6 +28,10 @@
 
   function saveCompany() {
     company.post('/config/company')
+  }
+
+  function saveWhatsApp() {
+    whatsapp.post('/config/whatsapp')
   }
 
   function savePassword() {
@@ -69,6 +79,34 @@
       </div>
       <button type="submit" class="ahq-btn-primary" disabled={company.processing}>
         Salvar nome
+      </button>
+    </form>
+  </section>
+
+  <!-- WhatsApp / vitrine -->
+  <section class="ahq-card p-5 mb-section-padding">
+    <h2 class="font-headline-md text-headline-md text-primary mb-1">Loja pública (WhatsApp)</h2>
+    <p class="text-on-surface-variant text-sm mb-4">
+      Número que recebe pedidos da vitrine
+      <a href={shopURL} class="text-secondary underline" target="_blank" rel="noopener">/loja</a>
+      (só produtos com foto e em estoque).
+    </p>
+    <form on:submit|preventDefault={saveWhatsApp} class="space-y-4">
+      <div>
+        <label class="ahq-label block mb-1.5" for="whatsapp_phone">WhatsApp (com DDD)</label>
+        <input
+          id="whatsapp_phone"
+          type="tel"
+          bind:value={whatsapp.whatsapp_phone}
+          class="ahq-input font-mono"
+          placeholder="11 99999-0000"
+        />
+        <p class="text-[11px] text-on-surface-variant mt-1">
+          Pode ser com ou sem +55. Usado no botão “Pedir no WhatsApp”.
+        </p>
+      </div>
+      <button type="submit" class="ahq-btn-primary" disabled={whatsapp.processing}>
+        Salvar WhatsApp
       </button>
     </form>
   </section>

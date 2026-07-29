@@ -8,7 +8,10 @@ import (
 	"github.com/puppe1990/leilao-erp/internal/models"
 )
 
-const settingCompanyName = "company_name"
+const (
+	settingCompanyName   = "company_name"
+	settingWhatsAppPhone = "whatsapp_phone"
+)
 
 // GetSetting returns a setting value (empty string if missing).
 func (s *SQLiteStore) GetSetting(key string) (string, error) {
@@ -43,6 +46,16 @@ func (s *SQLiteStore) CompanyName() (string, error) {
 // SetCompanyName stores the company display name.
 func (s *SQLiteStore) SetCompanyName(name string) error {
 	return s.SetSetting(settingCompanyName, strings.TrimSpace(name))
+}
+
+// WhatsAppPhone returns the public shop WhatsApp number (may be empty).
+func (s *SQLiteStore) WhatsAppPhone() (string, error) {
+	return s.GetSetting(settingWhatsAppPhone)
+}
+
+// SetWhatsAppPhone stores the WhatsApp number used for public shop orders.
+func (s *SQLiteStore) SetWhatsAppPhone(phone string) error {
+	return s.SetSetting(settingWhatsAppPhone, strings.TrimSpace(phone))
 }
 
 // FindUserByID loads a user by primary key.

@@ -43,6 +43,11 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	waPhone, err := h.store.WhatsAppPhone()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	flash := ""
 	switch r.URL.Query().Get("saved") {
@@ -50,14 +55,18 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		flash = "Nome da empresa atualizado."
 	case "password":
 		flash = "Senha alterada com sucesso."
+	case "whatsapp":
+		flash = "WhatsApp da loja atualizado."
 	}
 
 	_ = h.inertia.Render(w, r, "Config/Index", withCompany(h.store, inertia.Props{
-		"site":        meta.ForRequest(h.site, r),
-		"email":       user.Email,
-		"companyName": companyName(h.store),
-		"companyForm": name, // raw stored value (may be empty)
-		"flash":       flash,
+		"site":          meta.ForRequest(h.site, r),
+		"email":         user.Email,
+		"companyName":   companyName(h.store),
+		"companyForm":   name, // raw stored value (may be empty)
+		"whatsappPhone": waPhone,
+		"shopURL":       "/loja",
+		"flash":         flash,
 	}))
 }
 
@@ -90,6 +99,23 @@ func (h *ConfigHandler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.inertia.Redirect(w, r, "/config?saved=company", http.StatusSeeOther)
+}
+
+func (h *ConfigHandler) UpdateWhatsApp(w http.ResponseWriter, r *http.Request) {
+	if _, ok := session.UserID(r); !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	phone := strings.TrimSpace(r.FormValue("whatsapp_phone"))
+	if err := h.store.SetWhatsAppPhone(phone); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.inertia.Redirect(w, r, "/config?saved=whatsapp", http.StatusSeeOther)
 }
 
 func (h *ConfigHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
