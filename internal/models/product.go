@@ -23,19 +23,19 @@ type Product struct {
 	Description string
 	ListingText string
 	// OLX marketplace attributes (monitors / displays).
-	ScreenType       string
-	MaxResolution    string
-	RefreshRate      string
-	ItemCondition    string
-	FeatCurved       bool
-	FeatIncludesBox  bool
-	FeatDisplayPort  bool
-	FeatHDR          bool
-	FeatWidescreen   bool
+	ScreenType         string
+	MaxResolution      string
+	RefreshRate        string
+	ItemCondition      string
+	FeatCurved         bool
+	FeatIncludesBox    bool
+	FeatDisplayPort    bool
+	FeatHDR            bool
+	FeatWidescreen     bool
 	FeatIncludesCables bool
-	FeatAudio        bool
-	FeatHDMI         bool
-	FeatUltrawide    bool
+	FeatAudio          bool
+	FeatHDMI           bool
+	FeatUltrawide      bool
 	// OlxFreeShipping: offer "Entregar grátis pela OLX" on the listing.
 	OlxFreeShipping bool
 	CreatedAt       time.Time

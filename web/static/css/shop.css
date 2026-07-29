@@ -24,7 +24,11 @@
   min-height: 100vh;
   background: var(--shop-bg) !important;
   color: var(--shop-text) !important;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -122,7 +126,10 @@
   color: var(--shop-text);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
 }
 .shop-theme-btn:hover {
   border-color: var(--shop-green);
@@ -265,7 +272,9 @@
   border: none;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(37, 211, 102, 0.25);
-  transition: background 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    transform 0.15s;
 }
 .shop-btn-wa:hover {
   background: var(--shop-green-hover);
@@ -514,7 +523,9 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 .shop-card:hover {
   border-color: var(--shop-dim);
@@ -532,7 +543,9 @@
   height: 100%;
   object-fit: cover;
   opacity: 0.92;
-  transition: transform 0.45s, opacity 0.45s;
+  transition:
+    transform 0.45s,
+    opacity 0.45s;
 }
 .shop-card:hover .shop-card-media img {
   transform: scale(1.05);

@@ -133,11 +133,11 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = h.inertia.Render(w, r, "Shop/Index", inertia.Props{
-		"site":         meta.ForRequest(h.site, r),
-		"companyName":  company,
-		"products":     rows,
-		"whatsappSet":  domain.NormalizeWhatsAppPhone(phone) != "",
-		"whatsappHint": phone,
+		"site":           meta.ForRequest(h.site, r),
+		"companyName":    company,
+		"products":       rows,
+		"whatsappSet":    domain.NormalizeWhatsAppPhone(phone) != "",
+		"whatsappHint":   phone,
 		"whatsappDigits": domain.NormalizeWhatsAppPhone(phone),
 	})
 }
