@@ -1,6 +1,7 @@
 <script>
   import { inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
+  import ShopCart from '@/components/ShopCart.svelte'
   import {
     applyShopThemeToDocument,
     clearShopThemeFromDocument,
@@ -20,6 +21,8 @@
   let category = 'all'
   let sortBy = 'featured'
   let waOpen = false
+  /** @type {import('@/components/ShopCart.svelte').default | undefined} */
+  let cart
   /** @type {'dark'|'light'} */
   let theme = 'dark'
 
@@ -29,7 +32,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=2'
+      link.href = '/static/css/shop.css?v=4'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -41,6 +44,10 @@
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark'
     setShopTheme(theme)
+  }
+
+  function addToCart(p) {
+    cart?.addProduct(p, 1)
   }
 
   $: list = Array.isArray(products) ? products : []
@@ -90,7 +97,7 @@
     if (!whatsappDigits) return
     const t =
       text ||
-      `Olá ${companyName}! Gostaria de tirar dúvidas sobre os monitores da vitrine.`
+      `Olá ${companyName}! Gostaria de tirar dúvidas sobre os monitores do catálogo.`
     window.open(`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(t)}`, '_blank')
   }
 
@@ -100,30 +107,30 @@
 </script>
 
 <svelte:head>
-  <title>{companyName} — Vitrine</title>
+  <title>{companyName} — Catálogo</title>
   <meta
     name="description"
     content="Monitores usados testados. Pedido direto no WhatsApp. 10% OFF no PIX."
   />
-  <link rel="stylesheet" href="/static/css/shop.css?v=2" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=4" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
   <div class="shop-banner">
     <span class="material-symbols-outlined" style="font-size:16px">bolt</span>
-    Pedido direto no WhatsApp · monitores testados · 10% OFF no PIX
+    Monte o carrinho · envie o pedido no WhatsApp · 10% OFF no PIX
   </div>
 
   <header class="shop-header">
     <div class="shop-header-inner">
-      <a href="/loja" use:inertia class="shop-logo">
+      <a href="/" use:inertia class="shop-logo">
         <div class="shop-logo-mark">
           <span class="material-symbols-outlined">storefront</span>
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:8px">
             <div class="shop-logo-title">Puppe<span>.</span></div>
-            <span class="shop-pill">Vitrine</span>
+            <span class="shop-pill">Catálogo</span>
           </div>
           <p class="shop-sub">Monitores & Tech · WhatsApp Orders</p>
         </div>
@@ -146,8 +153,15 @@
             {theme === 'dark' ? 'light_mode' : 'dark_mode'}
           </span>
         </button>
+        <ShopCart
+          bind:this={cart}
+          {whatsappDigits}
+          {whatsappSet}
+          {companyName}
+          {theme}
+        />
         {#if whatsappSet}
-          <button type="button" class="shop-btn-wa" on:click={() => generalWhatsApp()}>
+          <button type="button" class="shop-btn-wa shop-btn-wa-header" on:click={() => generalWhatsApp()}>
             <span class="material-symbols-outlined" style="font-size:18px">chat</span>
             WhatsApp
           </button>
@@ -166,9 +180,10 @@
       <span class="material-symbols-outlined" style="font-size:16px">chat</span>
       Fechamento direto no WhatsApp
     </div>
-    <h1>Monitores <em>testados</em> com preço de vitrine</h1>
+    <h1>Monitores <em>testados</em> com preço de catálogo</h1>
     <p>
-      Escolha o modelo, veja fotos e vídeos reais e peça no WhatsApp. PIX com 10% off ou cartão.
+      Monte o carrinho com os monitores que quiser, veja fotos e vídeos reais e envie o pedido no
+      WhatsApp. PIX com 10% off ou cartão.
     </p>
     <div class="shop-hero-actions">
       <button type="button" class="shop-btn-wa" on:click={scrollCatalog}>
@@ -264,7 +279,7 @@
       <div class="shop-grid">
         {#each filtered as p (p.id)}
           <article class="shop-card">
-            <a href={`/loja/${p.id}`} use:inertia class="shop-card-media">
+            <a href={`/produto/${p.id}`} use:inertia class="shop-card-media">
               {#if p.thumbUrl}
                 <img src={p.thumbUrl} alt={p.name} loading="lazy" />
               {/if}
@@ -285,7 +300,7 @@
                 <span class="shop-brand">{p.brand || 'MONITOR'}</span>
                 <span style="font-size:10px;color:#737373;font-weight:700">{p.qtyInStock || 0} un.</span>
               </div>
-              <a href={`/loja/${p.id}`} use:inertia class="shop-card-title">{p.name}</a>
+              <a href={`/produto/${p.id}`} use:inertia class="shop-card-title">{p.name}</a>
               <div class="shop-price-box">
                 {#if p.pixPrice}
                   <div>
@@ -298,17 +313,18 @@
                 {/if}
               </div>
               <div class="shop-card-actions">
-                <a href={`/loja/${p.id}`} use:inertia class="shop-btn-eye" title="Ver">
+                <a href={`/produto/${p.id}`} use:inertia class="shop-btn-eye" title="Ver">
                   <span class="material-symbols-outlined" style="font-size:18px">visibility</span>
                 </a>
-                {#if p.whatsappUrl}
-                  <a href={p.whatsappUrl} target="_blank" rel="noopener noreferrer" class="shop-btn-wa">
-                    <span class="material-symbols-outlined" style="font-size:18px">chat</span>
-                    Pedir no WhatsApp
-                  </a>
-                {:else}
-                  <button type="button" class="shop-btn-ghost" disabled>WhatsApp off</button>
-                {/if}
+                <button
+                  type="button"
+                  class="shop-btn-wa"
+                  on:click={() => addToCart(p)}
+                  title="Adicionar ao carrinho"
+                >
+                  <span class="material-symbols-outlined" style="font-size:18px">add_shopping_cart</span>
+                  Adicionar
+                </button>
               </div>
             </div>
           </article>
@@ -323,7 +339,7 @@
         <div class="ico"><span class="material-symbols-outlined">chat</span></div>
         <div>
           <h4>Pedido no WhatsApp</h4>
-          <p>Sem cadastro. Escolha o monitor e envie o pedido direto.</p>
+          <p>Sem cadastro. Monte o carrinho e envie o pedido completo.</p>
         </div>
       </div>
       <div class="shop-footer-prop">
@@ -383,7 +399,7 @@
             <button
               type="button"
               on:click={() =>
-                generalWhatsApp('Olá! Quero combinar retirada ou entrega de um monitor da vitrine.')}
+                generalWhatsApp('Olá! Quero combinar retirada ou entrega de um monitor do catálogo.')}
             >
               <span class="material-symbols-outlined" style="color:#fbbf24;font-size:18px">location_on</span>
               Retirada / entrega

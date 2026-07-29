@@ -150,7 +150,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		return
 	}
 	if p.PhotoCount < 1 || p.QtyInStock < 1 {
-		http.Error(w, "produto indisponível na vitrine", http.StatusNotFound)
+		http.Error(w, "produto indisponível no catálogo", http.StatusNotFound)
 		return
 	}
 	media, _ := h.store.ListProductMedia(id)
@@ -166,7 +166,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		}
 	}
 	if len(photos) == 0 {
-		http.Error(w, "produto indisponível na vitrine", http.StatusNotFound)
+		http.Error(w, "produto indisponível no catálogo", http.StatusNotFound)
 		return
 	}
 

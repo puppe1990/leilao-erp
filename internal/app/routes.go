@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/puppe1990/cais/pkg/cais"
@@ -10,7 +11,6 @@ import (
 )
 
 func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
-	home := handlers.NewHomeHandler(deps.Renderer, deps.Site, deps.Catalog, cfg, deps.Inertia)
 	contact := handlers.NewContactHandler(deps.Renderer, deps.Store, deps.Site, deps.Catalog, cfg, deps.Inertia)
 	dashboard := handlers.NewDashboardHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	lots := handlers.NewLotsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
@@ -29,12 +29,18 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	resetLimit := middleware.NewRateLimiter(10, cfg)
 	contactLimit := middleware.NewRateLimiter(20, cfg)
 
-	r.Get("/", home.ServeHTTP)
+	// Public catalog (WhatsApp orders) — only products with photos + stock
+	r.Get("/", shop.Index)
+	r.Get("/produto/{id}", cais.IntParam("id", shop.Show))
+	// Legacy /loja URLs
+	r.Get("/loja", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+	})
+	r.Get("/loja/{id}", cais.IntParam("id", func(w http.ResponseWriter, r *http.Request, id int64) {
+		http.Redirect(w, r, fmt.Sprintf("/produto/%d", id), http.StatusMovedPermanently)
+	}))
 	r.Get("/contact", contact.Get)
 	r.Post("/contact", contactLimit.Middleware(http.HandlerFunc(contact.Post)).ServeHTTP)
-	// Public mini shop (WhatsApp orders) — only products with photos + stock
-	r.Get("/loja", shop.Index)
-	r.Get("/loja/{id}", cais.IntParam("id", shop.Show))
 	r.Get("/login", auth.Login)
 	r.Post("/login", loginLimit.Middleware(http.HandlerFunc(auth.LoginPost)).ServeHTTP)
 	// Public signup disabled — single admin is seeded in development.

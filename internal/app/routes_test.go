@@ -15,8 +15,8 @@ import (
 )
 
 // TestSignupRoutesNotRegistered ensures public signup is disabled.
-// Go ServeMux treats "GET /" as a catch-all, so GET /signup falls through to Home
-// rather than 404 — we assert it never renders Signup, and that POST has no handler.
+// Go ServeMux treats "GET /" as a catch-all, so GET /signup falls through to the
+// public catalog rather than 404 — we assert it never renders Signup, and that POST has no handler.
 func TestSignupRoutesNotRegistered(t *testing.T) {
 	s, err := store.NewSQLiteStore(":memory:", "test")
 	if err != nil {
