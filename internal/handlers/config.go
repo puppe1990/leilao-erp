@@ -65,7 +65,7 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"companyName":   companyName(h.store),
 		"companyForm":   name, // raw stored value (may be empty)
 		"whatsappPhone": waPhone,
-		"shopURL":       "/loja",
+		"shopURL":       "/",
 		"flash":         flash,
 	}))
 }

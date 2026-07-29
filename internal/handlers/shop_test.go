@@ -30,8 +30,8 @@ func seedShopProduct(t *testing.T, s *store.SQLiteStore) int64 {
 		t.Fatal(err)
 	}
 	_, err = s.CreateLotPurchase(store.CreateLotInput{
-		Name: "Lote vitrine", PurchasedAt: "2026-01-01",
-		ItemTitle: "Monitor Vitrine TDD", ItemQty: 1,
+		Name: "Lote catálogo", PurchasedAt: "2026-01-01",
+		ItemTitle: "Monitor Catálogo TDD", ItemQty: 1,
 		CashAccountID: acc, PaidAt: "2026-01-01T12:00:00Z",
 		Costs: []store.CostInput{{Label: "Arremate", AmountCents: 4000, AlreadyPaid: true}},
 	})
@@ -44,7 +44,7 @@ func seedShopProduct(t *testing.T, s *store.SQLiteStore) int64 {
 	}
 	id := products[0].ID
 	if _, err := s.AddProductMedia(id, store.ProductMediaInput{
-		Kind: "photo", URL: "/static/uploads/products/1/vitrine.jpg", SortOrder: 0,
+		Kind: "photo", URL: "/static/uploads/products/1/catalogo.jpg", SortOrder: 0,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestShopHandler_Index_PublicOK(t *testing.T) {
 	h, s := newShopHandler(t)
 	seedShopProduct(t, s)
 
-	req := inertiaRequest(http.MethodGet, "/loja", nil)
+	req := inertiaRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
 	h.Index(rr, req)
 
@@ -74,7 +74,7 @@ func TestShopHandler_Show_OK(t *testing.T) {
 	h, s := newShopHandler(t)
 	id := seedShopProduct(t, s)
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/loja/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
 	rr := httptest.NewRecorder()
 	h.Show(rr, req, id)
 
@@ -94,7 +94,7 @@ func TestShopHandler_Show_IncludesVideos(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/loja/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
 	rr := httptest.NewRecorder()
 	h.Show(rr, req, id)
 	if rr.Code != http.StatusOK {
@@ -116,7 +116,7 @@ func TestShopHandler_Show_NoPhoto_NotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/loja/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
 	rr := httptest.NewRecorder()
 	h.Show(rr, req, id)
 

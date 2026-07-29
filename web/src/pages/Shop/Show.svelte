@@ -1,6 +1,7 @@
 <script>
   import { inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
+  import ShopCart from '@/components/ShopCart.svelte'
   import {
     applyShopThemeToDocument,
     clearShopThemeFromDocument,
@@ -21,6 +22,8 @@
   let activePhoto = ''
   $: if (mainPhoto && !activePhoto) activePhoto = mainPhoto
   $: displayPhoto = activePhoto || mainPhoto
+  /** @type {import('@/components/ShopCart.svelte').default | undefined} */
+  let cart
   /** @type {'dark'|'light'} */
   let theme = 'dark'
   $: rootClass = shopRootClass(theme)
@@ -29,7 +32,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=2'
+      link.href = '/static/css/shop.css?v=4'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -42,19 +45,29 @@
     theme = theme === 'dark' ? 'light' : 'dark'
     setShopTheme(theme)
   }
+
+  function addToCart() {
+    cart?.addProduct(
+      {
+        ...product,
+        thumbUrl: product.thumbUrl || photos[0]?.url || '',
+      },
+      1,
+    )
+  }
 </script>
 
 <svelte:head>
   <title>{product.name || 'Produto'} — {companyName}</title>
-  <link rel="stylesheet" href="/static/css/shop.css?v=2" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=4" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
-  <div class="shop-banner">10% OFF no PIX · pedido no WhatsApp</div>
+  <div class="shop-banner">Monte o carrinho · 10% OFF no PIX · pedido no WhatsApp</div>
 
   <header class="shop-header">
     <div class="shop-header-inner" style="min-height:3.5rem">
-      <a href="/loja" use:inertia class="shop-back">
+      <a href="/" use:inertia class="shop-back">
         <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
         Catálogo
       </a>
@@ -71,6 +84,13 @@
             {theme === 'dark' ? 'light_mode' : 'dark_mode'}
           </span>
         </button>
+        <ShopCart
+          bind:this={cart}
+          {whatsappDigits}
+          {whatsappSet}
+          {companyName}
+          {theme}
+        />
       </div>
     </div>
   </header>
@@ -184,12 +204,25 @@
           </div>
         {/if}
 
-        {#if product.whatsappUrl && whatsappSet}
-          <a href={product.whatsappUrl} target="_blank" rel="noopener noreferrer" class="shop-cta">
-            Pedir no WhatsApp
+        <button type="button" class="shop-cta shop-cta-cart" on:click={addToCart}>
+          <span class="material-symbols-outlined" style="font-size:20px;vertical-align:-4px">
+            add_shopping_cart
+          </span>
+          Adicionar ao carrinho
+        </button>
+        {#if whatsappSet && product.whatsappUrl}
+          <a
+            href={product.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="shop-cta shop-cta-secondary"
+          >
+            Pedir só este no WhatsApp
           </a>
-        {:else}
-          <p style="text-align:center;color:#737373;font-size:14px">WhatsApp da loja não configurado.</p>
+        {:else if !whatsappSet}
+          <p style="text-align:center;color:#737373;font-size:14px;margin-top:0.75rem">
+            WhatsApp da loja não configurado.
+          </p>
         {/if}
       </div>
     </div>

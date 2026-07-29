@@ -7,7 +7,7 @@
   export let companyName = 'AuctionHQ'
   export let companyForm = ''
   export let whatsappPhone = ''
-  export let shopURL = '/loja'
+  export let shopURL = '/'
   export let errors = {}
   export let flash = ''
   export let site = {}
@@ -83,12 +83,12 @@
     </form>
   </section>
 
-  <!-- WhatsApp / vitrine -->
+  <!-- WhatsApp / catálogo -->
   <section class="ahq-card p-5 mb-section-padding">
-    <h2 class="font-headline-md text-headline-md text-primary mb-1">Loja pública (WhatsApp)</h2>
+    <h2 class="font-headline-md text-headline-md text-primary mb-1">Catálogo público (WhatsApp)</h2>
     <p class="text-on-surface-variant text-sm mb-4">
-      Número que recebe pedidos da vitrine
-      <a href={shopURL} class="text-secondary underline" target="_blank" rel="noopener">/loja</a>
+      Número que recebe pedidos do catálogo
+      <a href={shopURL} class="text-secondary underline" target="_blank" rel="noopener">/</a>
       (só produtos com foto e em estoque).
     </p>
     <form on:submit|preventDefault={saveWhatsApp} class="space-y-4">

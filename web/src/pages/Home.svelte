@@ -15,7 +15,7 @@
   <h1 class="font-headline-lg text-headline-lg text-primary mb-2">AuctionHQ</h1>
   <p class="text-on-surface-variant mb-8 max-w-sm">ERP de gestão de leilões — financeiro, lotes e vendas.</p>
   <div class="flex flex-wrap gap-3 justify-center">
-    <a href="/loja" use:inertia class="ahq-btn-primary px-8">Ver loja</a>
+    <a href="/" use:inertia class="ahq-btn-primary px-8">Ver catálogo</a>
     <a href="/login" use:inertia class="ahq-btn-ghost px-8">Entrar</a>
   </div>
 </div>
