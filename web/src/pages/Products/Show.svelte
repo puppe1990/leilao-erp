@@ -1,6 +1,7 @@
 <script>
   import { inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let product = {}
   export let errors = {}
@@ -76,8 +77,17 @@
     )
   }
 
-  function deleteMedia(m) {
-    if (!confirm('Remover esta mídia?')) return
+  async function deleteMedia(m) {
+    const kind = isVideo(m) ? 'vídeo' : 'foto'
+    const ok = await askConfirm({
+      title: `Remover ${kind}`,
+      message: `Tem certeza que deseja remover este ${kind}?`,
+      detail: 'A mídia deixa de aparecer no produto e no catálogo.',
+      confirmLabel: 'Remover',
+      tone: 'danger',
+      icon: 'delete',
+    })
+    if (!ok) return
     mediaBusy = true
     router.post(`/products/${product.id}/media/${m.id}/delete`, {}, {
       onFinish: () => {
@@ -169,6 +179,25 @@
         <div>
           <dt class="text-on-surface-variant text-xs">Condição</dt>
           <dd class="font-medium text-primary">{product.condition || '—'}</dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-on-surface-variant text-xs">Catálogo (ecommerce)</dt>
+          <dd class="mt-0.5">
+            {#if product.shopVisible}
+              <span
+                class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
+              >
+                <span class="material-symbols-outlined text-[16px]">storefront</span>
+                Visível no catálogo
+              </span>
+            {:else}
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
+              >
+                Oculto no catálogo
+              </span>
+            {/if}
+          </dd>
         </div>
         <div class="sm:col-span-2">
           <dt class="text-on-surface-variant text-xs">Entregar grátis pela OLX</dt>

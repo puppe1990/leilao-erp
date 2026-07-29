@@ -296,6 +296,9 @@
                 </button>
               </th>
               <th class="px-2 py-2.5 font-medium text-[11px] uppercase tracking-wide text-center w-20">
+                Catálogo
+              </th>
+              <th class="px-2 py-2.5 font-medium text-[11px] uppercase tracking-wide text-center w-20">
                 Frete OLX
               </th>
               <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-36">
@@ -368,6 +371,23 @@
                 </td>
                 <td class="px-3 py-2.5 font-mono text-right font-semibold">
                   {p.salePriceHint || '—'}
+                </td>
+                <td class="px-2 py-2.5 text-center">
+                  {#if p.shopVisible}
+                    <span
+                      class="inline-flex items-center justify-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container"
+                      title="Visível no catálogo"
+                    >
+                      Sim
+                    </span>
+                  {:else}
+                    <span
+                      class="inline-flex items-center justify-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant"
+                      title="Oculto no catálogo"
+                    >
+                      Não
+                    </span>
+                  {/if}
                 </td>
                 <td class="px-2 py-2.5 text-center">
                   {#if p.olxFreeShipping}

@@ -6,6 +6,7 @@
     getShopTheme,
     setShopTheme,
   } from '@/lib/shopTheme.js'
+  import ConfirmModal from '@/components/ConfirmModal.svelte'
 
   /** @type {'dashboard'|'lots'|'stock'|'products'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
@@ -245,3 +246,5 @@
     </nav>
   {/if}
 </div>
+
+<ConfirmModal />

@@ -3,6 +3,7 @@
   import AppShell from '@/components/AppShell.svelte'
   import Nav from '@/components/Nav.svelte'
   import SearchableSelect from '@/components/SearchableSelect.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let balances = []
   export let entries = []
@@ -130,13 +131,28 @@
     })
   }
 
-  function deleteEntry(id) {
-    if (!confirm('Excluir este lançamento?')) return
+  async function deleteEntry(id) {
+    const ok = await askConfirm({
+      title: 'Excluir lançamento',
+      message: 'Tem certeza que deseja excluir este lançamento?',
+      detail: 'O saldo da conta será recalculado. Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      tone: 'danger',
+    })
+    if (!ok) return
     router.post(`/cash/entries/${id}/delete`)
   }
 
-  function deleteAccount(id) {
-    if (!confirm('Excluir esta conta? Só funciona se não houver lançamentos.')) return
+  async function deleteAccount(id) {
+    const ok = await askConfirm({
+      title: 'Excluir conta',
+      message: 'Tem certeza que deseja excluir esta conta de caixa?',
+      detail: 'Só funciona se não houver lançamentos vinculados.',
+      confirmLabel: 'Excluir conta',
+      tone: 'danger',
+      icon: 'account_balance_wallet',
+    })
+    if (!ok) return
     router.post(`/cash/accounts/${id}/delete`)
   }
 
