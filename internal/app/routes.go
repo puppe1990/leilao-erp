@@ -22,6 +22,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	payables := handlers.NewPayablesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	receivables := handlers.NewReceivablesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	configH := handlers.NewConfigHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
+	shop := handlers.NewShopHandler(deps.Store, deps.Site, cfg, deps.Inertia)
 	auth := handlers.NewAuthHandler(deps.Renderer, deps.Store, deps.Site, deps.Store.Sessions(), cfg, deps.Catalog, deps.Inertia)
 
 	loginLimit := middleware.NewRateLimiter(10, cfg)
@@ -31,6 +32,9 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Get("/", home.ServeHTTP)
 	r.Get("/contact", contact.Get)
 	r.Post("/contact", contactLimit.Middleware(http.HandlerFunc(contact.Post)).ServeHTTP)
+	// Public mini shop (WhatsApp orders) — only products with photos + stock
+	r.Get("/loja", shop.Index)
+	r.Get("/loja/{id}", cais.IntParam("id", shop.Show))
 	r.Get("/login", auth.Login)
 	r.Post("/login", loginLimit.Middleware(http.HandlerFunc(auth.LoginPost)).ServeHTTP)
 	// Public signup disabled — single admin is seeded in development.
@@ -99,5 +103,6 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 
 	r.Get("/config", middleware.RequireAuthFunc("/login", configH.Index))
 	r.Post("/config/company", middleware.RequireAuthFunc("/login", configH.UpdateCompany))
+	r.Post("/config/whatsapp", middleware.RequireAuthFunc("/login", configH.UpdateWhatsApp))
 	r.Post("/config/password", middleware.RequireAuthFunc("/login", configH.UpdatePassword))
 }

@@ -249,6 +249,7 @@
         <table class="w-full text-sm text-left min-w-[720px]">
           <thead>
             <tr class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant">
+              <th class="px-2 py-2.5 w-12" aria-label="Foto"></th>
               <th class="px-1 py-1">
                 <button
                   type="button"
@@ -294,6 +295,9 @@
                   Preço <span class="material-symbols-outlined text-[14px]">{sortIcon('salePrice')}</span>
                 </button>
               </th>
+              <th class="px-2 py-2.5 font-medium text-[11px] uppercase tracking-wide text-center w-20">
+                Frete OLX
+              </th>
               <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-36">
                 Ações
               </th>
@@ -302,6 +306,29 @@
           <tbody class="divide-y divide-outline-variant">
             {#each filtered as p (p.id)}
               <tr class="hover:bg-surface-container-low/80">
+                <td class="px-2 py-1.5 w-12">
+                  <a
+                    href={`/products/${p.id}`}
+                    use:inertia
+                    class="block w-10 h-10 rounded-md overflow-hidden bg-surface-container-high border border-outline-variant shrink-0"
+                    title="Ver produto"
+                  >
+                    {#if p.thumbUrl}
+                      <img
+                        src={p.thumbUrl}
+                        alt=""
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    {:else}
+                      <span
+                        class="w-full h-full flex items-center justify-center text-on-surface-variant"
+                      >
+                        <span class="material-symbols-outlined text-[18px]">image</span>
+                      </span>
+                    {/if}
+                  </a>
+                </td>
                 <td class="px-3 py-2.5">
                   <a
                     href={`/products/${p.id}`}
@@ -341,6 +368,23 @@
                 </td>
                 <td class="px-3 py-2.5 font-mono text-right font-semibold">
                   {p.salePriceHint || '—'}
+                </td>
+                <td class="px-2 py-2.5 text-center">
+                  {#if p.olxFreeShipping}
+                    <span
+                      class="inline-flex items-center justify-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container"
+                      title="Oferecer frete grátis OLX"
+                    >
+                      Sim
+                    </span>
+                  {:else}
+                    <span
+                      class="inline-flex items-center justify-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant"
+                      title="Sem frete grátis OLX"
+                    >
+                      Não
+                    </span>
+                  {/if}
                 </td>
                 <td class="px-3 py-2.5 text-right whitespace-nowrap">
                   <a

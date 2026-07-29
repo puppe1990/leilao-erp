@@ -17,8 +17,26 @@ type Product struct {
 	// PhotoCount / VideoCount filled by ListProducts.
 	PhotoCount int
 	VideoCount int
+	// FirstPhotoURL is the first photo (sort_order, id) for list thumbnails.
+	FirstPhotoURL string
 	// Description: technical specs; ListingText: marketplace copy (ML/OLX).
 	Description string
 	ListingText string
-	CreatedAt   time.Time
+	// OLX marketplace attributes (monitors / displays).
+	ScreenType         string
+	MaxResolution      string
+	RefreshRate        string
+	ItemCondition      string
+	FeatCurved         bool
+	FeatIncludesBox    bool
+	FeatDisplayPort    bool
+	FeatHDR            bool
+	FeatWidescreen     bool
+	FeatIncludesCables bool
+	FeatAudio          bool
+	FeatHDMI           bool
+	FeatUltrawide      bool
+	// OlxFreeShipping: offer "Entregar grátis pela OLX" on the listing.
+	OlxFreeShipping bool
+	CreatedAt       time.Time
 }

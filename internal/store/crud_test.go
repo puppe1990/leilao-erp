@@ -145,6 +145,33 @@ func TestCancelPayableAndCreate(t *testing.T) {
 	}
 }
 
+func TestProductOLXAttrs(t *testing.T) {
+	st := testStore(t)
+	id, err := st.EnsureProductByName("Monitor Teste OLX", "principal", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdateProductOLXAttrs(id, store.ProductOLXAttrs{
+		ScreenType:      "IPS",
+		MaxResolution:   "1920x1080 (Full HD)",
+		RefreshRate:     "60 Hz",
+		ItemCondition:   "Usado - Bom",
+		FeatHDMI:        true,
+		FeatDisplayPort: true,
+		FeatWidescreen:  true,
+		OlxFreeShipping: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	p, err := st.FindProduct(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.ScreenType != "IPS" || p.RefreshRate != "60 Hz" || !p.FeatHDMI || !p.FeatDisplayPort || p.FeatCurved || !p.OlxFreeShipping {
+		t.Fatalf("olx attrs=%+v", p)
+	}
+}
+
 func TestCashEntryCRUD(t *testing.T) {
 	st := testStore(t)
 	acc, err := st.InsertCashAccount("PIX", "pix", 0)

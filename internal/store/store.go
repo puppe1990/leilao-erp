@@ -37,6 +37,8 @@ type Store interface {
 	SetSetting(key, value string) error
 	CompanyName() (string, error)
 	SetCompanyName(name string) error
+	WhatsAppPhone() (string, error)
+	SetWhatsAppPhone(phone string) error
 
 	// Finance / lots
 	InsertCashAccount(name, kind string, openingBalanceCents int64) (int64, error)
@@ -59,11 +61,13 @@ type Store interface {
 	RenameItemsByTitle(fromTitle, toTitle string) (int64, error)
 	EnsureProductByName(name, kind string, saleHint *int64) (int64, error)
 	ListProducts() ([]models.Product, error)
+	ListProductsWithPhotos() ([]models.Product, error)
 	FindProduct(id int64) (models.Product, error)
 	ListStockProductGroups() ([]models.Product, error)
 	ListInStockUnitsByProduct(productID int64, title string) ([]models.Item, error)
 	UpdateProductSaleHint(productID int64, hintCents *int64) error
 	UpdateProductDescriptions(productID int64, description, listingText string) error
+	UpdateProductOLXAttrs(productID int64, in ProductOLXAttrs) error
 	RenameProduct(productID int64, newName string) error
 	AddProductMedia(productID int64, in ProductMediaInput) (int64, error)
 	ListProductMedia(productID int64) ([]models.ProductMedia, error)
