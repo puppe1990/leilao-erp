@@ -2,7 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* —— Shop design tokens for admin (default dark) —— */
+:root,
+html[data-shop-theme="dark"] {
+  --c-bg: 0 0 0;
+  --c-panel: 23 23 23;
+  --c-panel-2: 10 10 10;
+  --c-elevated: 38 38 38;
+  --c-surface-dim: 38 38 38;
+  --c-border: 38 38 38;
+  --c-text: 255 255 255;
+  --c-muted: 163 163 163;
+  --c-dim: 115 115 115;
+  --c-primary: 255 255 255;
+  --c-on-primary: 0 0 0;
+  --c-green: 37 211 102;
+  --c-green-hover: 32 189 90;
+  --c-on-green: 0 0 0;
+  --c-error: 248 113 113;
+  --c-on-error: 0 0 0;
+  --c-error-bg: 69 10 10;
+  --c-error-fg: 254 202 202;
+  --c-pending: 245 158 11;
+  --c-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+html[data-shop-theme="light"] {
+  --c-bg: 244 246 248;
+  --c-panel: 255 255 255;
+  --c-panel-2: 249 250 251;
+  --c-elevated: 243 244 246;
+  --c-surface-dim: 229 231 235;
+  --c-border: 229 231 235;
+  --c-text: 17 24 39;
+  --c-muted: 75 85 99;
+  --c-dim: 107 114 128;
+  --c-primary: 17 24 39;
+  --c-on-primary: 255 255 255;
+  --c-green: 22 163 74;
+  --c-green-hover: 21 128 61;
+  --c-on-green: 255 255 255;
+  --c-error: 220 38 38;
+  --c-on-error: 255 255 255;
+  --c-error-bg: 254 226 226;
+  --c-error-fg: 153 27 27;
+  --c-pending: 217 119 6;
+  --c-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  color-scheme: light;
+}
+
 @layer base {
+  html {
+    background-color: rgb(var(--c-bg));
+  }
   body {
     @apply font-body-md text-body-md text-on-surface bg-background antialiased;
   }
@@ -29,7 +82,7 @@
   }
 
   .ahq-card {
-    @apply bg-surface-container-lowest border border-outline-variant rounded-lg;
+    @apply bg-surface-container-lowest border border-outline-variant rounded-xl;
   }
 
   .ahq-label {
@@ -40,23 +93,27 @@
     @apply font-data-display text-data-display text-primary tabular-nums;
   }
 
+  /* Green CTA like shop WhatsApp buttons */
   .ahq-btn-primary {
-    @apply inline-flex items-center justify-center h-12 px-5 bg-secondary text-on-secondary font-semibold rounded
-      hover:bg-secondary-container active:scale-[0.98] transition-all disabled:opacity-60 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center h-12 px-5 bg-secondary text-on-secondary font-bold rounded-full
+      uppercase tracking-wide text-[11px] hover:opacity-90 active:scale-[0.98] transition-all
+      disabled:opacity-60 disabled:pointer-events-none;
   }
 
   .ahq-btn-dark {
-    @apply inline-flex items-center justify-center h-12 px-5 bg-primary text-on-primary font-bold rounded
-      hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center h-12 px-5 bg-surface-container-high text-on-surface font-bold rounded-full
+      uppercase tracking-wide text-[11px] border border-outline-variant
+      hover:border-secondary hover:text-secondary active:scale-[0.98] transition-all
+      disabled:opacity-60 disabled:pointer-events-none;
   }
 
   .ahq-btn-ghost {
-    @apply inline-flex items-center justify-center h-12 px-5 border border-primary text-primary font-semibold rounded
-      hover:bg-surface-container-low active:scale-[0.98] transition-all;
+    @apply inline-flex items-center justify-center h-12 px-5 border border-outline-variant text-on-surface font-bold rounded-full
+      uppercase tracking-wide text-[11px] hover:border-secondary hover:text-secondary active:scale-[0.98] transition-all;
   }
 
   .ahq-input {
-    @apply w-full h-12 px-3 bg-surface-container-lowest border border-outline-variant rounded font-body-md text-on-surface
+    @apply w-full h-12 px-3 bg-surface-container-low border border-outline-variant rounded-xl font-body-md text-on-surface
       focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all;
   }
 
@@ -65,15 +122,15 @@
   }
 
   .ahq-badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm font-label-md text-[10px] uppercase tracking-wider;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-label-md text-[10px] uppercase tracking-wider;
   }
 
   .ahq-badge-live {
-    @apply ahq-badge bg-tertiary text-white;
+    @apply ahq-badge bg-secondary text-on-secondary;
   }
 
   .ahq-badge-open {
-    @apply ahq-badge bg-secondary/10 text-secondary;
+    @apply ahq-badge bg-secondary/15 text-secondary;
   }
 
   .ahq-badge-pending {
@@ -86,6 +143,19 @@
 
   .ahq-badge-error {
     @apply ahq-badge bg-error-container text-on-error-container;
+  }
+
+  /* Theme toggle (matches shop) */
+  .ahq-theme-btn {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-full border border-outline-variant
+      bg-surface-container-lowest text-on-surface shrink-0 transition-all
+      hover:border-secondary hover:text-secondary active:scale-95;
+  }
+
+  /* Brand mark like shop storefront circle */
+  .ahq-brand-mark {
+    @apply w-9 h-9 rounded-full bg-surface-container-lowest border border-outline-variant
+      flex items-center justify-center shrink-0 text-secondary;
   }
 }
 
