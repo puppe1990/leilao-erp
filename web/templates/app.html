@@ -1,20 +1,33 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-shop-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AuctionHQ</title>
+  <title>Admin</title>
+  <meta name="theme-color" content="#000000" />
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('puppe-shop-theme')
+        if (t !== 'light' && t !== 'dark') t = 'dark'
+        document.documentElement.setAttribute('data-shop-theme', t)
+        var bg = t === 'light' ? '#f4f6f8' : '#000000'
+        document.documentElement.style.background = bg
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', bg)
+      } catch (e) {}
+    })()
+  </script>
   {{ .inertiaHead }}
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="stylesheet" href="/static/css/styles.css?v=31" />
   <link rel="stylesheet" href="/static/css/shop.css?v=4" />
   <link rel="manifest" href="/static/manifest.webmanifest" />
-  <meta name="theme-color" content="#0a192f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="AuctionHQ" />
+  <meta name="apple-mobile-web-app-title" content="Admin" />
   <link rel="icon" href="/static/icons/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="/static/icons/favicon-48.png" />
@@ -23,6 +36,6 @@
 </head>
 <body class="bg-background text-on-surface">
   {{ .inertia }}
-  <script type="module" src="/static/build/assets/main.js?v=29"></script>
+  <script type="module" src="/static/build/assets/main.js?v=31"></script>
 </body>
 </html>

@@ -1,5 +1,11 @@
 <script>
   import { inertia, router } from '@inertiajs/svelte'
+  import { onMount } from 'svelte'
+  import {
+    applyShopThemeToDocument,
+    getShopTheme,
+    setShopTheme,
+  } from '@/lib/shopTheme.js'
 
   /** @type {'dashboard'|'lots'|'stock'|'products'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
@@ -9,6 +15,19 @@
   export let hideBottomNav = false
 
   $: brand = title || companyName || 'AuctionHQ'
+
+  /** @type {'dark'|'light'} */
+  let theme = 'dark'
+
+  onMount(() => {
+    theme = getShopTheme()
+    applyShopThemeToDocument(theme)
+  })
+
+  function toggleTheme() {
+    theme = theme === 'dark' ? 'light' : 'dark'
+    setShopTheme(theme)
+  }
 
   function logout() {
     router.post('/logout')
@@ -30,16 +49,6 @@
     return false
   }
 
-  function initials(name) {
-    const parts = String(name || 'AQ')
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-    if (parts.length === 0) return 'AQ'
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-    return (parts[0][0] + parts[1][0]).toUpperCase()
-  }
-
   const pageTitles = {
     dashboard: 'Dashboard',
     lots: 'Lotes',
@@ -53,9 +62,8 @@
     config: 'Configurações',
   }
 
-  $: docTitle = pageTitles[active]
-    ? `${pageTitles[active]} · ${brand}`
-    : brand
+  $: docTitle = pageTitles[active] ? `${pageTitles[active]} · ${brand}` : brand
+  $: brandMain = String(brand || 'Admin').split(/\s+/)[0] || 'Admin'
 </script>
 
 <svelte:head>
@@ -66,16 +74,27 @@
   <!-- Desktop sidebar -->
   {#if !hideBottomNav}
     <aside
-      class="hidden md:flex md:flex-col md:w-56 md:shrink-0 md:fixed md:inset-y-0 md:left-0 z-50
+      class="hidden md:flex md:flex-col md:w-60 md:shrink-0 md:fixed md:inset-y-0 md:left-0 z-50
         bg-surface-container-lowest border-r border-outline-variant"
     >
-      <a href="/dashboard" use:inertia class="h-16 px-4 flex items-center gap-3 border-b border-outline-variant min-w-0">
-        <div
-          class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 font-bold text-sm"
-        >
-          {initials(brand)}
+      <a
+        href="/dashboard"
+        use:inertia
+        class="h-16 px-4 flex items-center gap-3 border-b border-outline-variant min-w-0"
+      >
+        <div class="ahq-brand-mark">
+          <span class="material-symbols-outlined text-[20px]">storefront</span>
         </div>
-        <span class="font-headline-md text-headline-md font-bold text-primary truncate">{brand}</span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="font-headline-md text-headline-md font-black text-on-surface truncate"
+              >{brandMain}<span class="text-secondary">.</span></span
+            >
+          </div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant truncate">
+            Admin · ERP
+          </p>
+        </div>
       </a>
 
       <nav class="flex-1 p-3 flex flex-col gap-1 overflow-y-auto" aria-label="Navegação principal">
@@ -85,63 +104,95 @@
             use:inertia
             class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
               {isActive(tab.key)
-              ? 'bg-secondary-container text-on-secondary-container font-semibold'
-              : 'text-on-surface-variant hover:bg-surface-container-high'}"
+              ? 'bg-secondary text-on-secondary font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}"
           >
             <span class="material-symbols-outlined {isActive(tab.key) ? 'fill' : ''}">{tab.icon}</span>
-            <span class="font-label-md text-label-md">{tab.label}</span>
+            <span class="text-sm font-semibold">{tab.label}</span>
           </a>
         {/each}
       </nav>
 
       <div class="p-3 border-t border-outline-variant flex flex-col gap-1">
         <a
+          href="/"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
+            hover:bg-surface-container-high hover:text-secondary transition-all"
+          title="Abrir catálogo público"
+        >
+          <span class="material-symbols-outlined">storefront</span>
+          <span class="text-sm font-semibold">Catálogo</span>
+        </a>
+        <a
           href="/config"
           use:inertia
           class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
             {active === 'config'
-            ? 'bg-secondary-container text-on-secondary-container font-semibold'
-            : 'text-on-surface-variant hover:bg-surface-container-high'}"
+            ? 'bg-secondary text-on-secondary font-bold'
+            : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}"
         >
           <span class="material-symbols-outlined {active === 'config' ? 'fill' : ''}">settings</span>
-          <span class="font-label-md text-label-md">Config</span>
+          <span class="text-sm font-semibold">Config</span>
         </a>
+        <button
+          type="button"
+          on:click={toggleTheme}
+          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
+            hover:bg-surface-container-high hover:text-on-surface text-left w-full transition-all"
+          title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        >
+          <span class="material-symbols-outlined"
+            >{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span
+          >
+          <span class="text-sm font-semibold">{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
+        </button>
         {#if showLogout}
           <button
             type="button"
             on:click={logout}
             class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
-              hover:bg-surface-container-high text-left w-full"
+              hover:bg-surface-container-high hover:text-error text-left w-full transition-all"
           >
             <span class="material-symbols-outlined">logout</span>
-            <span class="font-label-md text-label-md">Sair</span>
+            <span class="text-sm font-semibold">Sair</span>
           </button>
         {/if}
       </div>
     </aside>
   {/if}
 
-  <!-- Mobile top bar only -->
+  <!-- Mobile top bar -->
   <header
     class="fixed top-0 left-0 right-0 z-50 h-16 px-container-margin flex items-center justify-between
-      bg-surface-container-lowest border-b border-outline-variant md:hidden"
+      bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant md:hidden"
   >
-    <a href="/dashboard" use:inertia class="flex items-center gap-3 min-w-0">
-      <div
-        class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 font-bold text-sm"
-      >
-        {initials(brand)}
+    <a href="/dashboard" use:inertia class="flex items-center gap-2.5 min-w-0">
+      <div class="ahq-brand-mark !w-8 !h-8">
+        <span class="material-symbols-outlined text-[18px]">storefront</span>
       </div>
-      <span class="font-headline-md text-headline-md font-bold text-primary truncate">{brand}</span>
+      <span class="font-headline-md text-headline-md font-black text-on-surface truncate"
+        >{brandMain}<span class="text-secondary">.</span></span
+      >
     </a>
     <div class="flex items-center gap-1">
+      <button
+        type="button"
+        class="ahq-theme-btn !w-10 !h-10"
+        on:click={toggleTheme}
+        title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+      >
+        <span class="material-symbols-outlined text-[20px]"
+          >{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span
+        >
+      </button>
       <a
         href="/config"
         use:inertia
         class="w-10 h-10 flex items-center justify-center rounded-full transition-all
           {active === 'config'
-          ? 'bg-secondary-container text-on-secondary-container'
-          : 'text-on-surface-variant hover:bg-surface-container-low active:scale-95'}"
+          ? 'bg-secondary text-on-secondary'
+          : 'text-on-surface-variant hover:bg-surface-container-high active:scale-95'}"
         title="Configurações"
         aria-label="Configurações"
       >
@@ -152,7 +203,7 @@
           type="button"
           on:click={logout}
           class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant
-            hover:bg-surface-container-low active:scale-95 transition-all"
+            hover:bg-surface-container-high active:scale-95 transition-all"
           title="Sair"
           aria-label="Sair"
         >
@@ -162,31 +213,33 @@
     </div>
   </header>
 
-  <div class="flex-1 min-w-0 md:pl-56">
+  <div class="flex-1 min-w-0 md:pl-60">
     <main
-      class="pt-20 md:pt-8 {hideBottomNav ? 'pb-8' : 'pb-28 md:pb-8'} px-container-margin max-w-5xl mx-auto md:mx-0 md:max-w-none md:px-8"
+      class="pt-20 md:pt-8 {hideBottomNav
+        ? 'pb-8'
+        : 'pb-28 md:pb-8'} px-container-margin max-w-5xl mx-auto md:mx-0 md:max-w-none md:px-8"
     >
       <slot />
     </main>
   </div>
 
-  <!-- Mobile bottom footer only -->
+  <!-- Mobile bottom nav -->
   {#if !hideBottomNav}
     <nav
-      class="fixed bottom-0 left-0 right-0 z-50 h-20 px-2 pb-2 flex justify-around items-center
-        bg-surface-container-lowest border-t border-outline-variant shadow-float md:hidden"
+      class="fixed bottom-0 left-0 right-0 z-50 h-20 px-1 pb-2 flex justify-around items-center
+        bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant shadow-float md:hidden"
     >
       {#each tabs as tab}
         <a
           href={tab.href}
           use:inertia
-          class="flex flex-col items-center justify-center min-w-[4rem] px-2 py-1.5 rounded-full transition-all
+          class="flex flex-col items-center justify-center min-w-[3.5rem] px-1.5 py-1.5 rounded-full transition-all
             {isActive(tab.key)
-            ? 'bg-secondary-container text-on-secondary-container'
+            ? 'bg-secondary text-on-secondary'
             : 'text-on-surface-variant hover:bg-surface-container-high active:scale-90'}"
         >
           <span class="material-symbols-outlined {isActive(tab.key) ? 'fill' : ''}">{tab.icon}</span>
-          <span class="font-label-md text-label-md mt-0.5">{tab.label}</span>
+          <span class="text-[9px] font-bold uppercase tracking-wide mt-0.5">{tab.label}</span>
         </a>
       {/each}
     </nav>

@@ -29,6 +29,12 @@ export function applyShopThemeToDocument(theme) {
   document.body.style.background = bg
   document.body.style.color = fg
   document.documentElement.setAttribute('data-shop-theme', theme)
+  try {
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) meta.setAttribute('content', bg)
+  } catch {
+    // ignore
+  }
 }
 
 export function clearShopThemeFromDocument() {

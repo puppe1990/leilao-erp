@@ -4,7 +4,6 @@
   import ShopCart from '@/components/ShopCart.svelte'
   import {
     applyShopThemeToDocument,
-    clearShopThemeFromDocument,
     getShopTheme,
     setShopTheme,
     shopRootClass,
@@ -38,7 +37,6 @@
     }
     theme = getShopTheme()
     applyShopThemeToDocument(theme)
-    return () => clearShopThemeFromDocument()
   })
 
   function toggleTheme() {
