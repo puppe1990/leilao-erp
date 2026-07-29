@@ -6,6 +6,7 @@ import "time"
 type Product struct {
 	ID                 int64
 	Name               string
+	Slug               string // public catalog URL segment (/produto/{slug})
 	SalePriceHintCents *int64
 	Kind               string // principal | accessory
 	// QtyInStock is filled by ListStockProductGroups only.

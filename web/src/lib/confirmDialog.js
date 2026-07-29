@@ -1,4 +1,7 @@
-import { writable } from 'svelte/store'
+/**
+ * Shared confirm dialog bus (works across Inertia page navigations).
+ * ConfirmModal must be mounted (via AppShell) to show UI.
+ */
 
 /**
  * @typedef {object} ConfirmOptions
@@ -11,8 +14,42 @@ import { writable } from 'svelte/store'
  * @property {string} [icon] Material Symbols name
  */
 
-/** @type {import('svelte/store').Writable<(ConfirmOptions & { resolve: (v: boolean) => void }) | null>} */
-export const confirmState = writable(null)
+/**
+ * @typedef {ConfirmOptions & { resolve: (v: boolean) => void }} ConfirmRequest
+ */
+
+/** @type {ConfirmRequest | null} */
+let current = null
+
+/** @type {Set<(req: ConfirmRequest | null) => void>} */
+const listeners = new Set()
+
+function notify() {
+  for (const fn of listeners) {
+    try {
+      fn(current)
+    } catch {
+      // ignore listener errors
+    }
+  }
+}
+
+/**
+ * Subscribe to open/close requests. Returns unsubscribe.
+ * @param {(req: ConfirmRequest | null) => void} fn
+ */
+export function subscribeConfirm(fn) {
+  listeners.add(fn)
+  // push current state immediately
+  try {
+    fn(current)
+  } catch {
+    // ignore
+  }
+  return () => {
+    listeners.delete(fn)
+  }
+}
 
 /**
  * Opens the shared confirm modal. Resolves true if the user confirms.
@@ -20,16 +57,43 @@ export const confirmState = writable(null)
  * @returns {Promise<boolean>}
  */
 export function askConfirm(opts = {}) {
+  // close any previous pending confirm as cancelled
+  if (current?.resolve) {
+    try {
+      current.resolve(false)
+    } catch {
+      // ignore
+    }
+  }
+
   return new Promise((resolve) => {
-    confirmState.set({
+    const tone = opts.tone || 'danger'
+    current = {
       title: opts.title || 'Tem certeza?',
       message: opts.message || 'Essa ação não pode ser desfeita.',
       detail: opts.detail || '',
       confirmLabel: opts.confirmLabel || 'Confirmar',
       cancelLabel: opts.cancelLabel || 'Cancelar',
-      tone: opts.tone || 'danger',
-      icon: opts.icon || defaultIcon(opts.tone || 'danger'),
-      resolve,
+      tone,
+      icon: opts.icon || defaultIcon(tone),
+      resolve: (v) => {
+        current = null
+        notify()
+        resolve(!!v)
+      },
+    }
+    notify()
+
+    // Safety: if no modal is mounted, fall back so deletes aren't stuck.
+    queueMicrotask(() => {
+      if (listeners.size === 0 && current) {
+        const req = current
+        current = null
+        const ok =
+          typeof window !== 'undefined' &&
+          window.confirm([req.title, req.message, req.detail].filter(Boolean).join('\n\n'))
+        req.resolve(ok)
+      }
     })
   })
 }
@@ -38,10 +102,11 @@ export function askConfirm(opts = {}) {
  * @param {boolean} result
  */
 export function closeConfirm(result) {
-  confirmState.update((s) => {
-    if (s?.resolve) s.resolve(!!result)
-    return null
-  })
+  if (!current) return
+  const req = current
+  current = null
+  notify()
+  req.resolve(!!result)
 }
 
 /** @param {'danger'|'warning'|'primary'} tone */

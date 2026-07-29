@@ -23,7 +23,7 @@ func newShopHandler(t *testing.T) (*ShopHandler, *store.SQLiteStore) {
 	return h, s
 }
 
-func seedShopProduct(t *testing.T, s *store.SQLiteStore) int64 {
+func seedShopProduct(t *testing.T, s *store.SQLiteStore) (id int64, slug string) {
 	t.Helper()
 	acc, err := s.InsertCashAccount("PIX", "pix", 0)
 	if err != nil {
@@ -42,7 +42,11 @@ func seedShopProduct(t *testing.T, s *store.SQLiteStore) int64 {
 	if err != nil || len(products) == 0 {
 		t.Fatalf("products %v %v", products, err)
 	}
-	id := products[0].ID
+	id = products[0].ID
+	slug = products[0].Slug
+	if slug == "" {
+		t.Fatal("expected product slug")
+	}
 	if _, err := s.AddProductMedia(id, store.ProductMediaInput{
 		Kind: "photo", URL: "/static/uploads/products/1/catalogo.jpg", SortOrder: 0,
 	}); err != nil {
@@ -54,12 +58,12 @@ func seedShopProduct(t *testing.T, s *store.SQLiteStore) int64 {
 	if err := s.SetWhatsAppPhone("11999990000"); err != nil {
 		t.Fatal(err)
 	}
-	return id
+	return id, slug
 }
 
 func TestShopHandler_Index_PublicOK(t *testing.T) {
 	h, s := newShopHandler(t)
-	seedShopProduct(t, s)
+	_, slug := seedShopProduct(t, s)
 
 	req := inertiaRequest(http.MethodGet, "/", nil)
 	rr := httptest.NewRecorder()
@@ -71,15 +75,18 @@ func TestShopHandler_Index_PublicOK(t *testing.T) {
 	assertInertiaComponent(t, rr, "Shop/Index")
 	assertInertiaProp(t, rr, "products")
 	assertInertiaProp(t, rr, "whatsappSet")
+	if !strings.Contains(rr.Body.String(), slug) {
+		t.Fatalf("expected slug %q in index payload", slug)
+	}
 }
 
 func TestShopHandler_Show_OK(t *testing.T) {
 	h, s := newShopHandler(t)
-	id := seedShopProduct(t, s)
+	_, slug := seedShopProduct(t, s)
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, "/produto/"+slug, nil)
 	rr := httptest.NewRecorder()
-	h.Show(rr, req, id)
+	h.Show(rr, req, slug)
 
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
@@ -88,18 +95,35 @@ func TestShopHandler_Show_OK(t *testing.T) {
 	assertInertiaProp(t, rr, "product")
 }
 
+func TestShopHandler_Show_IDRedirectsToSlug(t *testing.T) {
+	h, s := newShopHandler(t)
+	id, slug := seedShopProduct(t, s)
+
+	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
+	rr := httptest.NewRecorder()
+	h.Show(rr, req, fmt.Sprintf("%d", id))
+
+	if rr.Code != http.StatusMovedPermanently {
+		t.Fatalf("status=%d want 301 body=%s", rr.Code, rr.Body.String())
+	}
+	loc := rr.Header().Get("Location")
+	if loc != "/produto/"+slug {
+		t.Fatalf("Location=%q want /produto/%s", loc, slug)
+	}
+}
+
 func TestShopHandler_Show_IncludesVideos(t *testing.T) {
 	h, s := newShopHandler(t)
-	id := seedShopProduct(t, s)
+	id, slug := seedShopProduct(t, s)
 	if _, err := s.AddProductMedia(id, store.ProductMediaInput{
 		Kind: "video", URL: "/static/uploads/products/1/demo.mp4", SortOrder: 1,
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, "/produto/"+slug, nil)
 	rr := httptest.NewRecorder()
-	h.Show(rr, req, id)
+	h.Show(rr, req, slug)
 	if rr.Code != http.StatusOK {
 		t.Fatalf("status=%d", rr.Code)
 	}
@@ -118,10 +142,14 @@ func TestShopHandler_Show_NoPhoto_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	p, err := s.FindProduct(id)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, "/produto/"+p.Slug, nil)
 	rr := httptest.NewRecorder()
-	h.Show(rr, req, id)
+	h.Show(rr, req, p.Slug)
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("status=%d want 404", rr.Code)
@@ -130,14 +158,14 @@ func TestShopHandler_Show_NoPhoto_NotFound(t *testing.T) {
 
 func TestShopHandler_Show_NotShopVisible_NotFound(t *testing.T) {
 	h, s := newShopHandler(t)
-	id := seedShopProduct(t, s)
+	id, slug := seedShopProduct(t, s)
 	if err := s.UpdateProductShopVisible(id, false); err != nil {
 		t.Fatal(err)
 	}
 
-	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
+	req := inertiaRequest(http.MethodGet, "/produto/"+slug, nil)
 	rr := httptest.NewRecorder()
-	h.Show(rr, req, id)
+	h.Show(rr, req, slug)
 
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("status=%d want 404", rr.Code)

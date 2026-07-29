@@ -31,13 +31,13 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 
 	// Public catalog (WhatsApp orders) — only products with photos + stock
 	r.Get("/", shop.Index)
-	r.Get("/produto/{id}", cais.IntParam("id", shop.Show))
+	r.Get("/produto/{slug}", cais.StringParam("slug", shop.Show))
 	// Legacy /loja URLs
 	r.Get("/loja", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 	})
-	r.Get("/loja/{id}", cais.IntParam("id", func(w http.ResponseWriter, r *http.Request, id int64) {
-		http.Redirect(w, r, fmt.Sprintf("/produto/%d", id), http.StatusMovedPermanently)
+	r.Get("/loja/{slug}", cais.StringParam("slug", func(w http.ResponseWriter, r *http.Request, slug string) {
+		http.Redirect(w, r, fmt.Sprintf("/produto/%s", slug), http.StatusMovedPermanently)
 	}))
 	r.Get("/contact", contact.Get)
 	r.Post("/contact", contactLimit.Middleware(http.HandlerFunc(contact.Post)).ServeHTTP)
