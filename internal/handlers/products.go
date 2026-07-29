@@ -65,6 +65,7 @@ func productListRow(p models.Product) map[string]any {
 		"refreshRate":     p.RefreshRate,
 		"condition":       p.ItemCondition,
 		"olxFreeShipping": p.OlxFreeShipping,
+		"shopVisible":     p.ShopVisible,
 		"features": map[string]bool{
 			"curved":         p.FeatCurved,
 			"includesBox":    p.FeatIncludesBox,
@@ -269,6 +270,15 @@ func (h *ProductsHandler) Update(w http.ResponseWriter, r *http.Request, id int6
 			FeatUltrawide:      feat("ultrawide"),
 			OlxFreeShipping:    freeShip == "1" || freeShip == "true" || freeShip == "on" || freeShip == "yes",
 		}); err != nil {
+			renderEditError(err.Error())
+			return
+		}
+	}
+
+	if r.FormValue("save_shop_visible") == "1" {
+		v := strings.TrimSpace(r.FormValue("shop_visible"))
+		visible := v == "1" || v == "true" || v == "on" || v == "yes"
+		if err := h.store.UpdateProductShopVisible(id, visible); err != nil {
 			renderEditError(err.Error())
 			return
 		}

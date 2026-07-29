@@ -2,6 +2,7 @@
   import { useForm, inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
   import SearchableSelect from '@/components/SearchableSelect.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let lot = {}
   export let items = []
@@ -28,6 +29,19 @@
   function submitCost() {
     costForm.post(`/lots/${lot.id}/costs`)
   }
+
+  async function destroyLot() {
+    const ok = await askConfirm({
+      title: 'Excluir lote',
+      message: `Excluir o lote “${lot.name}” e os itens ainda em estoque?`,
+      detail: 'Itens vendidos não são removidos. Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir lote',
+      tone: 'danger',
+      icon: 'delete_forever',
+    })
+    if (!ok) return
+    router.post(`/lots/${lot.id}/delete`)
+  }
 </script>
 
 <AppShell {companyName} active="lots">
@@ -47,8 +61,11 @@
       <div class="flex flex-col gap-2 shrink-0">
         <a href={`/lots/${lot.id}/edit`} use:inertia class="ahq-btn-primary h-10 px-4 text-sm">Editar</a>
         {#if canDelete}
-          <button type="button" class="ahq-btn-ghost h-10 px-4 text-sm text-error border-error"
-            on:click={() => { if (confirm('Excluir este lote e itens em estoque?')) router.post(`/lots/${lot.id}/delete`) }}>
+          <button
+            type="button"
+            class="ahq-btn-ghost h-10 px-4 text-sm text-error border-error"
+            on:click={destroyLot}
+          >
             Excluir
           </button>
         {/if}

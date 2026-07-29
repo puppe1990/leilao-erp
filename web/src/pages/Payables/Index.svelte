@@ -3,6 +3,7 @@
   import AppShell from '@/components/AppShell.svelte'
   import Nav from '@/components/Nav.svelte'
   import SearchableSelect from '@/components/SearchableSelect.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let payables = []
   export let cashAccounts = []
@@ -28,8 +29,16 @@
     label: a.name,
   }))
 
-  function settle(id) {
-    if (!confirm('Quitar este pagamento? Será gerada uma saída no caixa.')) return
+  async function settle(id) {
+    const ok = await askConfirm({
+      title: 'Quitar pagamento',
+      message: 'Confirmar quitação deste título a pagar?',
+      detail: 'Será gerada uma saída no caixa.',
+      confirmLabel: 'Quitar',
+      tone: 'primary',
+      icon: 'payments',
+    })
+    if (!ok) return
     const accountId = cashAccounts[0]?.id
     if (!accountId) {
       alert('Cadastre uma conta de caixa antes de quitar.')
@@ -38,13 +47,27 @@
     router.post(`/payables/${id}/settle`, { cash_account_id: String(accountId) })
   }
 
-  function cancel(id) {
-    if (!confirm('Cancelar este título a pagar?')) return
+  async function cancel(id) {
+    const ok = await askConfirm({
+      title: 'Cancelar título',
+      message: 'Tem certeza que deseja cancelar este título a pagar?',
+      confirmLabel: 'Cancelar título',
+      tone: 'warning',
+      icon: 'cancel',
+    })
+    if (!ok) return
     router.post(`/payables/${id}/cancel`)
   }
 
-  function destroy(id) {
-    if (!confirm('Excluir este título permanentemente?')) return
+  async function destroy(id) {
+    const ok = await askConfirm({
+      title: 'Excluir título',
+      message: 'Excluir este título permanentemente?',
+      detail: 'Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      tone: 'danger',
+    })
+    if (!ok) return
     router.post(`/payables/${id}/delete`)
   }
 

@@ -2,6 +2,7 @@
   import { useForm, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
   import Nav from '@/components/Nav.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let receivables = []
   export let cashAccounts = []
@@ -22,8 +23,16 @@
     due_on: '',
   }
 
-  function settle(id) {
-    if (!confirm('Quitar este recebimento? Será gerada uma entrada no caixa.')) return
+  async function settle(id) {
+    const ok = await askConfirm({
+      title: 'Quitar recebimento',
+      message: 'Confirmar quitação deste recebível?',
+      detail: 'Será gerada uma entrada no caixa.',
+      confirmLabel: 'Quitar',
+      tone: 'primary',
+      icon: 'payments',
+    })
+    if (!ok) return
     const accountId = cashAccounts[0]?.id
     if (!accountId) {
       alert('Cadastre uma conta de caixa antes de quitar.')
@@ -32,13 +41,28 @@
     router.post(`/receivables/${id}/settle`, { cash_account_id: String(accountId) })
   }
 
-  function cancel(id) {
-    if (!confirm('Cancelar este recebível? Se ligado a venda pendente, a venda também será cancelada.')) return
+  async function cancel(id) {
+    const ok = await askConfirm({
+      title: 'Cancelar recebível',
+      message: 'Tem certeza que deseja cancelar este recebível?',
+      detail: 'Se estiver ligado a uma venda pendente, a venda também será cancelada.',
+      confirmLabel: 'Cancelar recebível',
+      tone: 'warning',
+      icon: 'cancel',
+    })
+    if (!ok) return
     router.post(`/receivables/${id}/cancel`)
   }
 
-  function destroy(id) {
-    if (!confirm('Excluir este recebível permanentemente?')) return
+  async function destroy(id) {
+    const ok = await askConfirm({
+      title: 'Excluir recebível',
+      message: 'Excluir este recebível permanentemente?',
+      detail: 'Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      tone: 'danger',
+    })
+    if (!ok) return
     router.post(`/receivables/${id}/delete`)
   }
 

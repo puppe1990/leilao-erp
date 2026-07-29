@@ -1,14 +1,23 @@
 <script>
   import { inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let sales = []
   export let errors = {}
   export let site = {}
   export let companyName = 'AuctionHQ'
 
-  function cancelSale(id) {
-    if (!confirm('Cancelar esta venda pendente? Todos os itens da composição voltam ao estoque.')) return
+  async function cancelSale(id) {
+    const ok = await askConfirm({
+      title: 'Cancelar venda',
+      message: 'Cancelar esta venda pendente?',
+      detail: 'Todos os itens da composição voltam ao estoque.',
+      confirmLabel: 'Cancelar venda',
+      tone: 'warning',
+      icon: 'cancel',
+    })
+    if (!ok) return
     router.post(`/sales/${id}/cancel`)
   }
 

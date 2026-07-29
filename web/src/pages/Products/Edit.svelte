@@ -18,6 +18,7 @@
   let refreshRate = product.refreshRate || ''
   let condition = product.condition || ''
   let olxFreeShipping = !!product.olxFreeShipping
+  let shopVisible = !!product.shopVisible
   let features = {
     curved: false,
     includesBox: false,
@@ -77,6 +78,8 @@
       refresh_rate: refreshRate,
       condition,
       olx_free_shipping: olxFreeShipping ? '1' : '0',
+      save_shop_visible: '1',
+      shop_visible: shopVisible ? '1' : '0',
       return_to: `/products/${product.id}`,
     }
     for (const f of featureDefs) {
@@ -223,6 +226,35 @@
               {f.label}
             </label>
           {/each}
+        </div>
+      </div>
+
+      <div class="rounded-xl border-2 border-outline-variant p-4 space-y-2">
+        <p class="font-semibold text-primary text-sm">Visível no catálogo (ecommerce)</p>
+        <p class="text-xs text-on-surface-variant">
+          Além desta flag, o produto só aparece se tiver foto e estoque.
+        </p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            class="flex-1 min-w-[8rem] rounded-lg border px-3 py-2.5 text-sm
+              {shopVisible
+              ? 'border-secondary bg-secondary-container/40 text-on-secondary-container font-semibold'
+              : 'border-outline-variant'}"
+            on:click={() => (shopVisible = true)}
+          >
+            Sim — mostrar
+          </button>
+          <button
+            type="button"
+            class="flex-1 min-w-[8rem] rounded-lg border px-3 py-2.5 text-sm
+              {!shopVisible
+              ? 'border-outline-variant bg-surface-container-high font-semibold'
+              : 'border-outline-variant'}"
+            on:click={() => (shopVisible = false)}
+          >
+            Não — ocultar
+          </button>
         </div>
       </div>
 

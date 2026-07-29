@@ -149,7 +149,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		http.Error(w, "produto não encontrado", http.StatusNotFound)
 		return
 	}
-	if p.PhotoCount < 1 || p.QtyInStock < 1 {
+	if !p.ShopVisible || p.PhotoCount < 1 || p.QtyInStock < 1 {
 		http.Error(w, "produto indisponível no catálogo", http.StatusNotFound)
 		return
 	}

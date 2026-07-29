@@ -48,6 +48,9 @@ func seedShopProduct(t *testing.T, s *store.SQLiteStore) int64 {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	if err := s.UpdateProductShopVisible(id, true); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.SetWhatsAppPhone("11999990000"); err != nil {
 		t.Fatal(err)
 	}
@@ -113,6 +116,22 @@ func TestShopHandler_Show_NoPhoto_NotFound(t *testing.T) {
 	h, s := newShopHandler(t)
 	id, err := s.EnsureProductByName("Sem foto shop", "principal", nil)
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := inertiaRequest(http.MethodGet, fmt.Sprintf("/produto/%d", id), nil)
+	rr := httptest.NewRecorder()
+	h.Show(rr, req, id)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("status=%d want 404", rr.Code)
+	}
+}
+
+func TestShopHandler_Show_NotShopVisible_NotFound(t *testing.T) {
+	h, s := newShopHandler(t)
+	id := seedShopProduct(t, s)
+	if err := s.UpdateProductShopVisible(id, false); err != nil {
 		t.Fatal(err)
 	}
 

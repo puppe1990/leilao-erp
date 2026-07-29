@@ -31,6 +31,9 @@ func TestListProductsWithPhotos_OnlyWithPhotoAndStock(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	if err := st.UpdateProductShopVisible(withStock, true); err != nil {
+		t.Fatal(err)
+	}
 
 	// product B: no photo, has stock (another lot item title = new product)
 	_, err = st.CreateLotPurchase(CreateLotInput{
@@ -69,6 +72,21 @@ func TestListProductsWithPhotos_OnlyWithPhotoAndStock(t *testing.T) {
 	}
 	if list[0].QtyInStock < 1 {
 		t.Fatalf("qty=%d", list[0].QtyInStock)
+	}
+	if !list[0].ShopVisible {
+		t.Fatal("expected ShopVisible")
+	}
+
+	// Hide from shop even with photo+stock
+	if err := st.UpdateProductShopVisible(withStock, false); err != nil {
+		t.Fatal(err)
+	}
+	list, err = st.ListProductsWithPhotos()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("want 0 when shop_visible=0, got %d", len(list))
 	}
 }
 

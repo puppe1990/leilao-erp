@@ -60,7 +60,8 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 		          WHERE m.product_id = p.id AND m.kind = 'photo'
 		          ORDER BY m.sort_order, m.id LIMIT 1
 		        ), ''),
-		        COALESCE(p.olx_free_shipping, 0)
+		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.shop_visible, 0)
 		 FROM products p
 		 ORDER BY p.name`,
 	)
@@ -73,13 +74,13 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	for rows.Next() {
 		var p models.Product
 		var hint sql.NullInt64
-		var freeShip int
+		var freeShip, shopVis int
 		if err := rows.Scan(
 			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
 			&p.Description, &p.ListingText,
 			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 			&p.FirstPhotoURL,
-			&freeShip,
+			&freeShip, &shopVis,
 		); err != nil {
 			return nil, fmt.Errorf("scan product: %w", err)
 		}
@@ -88,12 +89,13 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 			p.SalePriceHintCents = &v
 		}
 		p.OlxFreeShipping = freeShip != 0
+		p.ShopVisible = shopVis != 0
 		out = append(out, p)
 	}
 	return out, rows.Err()
 }
 
-// ListProductsWithPhotos returns in-stock catalog products that have at least one photo.
+// ListProductsWithPhotos returns shop-visible, in-stock products that have at least one photo.
 // Used by the public mini shop.
 func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 	rows, err := s.db.Query(
@@ -108,9 +110,11 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 		          WHERE m.product_id = p.id AND m.kind = 'photo'
 		          ORDER BY m.sort_order, m.id LIMIT 1
 		        ), ''),
-		        COALESCE(p.olx_free_shipping, 0)
+		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.shop_visible, 0)
 		 FROM products p
-		 WHERE EXISTS (
+		 WHERE COALESCE(p.shop_visible, 0) = 1
+		 AND EXISTS (
 		   SELECT 1 FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'
 		 )
 		 AND EXISTS (
@@ -127,13 +131,13 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 	for rows.Next() {
 		var p models.Product
 		var hint sql.NullInt64
-		var freeShip int
+		var freeShip, shopVis int
 		if err := rows.Scan(
 			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
 			&p.Description, &p.ListingText, &p.ItemCondition,
 			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 			&p.FirstPhotoURL,
-			&freeShip,
+			&freeShip, &shopVis,
 		); err != nil {
 			return nil, fmt.Errorf("scan shop product: %w", err)
 		}
@@ -142,6 +146,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 			p.SalePriceHintCents = &v
 		}
 		p.OlxFreeShipping = freeShip != 0
+		p.ShopVisible = shopVis != 0
 		out = append(out, p)
 	}
 	return out, rows.Err()
@@ -151,7 +156,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
 	var p models.Product
 	var hint sql.NullInt64
-	var curved, box, dp, hdr, wide, cables, audio, hdmi, ultra, freeShip int
+	var curved, box, dp, hdr, wide, cables, audio, hdmi, ultra, freeShip, shopVis int
 	err := s.db.QueryRow(
 		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
 		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
@@ -164,7 +169,8 @@ func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
 		        COALESCE(p.feat_displayport, 0), COALESCE(p.feat_hdr, 0),
 		        COALESCE(p.feat_widescreen, 0), COALESCE(p.feat_includes_cables, 0),
 		        COALESCE(p.feat_audio, 0), COALESCE(p.feat_hdmi, 0), COALESCE(p.feat_ultrawide, 0),
-		        COALESCE(p.olx_free_shipping, 0)
+		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.shop_visible, 0)
 		 FROM products p WHERE p.id = ?`,
 		id,
 	).Scan(
@@ -173,7 +179,7 @@ func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
 		&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 		&p.ScreenType, &p.MaxResolution, &p.RefreshRate, &p.ItemCondition,
 		&curved, &box, &dp, &hdr, &wide, &cables, &audio, &hdmi, &ultra,
-		&freeShip,
+		&freeShip, &shopVis,
 	)
 	if err == sql.ErrNoRows {
 		return models.Product{}, ErrNotFound
@@ -195,6 +201,7 @@ func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
 	p.FeatHDMI = hdmi != 0
 	p.FeatUltrawide = ultra != 0
 	p.OlxFreeShipping = freeShip != 0
+	p.ShopVisible = shopVis != 0
 	return p, nil
 }
 
@@ -266,6 +273,22 @@ func (s *SQLiteStore) UpdateProductOLXAttrs(productID int64, in ProductOLXAttrs)
 	)
 	if err != nil {
 		return fmt.Errorf("update product olx attrs: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateProductShopVisible sets whether the product may appear on the public catalog.
+func (s *SQLiteStore) UpdateProductShopVisible(productID int64, visible bool) error {
+	res, err := s.db.Exec(
+		`UPDATE products SET shop_visible = ? WHERE id = ?`,
+		boolToInt(visible), productID,
+	)
+	if err != nil {
+		return fmt.Errorf("update product shop_visible: %w", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {

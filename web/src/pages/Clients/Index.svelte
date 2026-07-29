@@ -1,6 +1,7 @@
 <script>
   import { router, useForm } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let clients = []
   export let query = ''
@@ -56,8 +57,16 @@
     })
   }
 
-  function destroy(c) {
-    if (!confirm(`Excluir cliente “${c.name}”?`)) return
+  async function destroy(c) {
+    const ok = await askConfirm({
+      title: 'Excluir cliente',
+      message: `Tem certeza que deseja excluir “${c.name}”?`,
+      detail: 'Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      tone: 'danger',
+      icon: 'person_remove',
+    })
+    if (!ok) return
     router.post(`/clients/${c.id}/delete`)
   }
 
