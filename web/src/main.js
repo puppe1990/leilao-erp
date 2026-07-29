@@ -1,5 +1,7 @@
 import { createInertiaApp } from '@inertiajs/svelte'
 import { mount } from 'svelte'
+// Side-effect: ensure Vite emits Svelte component CSS into the build graph.
+// The file is also linked from app.html as /static/build/assets/main.css.
 
 createInertiaApp({
   // Cais uses double-submit cookie `cais_csrf` + header `X-CSRF-Token`

@@ -63,6 +63,8 @@ type Store interface {
 	ListProducts() ([]models.Product, error)
 	ListProductsWithPhotos() ([]models.Product, error)
 	FindProduct(id int64) (models.Product, error)
+	FindProductBySlug(slug string) (models.Product, error)
+	BackfillProductSlugs() error
 	ListStockProductGroups() ([]models.Product, error)
 	ListInStockUnitsByProduct(productID int64, title string) ([]models.Item, error)
 	UpdateProductSaleHint(productID int64, hintCents *int64) error
@@ -149,7 +151,12 @@ func NewSQLiteStore(dsn string, env string) (*SQLiteStore, error) {
 		_ = wrapped.Close()
 		return nil, err
 	}
-	return &SQLiteStore{db: wrapped}, nil
+	st := &SQLiteStore{db: wrapped}
+	if err := st.BackfillProductSlugs(); err != nil {
+		_ = st.Close()
+		return nil, fmt.Errorf("backfill product slugs: %w", err)
+	}
+	return st, nil
 }
 
 const (

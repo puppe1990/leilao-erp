@@ -15,6 +15,8 @@
   export let whatsappDigits = ''
   export let whatsappHint = ''
   export let site = {}
+  /** @type {{ title?: string, description?: string, image?: string, url?: string }} */
+  export let og = {}
 
   let searchQuery = ''
   let category = 'all'
@@ -31,7 +33,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=4'
+      link.href = '/static/css/shop.css?v=6'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -105,12 +107,35 @@
 </script>
 
 <svelte:head>
-  <title>{companyName} — Catálogo</title>
+  <title>{og.title || `${companyName} — Catálogo`}</title>
   <meta
     name="description"
-    content="Monitores usados testados. Pedido direto no WhatsApp. 10% OFF no PIX."
+    content={og.description ||
+      'Monitores usados testados. Pedido direto no WhatsApp. 10% OFF no PIX.'}
   />
-  <link rel="stylesheet" href="/static/css/shop.css?v=4" data-shop-css="1" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={companyName} />
+  <meta property="og:title" content={og.title || `${companyName} — Catálogo`} />
+  <meta
+    property="og:description"
+    content={og.description ||
+      'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
+  />
+  {#if og.url}<meta property="og:url" content={og.url} />{/if}
+  {#if og.image}
+    <meta property="og:image" content={og.image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+  {/if}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={og.title || `${companyName} — Catálogo`} />
+  <meta
+    name="twitter:description"
+    content={og.description ||
+      'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
+  />
+  {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
+  <link rel="stylesheet" href="/static/css/shop.css?v=6" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -277,7 +302,7 @@
       <div class="shop-grid">
         {#each filtered as p (p.id)}
           <article class="shop-card">
-            <a href={`/produto/${p.id}`} use:inertia class="shop-card-media">
+            <a href={p.href || `/produto/${p.slug || p.id}`} use:inertia class="shop-card-media">
               {#if p.thumbUrl}
                 <img src={p.thumbUrl} alt={p.name} loading="lazy" />
               {/if}
@@ -298,7 +323,9 @@
                 <span class="shop-brand">{p.brand || 'MONITOR'}</span>
                 <span style="font-size:10px;color:#737373;font-weight:700">{p.qtyInStock || 0} un.</span>
               </div>
-              <a href={`/produto/${p.id}`} use:inertia class="shop-card-title">{p.name}</a>
+              <a href={p.href || `/produto/${p.slug || p.id}`} use:inertia class="shop-card-title"
+                >{p.name}</a
+              >
               <div class="shop-price-box">
                 {#if p.pixPrice}
                   <div>
@@ -311,7 +338,12 @@
                 {/if}
               </div>
               <div class="shop-card-actions">
-                <a href={`/produto/${p.id}`} use:inertia class="shop-btn-eye" title="Ver">
+                <a
+                  href={p.href || `/produto/${p.slug || p.id}`}
+                  use:inertia
+                  class="shop-btn-eye"
+                  title="Ver"
+                >
                   <span class="material-symbols-outlined" style="font-size:18px">visibility</span>
                 </a>
                 <button

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/models"
 )
 
@@ -28,6 +29,7 @@ func (s *SQLiteStore) EnsureProductByName(name, kind string, saleHint *int64) (i
 	var id int64
 	err := s.db.QueryRow(`SELECT id FROM products WHERE name = ?`, name).Scan(&id)
 	if err == nil {
+		_ = s.ensureProductSlug(id, name)
 		return id, nil
 	}
 	if err != sql.ErrNoRows {
@@ -37,20 +39,88 @@ func (s *SQLiteStore) EnsureProductByName(name, kind string, saleHint *int64) (i
 	if saleHint != nil {
 		hint = *saleHint
 	}
+	slug := s.allocateSlug(name, 0)
 	res, err := s.db.Exec(
-		`INSERT INTO products (name, sale_price_hint_cents, kind) VALUES (?, ?, ?)`,
-		name, hint, kind,
+		`INSERT INTO products (name, sale_price_hint_cents, kind, slug) VALUES (?, ?, ?, ?)`,
+		name, hint, kind, slug,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert product: %w", err)
 	}
-	return res.LastInsertId()
+	id, err = res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	// Re-allocate if base slug collided without id suffix
+	if err := s.ensureProductSlug(id, name); err != nil {
+		return id, err
+	}
+	return id, nil
+}
+
+func (s *SQLiteStore) slugTaken(slug string, exceptID int64) bool {
+	var n int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM products WHERE slug = ? AND id != ? AND slug != ''`,
+		slug, exceptID,
+	).Scan(&n)
+	return err == nil && n > 0
+}
+
+func (s *SQLiteStore) allocateSlug(name string, id int64) string {
+	return domain.UniqueProductSlug(name, id, func(slug string) bool {
+		return s.slugTaken(slug, id)
+	})
+}
+
+// ensureProductSlug sets slug when empty or when name no longer matches prefix.
+func (s *SQLiteStore) ensureProductSlug(id int64, name string) error {
+	var cur string
+	if err := s.db.QueryRow(`SELECT COALESCE(slug,'') FROM products WHERE id = ?`, id).Scan(&cur); err != nil {
+		return err
+	}
+	if cur != "" {
+		return nil
+	}
+	slug := s.allocateSlug(name, id)
+	_, err := s.db.Exec(`UPDATE products SET slug = ? WHERE id = ?`, slug, id)
+	return err
+}
+
+// BackfillProductSlugs fills empty product slugs (idempotent).
+func (s *SQLiteStore) BackfillProductSlugs() error {
+	rows, err := s.db.Query(`SELECT id, name FROM products WHERE COALESCE(slug,'') = '' ORDER BY id`)
+	if err != nil {
+		return fmt.Errorf("list products without slug: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	type row struct {
+		id   int64
+		name string
+	}
+	var list []row
+	for rows.Next() {
+		var r row
+		if err := rows.Scan(&r.id, &r.name); err != nil {
+			return err
+		}
+		list = append(list, r)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, r := range list {
+		if err := s.ensureProductSlug(r.id, r.name); err != nil {
+			return fmt.Errorf("backfill slug product %d: %w", r.id, err)
+		}
+	}
+	return nil
 }
 
 // ListProducts returns catalog products ordered by name.
 func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	rows, err := s.db.Query(
-		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
+		`SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
 		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
 		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
@@ -76,7 +146,7 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 		var hint sql.NullInt64
 		var freeShip, shopVis int
 		if err := rows.Scan(
-			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
+			&p.ID, &p.Name, &p.Slug, &hint, &p.Kind, &p.CreatedAt,
 			&p.Description, &p.ListingText,
 			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 			&p.FirstPhotoURL,
@@ -99,7 +169,7 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 // Used by the public mini shop.
 func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 	rows, err := s.db.Query(
-		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
+		`SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
 		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
 		        COALESCE(p.item_condition, ''),
 		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
@@ -133,7 +203,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 		var hint sql.NullInt64
 		var freeShip, shopVis int
 		if err := rows.Scan(
-			&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
+			&p.ID, &p.Name, &p.Slug, &hint, &p.Kind, &p.CreatedAt,
 			&p.Description, &p.ListingText, &p.ItemCondition,
 			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 			&p.FirstPhotoURL,
@@ -152,29 +222,12 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 	return out, rows.Err()
 }
 
-// FindProduct returns one catalog product with stock/media counts.
-func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
+func (s *SQLiteStore) scanProductDetail(query string, arg any) (models.Product, error) {
 	var p models.Product
 	var hint sql.NullInt64
 	var curved, box, dp, hdr, wide, cables, audio, hdmi, ultra, freeShip, shopVis int
-	err := s.db.QueryRow(
-		`SELECT p.id, p.name, p.sale_price_hint_cents, p.kind, p.created_at,
-		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
-		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
-		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
-		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0),
-		        COALESCE(p.screen_type, ''), COALESCE(p.max_resolution, ''),
-		        COALESCE(p.refresh_rate, ''), COALESCE(p.item_condition, ''),
-		        COALESCE(p.feat_curved, 0), COALESCE(p.feat_includes_box, 0),
-		        COALESCE(p.feat_displayport, 0), COALESCE(p.feat_hdr, 0),
-		        COALESCE(p.feat_widescreen, 0), COALESCE(p.feat_includes_cables, 0),
-		        COALESCE(p.feat_audio, 0), COALESCE(p.feat_hdmi, 0), COALESCE(p.feat_ultrawide, 0),
-		        COALESCE(p.olx_free_shipping, 0),
-		        COALESCE(p.shop_visible, 0)
-		 FROM products p WHERE p.id = ?`,
-		id,
-	).Scan(
-		&p.ID, &p.Name, &hint, &p.Kind, &p.CreatedAt,
+	err := s.db.QueryRow(query, arg).Scan(
+		&p.ID, &p.Name, &p.Slug, &hint, &p.Kind, &p.CreatedAt,
 		&p.Description, &p.ListingText,
 		&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 		&p.ScreenType, &p.MaxResolution, &p.RefreshRate, &p.ItemCondition,
@@ -203,6 +256,35 @@ func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
 	p.OlxFreeShipping = freeShip != 0
 	p.ShopVisible = shopVis != 0
 	return p, nil
+}
+
+const productDetailSQL = `SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
+		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
+		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
+		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0),
+		        COALESCE(p.screen_type, ''), COALESCE(p.max_resolution, ''),
+		        COALESCE(p.refresh_rate, ''), COALESCE(p.item_condition, ''),
+		        COALESCE(p.feat_curved, 0), COALESCE(p.feat_includes_box, 0),
+		        COALESCE(p.feat_displayport, 0), COALESCE(p.feat_hdr, 0),
+		        COALESCE(p.feat_widescreen, 0), COALESCE(p.feat_includes_cables, 0),
+		        COALESCE(p.feat_audio, 0), COALESCE(p.feat_hdmi, 0), COALESCE(p.feat_ultrawide, 0),
+		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.shop_visible, 0)
+		 FROM products p WHERE `
+
+// FindProduct returns one catalog product with stock/media counts.
+func (s *SQLiteStore) FindProduct(id int64) (models.Product, error) {
+	return s.scanProductDetail(productDetailSQL+`p.id = ?`, id)
+}
+
+// FindProductBySlug returns a product by public URL slug.
+func (s *SQLiteStore) FindProductBySlug(slug string) (models.Product, error) {
+	slug = strings.TrimSpace(slug)
+	if slug == "" {
+		return models.Product{}, ErrNotFound
+	}
+	return s.scanProductDetail(productDetailSQL+`p.slug = ?`, slug)
 }
 
 // UpdateProductDescriptions sets technical description and marketplace listing text.
@@ -460,13 +542,14 @@ func (s *SQLiteStore) RenameProduct(productID int64, newName string) error {
 	if newName == "" {
 		return fmt.Errorf("%w: name required", ErrInvalidInput)
 	}
+	slug := s.allocateSlug(newName, productID)
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	res, err := tx.Exec(`UPDATE products SET name = ? WHERE id = ?`, newName, productID)
+	res, err := tx.Exec(`UPDATE products SET name = ?, slug = ? WHERE id = ?`, newName, slug, productID)
 	if err != nil {
 		return fmt.Errorf("rename product: %w", err)
 	}

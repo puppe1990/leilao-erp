@@ -14,34 +14,125 @@
   export let whatsappSet = false
   export let whatsappDigits = ''
   export let site = {}
+  /** @type {{ title?: string, description?: string, image?: string, url?: string }} */
+  export let og = {}
 
-  $: photos = product.photos || []
-  $: videos = product.videos || []
-  $: mainPhoto = photos[0]?.url || ''
-  let activePhoto = ''
-  $: if (mainPhoto && !activePhoto) activePhoto = mainPhoto
-  $: displayPhoto = activePhoto || mainPhoto
+  $: photos = Array.isArray(product.photos) ? product.photos : []
+  $: videos = Array.isArray(product.videos) ? product.videos : []
+  /** Photos first, videos last — unified gallery. */
+  $: mediaItems = [
+    ...photos.map((p) => ({
+      key: `photo-${p.id}`,
+      kind: 'photo',
+      url: p.url,
+      poster: p.url,
+    })),
+    ...videos.map((v) => ({
+      key: `video-${v.id}`,
+      kind: 'video',
+      url: v.url,
+      poster: photos[0]?.url || product.thumbUrl || '',
+    })),
+  ]
+  $: firstMedia = mediaItems[0] || null
+  /** @type {string} */
+  let activeKey = ''
+  $: if (firstMedia && !activeKey) activeKey = firstMedia.key
+  $: if (activeKey && !mediaItems.some((m) => m.key === activeKey) && firstMedia) {
+    activeKey = firstMedia.key
+  }
+  $: activeMedia = mediaItems.find((m) => m.key === activeKey) || firstMedia
+  $: activeIndex = Math.max(
+    0,
+    mediaItems.findIndex((m) => m.key === (activeMedia?.key || '')),
+  )
+  $: mainPhoto = photos[0]?.url || product.thumbUrl || ''
   /** @type {import('@/components/ShopCart.svelte').default | undefined} */
   let cart
   /** @type {'dark'|'light'} */
   let theme = 'dark'
   $: rootClass = shopRootClass(theme)
 
+  let lightboxOpen = false
+  /** touch swipe */
+  let touchStartX = 0
+  let touchDeltaX = 0
+
   onMount(() => {
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=4'
+      link.href = '/static/css/shop.css?v=6'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
     theme = getShopTheme()
     applyShopThemeToDocument(theme)
+
+    const onKey = (e) => {
+      if (!lightboxOpen) return
+      if (e.key === 'Escape') closeLightbox()
+      if (e.key === 'ArrowRight') slide(1)
+      if (e.key === 'ArrowLeft') slide(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
   })
 
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark'
     setShopTheme(theme)
+  }
+
+  function selectMedia(key) {
+    activeKey = key
+  }
+
+  function openLightbox(key) {
+    if (key) activeKey = key
+    if (!activeMedia) return
+    lightboxOpen = true
+    document.body.style.overflow = 'hidden'
+  }
+
+  function closeLightbox() {
+    lightboxOpen = false
+    document.body.style.overflow = ''
+  }
+
+  function slide(dir) {
+    if (mediaItems.length < 2) return
+    const next = (activeIndex + dir + mediaItems.length) % mediaItems.length
+    activeKey = mediaItems[next].key
+  }
+
+  function portal(node) {
+    document.body.appendChild(node)
+    return {
+      destroy() {
+        if (node.parentNode) node.parentNode.removeChild(node)
+      },
+    }
+  }
+
+  function onTouchStart(e) {
+    touchStartX = e.changedTouches?.[0]?.clientX || 0
+    touchDeltaX = 0
+  }
+
+  function onTouchMove(e) {
+    const x = e.changedTouches?.[0]?.clientX || 0
+    touchDeltaX = x - touchStartX
+  }
+
+  function onTouchEnd() {
+    if (Math.abs(touchDeltaX) < 50) return
+    if (touchDeltaX < 0) slide(1)
+    else slide(-1)
+    touchDeltaX = 0
   }
 
   function addToCart() {
@@ -56,8 +147,35 @@
 </script>
 
 <svelte:head>
-  <title>{product.name || 'Produto'} — {companyName}</title>
-  <link rel="stylesheet" href="/static/css/shop.css?v=4" data-shop-css="1" />
+  <title>{og.title || `${product.name || 'Produto'} — ${companyName}`}</title>
+  {#if og.description}
+    <meta name="description" content={og.description} />
+  {/if}
+  <meta property="og:type" content="product" />
+  <meta property="og:site_name" content={companyName} />
+  <meta property="og:title" content={og.title || `${product.name || 'Produto'} — ${companyName}`} />
+  {#if og.description}
+    <meta property="og:description" content={og.description} />
+  {/if}
+  {#if og.url}<meta property="og:url" content={og.url} />{/if}
+  {#if og.image || product.thumbUrl || photos[0]?.url}
+    <meta
+      property="og:image"
+      content={og.image || product.thumbUrl || photos[0]?.url}
+    />
+  {/if}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta
+    name="twitter:title"
+    content={og.title || `${product.name || 'Produto'} — ${companyName}`}
+  />
+  {#if og.description}
+    <meta name="twitter:description" content={og.description} />
+  {/if}
+  {#if og.image || product.thumbUrl || photos[0]?.url}
+    <meta name="twitter:image" content={og.image || product.thumbUrl || photos[0]?.url} />
+  {/if}
+  <link rel="stylesheet" href="/static/css/shop.css?v=6" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -97,8 +215,40 @@
     <div class="shop-detail-grid">
       <div>
         <div class="shop-detail-main">
-          {#if displayPhoto}
-            <img src={displayPhoto} alt={product.name} />
+          {#if activeMedia?.kind === 'video'}
+            <video
+              class="shop-detail-video"
+              controls
+              playsinline
+              muted
+              preload="metadata"
+              poster={activeMedia.poster || mainPhoto || undefined}
+              src={activeMedia.url}
+              on:click|stopPropagation
+            >
+              <source src={activeMedia.url} type="video/mp4" />
+            </video>
+            <button
+              type="button"
+              class="shop-detail-zoom"
+              on:click={() => openLightbox(activeMedia.key)}
+              title="Ampliar"
+              aria-label="Ampliar mídia"
+            >
+              <span class="material-symbols-outlined">open_in_full</span>
+            </button>
+          {:else if activeMedia?.url}
+            <button
+              type="button"
+              class="shop-detail-main-hit"
+              on:click={() => openLightbox(activeMedia.key)}
+              aria-label="Ampliar foto"
+            >
+              <img src={activeMedia.url} alt={product.name} />
+              <span class="shop-detail-zoom-hint" aria-hidden="true">
+                <span class="material-symbols-outlined">zoom_in</span>
+              </span>
+            </button>
           {/if}
           {#if product.badge}
             <span
@@ -109,34 +259,31 @@
             </span>
           {/if}
         </div>
-        {#if photos.length > 1}
-          <div class="shop-thumbs">
-            {#each photos as ph (ph.id)}
+        {#if mediaItems.length > 1}
+          <div class="shop-thumbs" role="listbox" aria-label="Mídia do produto">
+            {#each mediaItems as m (m.key)}
               <button
                 type="button"
-                class:is-on={displayPhoto === ph.url}
-                on:click={() => (activePhoto = ph.url)}
+                class:is-on={activeMedia?.key === m.key}
+                class:is-video={m.kind === 'video'}
+                on:click={() => selectMedia(m.key)}
+                on:dblclick={() => openLightbox(m.key)}
+                title={m.kind === 'video' ? 'Vídeo' : 'Foto'}
+                aria-label={m.kind === 'video' ? 'Ver vídeo' : 'Ver foto'}
               >
-                <img src={ph.url} alt="" />
+                {#if m.kind === 'video'}
+                  {#if m.poster}
+                    <img src={m.poster} alt="" />
+                  {:else}
+                    <span class="shop-thumb-video-fallback"></span>
+                  {/if}
+                  <span class="shop-thumb-video-badge" aria-hidden="true">
+                    <span class="material-symbols-outlined">play_circle</span>
+                  </span>
+                {:else}
+                  <img src={m.url} alt="" />
+                {/if}
               </button>
-            {/each}
-          </div>
-        {/if}
-
-        {#if videos.length > 0}
-          <div style="margin-top:1rem">
-            <h2
-              style="font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#25D366;margin:0 0 .5rem;display:flex;align-items:center;gap:4px"
-            >
-              <span class="material-symbols-outlined" style="font-size:16px">movie</span>
-              Vídeos de teste
-            </h2>
-            {#each videos as v (v.id)}
-              <div class="shop-video">
-                <video controls playsinline preload="metadata" poster={mainPhoto || undefined}>
-                  <source src={v.url} type="video/mp4" />
-                </video>
-              </div>
             {/each}
           </div>
         {/if}
@@ -226,3 +373,99 @@
     </div>
   </div>
 </div>
+
+{#if lightboxOpen && activeMedia}
+  <div
+    use:portal
+    class="shop-lightbox"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Galeria ampliada"
+    data-theme={theme === 'light' ? 'light' : 'dark'}
+  >
+    <button
+      type="button"
+      class="shop-lightbox-backdrop"
+      aria-label="Fechar"
+      on:click={closeLightbox}
+    ></button>
+
+    <div class="shop-lightbox-bar">
+      <span class="shop-lightbox-count">
+        {activeIndex + 1} / {mediaItems.length}
+      </span>
+      <button
+        type="button"
+        class="shop-lightbox-close"
+        on:click={closeLightbox}
+        aria-label="Fechar galeria"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div
+      class="shop-lightbox-stage"
+      on:touchstart={onTouchStart}
+      on:touchmove={onTouchMove}
+      on:touchend={onTouchEnd}
+      role="presentation"
+    >
+      {#if mediaItems.length > 1}
+        <button
+          type="button"
+          class="shop-lightbox-nav shop-lightbox-prev"
+          on:click={() => slide(-1)}
+          aria-label="Anterior"
+        >
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+      {/if}
+
+      <div class="shop-lightbox-frame">
+        {#if activeMedia.kind === 'video'}
+          <video
+            class="shop-lightbox-video"
+            controls
+            playsinline
+            muted
+            autoplay
+            preload="metadata"
+            poster={activeMedia.poster || mainPhoto || undefined}
+            src={activeMedia.url}
+          >
+            <source src={activeMedia.url} type="video/mp4" />
+          </video>
+        {:else}
+          <img class="shop-lightbox-img" src={activeMedia.url} alt={product.name || 'Foto'} />
+        {/if}
+      </div>
+
+      {#if mediaItems.length > 1}
+        <button
+          type="button"
+          class="shop-lightbox-nav shop-lightbox-next"
+          on:click={() => slide(1)}
+          aria-label="Próxima"
+        >
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      {/if}
+    </div>
+
+    {#if mediaItems.length > 1}
+      <div class="shop-lightbox-dots" role="tablist" aria-label="Slides">
+        {#each mediaItems as m, i (m.key)}
+          <button
+            type="button"
+            class="shop-lightbox-dot"
+            class:is-on={activeMedia.key === m.key}
+            class:is-video={m.kind === 'video'}
+            on:click={() => selectMedia(m.key)}
+            aria-label={m.kind === 'video' ? `Vídeo ${i + 1}` : `Foto ${i + 1}`}
+          ></button>
+        {/each}
+      </div>
+    {/if}
+  </div>
+{/if}
