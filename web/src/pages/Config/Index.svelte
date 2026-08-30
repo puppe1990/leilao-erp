@@ -6,6 +6,7 @@
   export let email = ''
   export let companyName = 'AuctionHQ'
   export let companyForm = ''
+  export let companyCnpj = ''
   export let whatsappPhone = ''
   export let shopURL = '/'
   export let errors = {}
@@ -14,6 +15,7 @@
 
   let company = useForm({
     company_name: companyForm || '',
+    company_cnpj: companyCnpj || '',
   })
 
   let whatsapp = useForm({
@@ -60,7 +62,9 @@
   <!-- Company -->
   <section class="ahq-card p-5 mb-section-padding">
     <h2 class="font-headline-md text-headline-md text-primary mb-1">Empresa</h2>
-    <p class="text-on-surface-variant text-sm mb-4">Nome exibido no topo do app.</p>
+    <p class="text-on-surface-variant text-sm mb-4">
+      Nome e CNPJ usados no recibo de venda.
+    </p>
 
     <form on:submit|preventDefault={saveCompany} class="space-y-4">
       <div>
@@ -77,8 +81,23 @@
           <p class="text-error text-sm mt-1">{errors.company_name}</p>
         {/if}
       </div>
+      <div>
+        <label class="ahq-label block mb-1.5" for="company_cnpj">CNPJ</label>
+        <input
+          id="company_cnpj"
+          type="text"
+          bind:value={company.company_cnpj}
+          class="ahq-input font-mono"
+          maxlength="18"
+          placeholder="00.000.000/0000-00"
+          inputmode="numeric"
+        />
+        {#if errors.company_cnpj}
+          <p class="text-error text-sm mt-1">{errors.company_cnpj}</p>
+        {/if}
+      </div>
       <button type="submit" class="ahq-btn-primary" disabled={company.processing}>
-        Salvar nome
+        Salvar empresa
       </button>
     </form>
   </section>

@@ -61,6 +61,7 @@ func TestConfig_UpdateCompany(t *testing.T) {
 	h, st := setupConfigHandler(t)
 	form := url.Values{}
 	form.Set("company_name", "Puppe Leilões")
+	form.Set("company_cnpj", "11.444.777/0001-61")
 	req := inertiaRequest(http.MethodPost, "/config/company", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req = withUserSession(t, st, req)
@@ -74,6 +75,24 @@ func TestConfig_UpdateCompany(t *testing.T) {
 	if err != nil || name != "Puppe Leilões" {
 		t.Fatalf("company=%q err=%v", name, err)
 	}
+	cnpj, err := st.CompanyCNPJ()
+	if err != nil || cnpj != "11.444.777/0001-61" {
+		t.Fatalf("cnpj=%q err=%v", cnpj, err)
+	}
+}
+
+func TestConfig_UpdateCompany_InvalidCNPJ(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	form := url.Values{}
+	form.Set("company_name", "Puppe Leilões")
+	form.Set("company_cnpj", "11.444.777/0001-00")
+	req := inertiaRequest(http.MethodPost, "/config/company", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+
+	rr := httptest.NewRecorder()
+	h.UpdateCompany(rr, req)
+	assertInertiaErrors(t, rr, "company_cnpj")
 }
 
 func TestConfig_UpdatePassword(t *testing.T) {

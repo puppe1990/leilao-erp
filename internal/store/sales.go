@@ -21,6 +21,7 @@ type CreateSaleInput struct {
 	PaymentStatus string // "received" | "pending"
 	CashAccountID int64  // required if received
 	DueOn         string // YYYY-MM-DD required if pending
+	ClientID      int64  // buyer; 0 means unset (legacy)
 }
 
 func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error) {
@@ -44,6 +45,9 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 	}
 	if input.ItemID <= 0 {
 		return 0, fmt.Errorf("main item is required")
+	}
+	if input.ClientID < 0 {
+		return 0, fmt.Errorf("client %d is invalid", input.ClientID)
 	}
 
 	// Deduplicate IDs while preserving main first.
@@ -100,14 +104,28 @@ func (s *SQLiteStore) CreateSale(input CreateSaleInput) (saleID int64, err error
 		lines = append(lines, li)
 	}
 
+	if input.ClientID > 0 {
+		var n int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM clients WHERE id = ?`, input.ClientID).Scan(&n); err != nil {
+			return 0, fmt.Errorf("check client: %w", err)
+		}
+		if n == 0 {
+			return 0, fmt.Errorf("client %d not found", input.ClientID)
+		}
+	}
+	var clientArg any
+	if input.ClientID > 0 {
+		clientArg = input.ClientID
+	}
+
 	res, err := tx.Exec(
 		`INSERT INTO sales
 		 (item_id, sold_at, channel, gross_cents, fee_cents, shipping_cents,
-		  net_cents, payment_status, unit_cost_cents_at_sale)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		  net_cents, payment_status, unit_cost_cents_at_sale, client_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		input.ItemID, input.SoldAt, input.Channel,
 		input.GrossCents, input.FeeCents, input.ShippingCents,
-		net, input.PaymentStatus, totalCost,
+		net, input.PaymentStatus, totalCost, clientArg,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert sale: %w", err)
@@ -318,9 +336,12 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 		`SELECT s.id, s.item_id, COALESCE(i.title, ''), s.sold_at, s.channel,
 		        s.gross_cents, s.fee_cents, s.shipping_cents,
 		        s.net_cents, s.payment_status, s.unit_cost_cents_at_sale, s.created_at,
-		        COALESCE((SELECT COUNT(*) FROM sale_lines sl WHERE sl.sale_id = s.id), 0)
+		        COALESCE((SELECT COUNT(*) FROM sale_lines sl WHERE sl.sale_id = s.id), 0),
+		        COALESCE(s.client_id, 0), COALESCE(c.name, ''), COALESCE(c.document, ''),
+		        COALESCE(c.phone, ''), COALESCE(c.email, '')
 		 FROM sales s
 		 LEFT JOIN items i ON i.id = s.item_id
+		 LEFT JOIN clients c ON c.id = s.client_id
 		 ORDER BY s.id DESC`,
 	)
 	if err != nil {
@@ -336,6 +357,8 @@ func (s *SQLiteStore) ListSales() ([]models.Sale, error) {
 			&sale.GrossCents, &sale.FeeCents, &sale.ShippingCents,
 			&sale.NetCents, &sale.PaymentStatus, &sale.UnitCostCentsAtSale,
 			&sale.CreatedAt, &sale.LineCount,
+			&sale.ClientID, &sale.ClientName, &sale.ClientDocument,
+			&sale.ClientPhone, &sale.ClientEmail,
 		); err != nil {
 			return nil, fmt.Errorf("scan sale: %w", err)
 		}

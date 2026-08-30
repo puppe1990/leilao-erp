@@ -37,6 +37,8 @@ type Store interface {
 	SetSetting(key, value string) error
 	CompanyName() (string, error)
 	SetCompanyName(name string) error
+	CompanyCNPJ() (string, error)
+	SetCompanyCNPJ(cnpj string) error
 	WhatsAppPhone() (string, error)
 	SetWhatsAppPhone(phone string) error
 
@@ -89,6 +91,7 @@ type Store interface {
 	FindSaleByID(id int64) (models.Sale, error)
 	ListSaleLines(saleID int64) ([]models.SaleLine, error)
 	UpdateSale(id int64, in UpdateSaleInput) error
+	SetSaleClient(saleID, clientID int64) error
 	DeleteSale(id int64) error
 	ListSales() ([]models.Sale, error)
 	CancelPendingSale(saleID int64) error

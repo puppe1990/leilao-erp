@@ -8,6 +8,7 @@
   export let items = []
   export let cashAccounts = []
   export let channels = []
+  export let clients = []
   export let site = {}
   export let companyName = 'AuctionHQ'
 
@@ -28,6 +29,7 @@
 
   let form = useForm({
     item_id: initialId,
+    client_id: '',
     accessory_ids: [],
     channel: 'direct',
     gross: '',
@@ -52,6 +54,10 @@
   $: channelOptions = (Array.isArray(channels) ? channels : []).map((ch) => ({
     value: String(ch.value),
     label: ch.label,
+  }))
+  $: clientOptions = (Array.isArray(clients) ? clients : []).map((c) => ({
+    value: String(c.id),
+    label: c.document ? `${c.name} · ${c.document}` : c.name,
   }))
   $: cashAccountOptions = (Array.isArray(cashAccounts) ? cashAccounts : []).map((acc) => ({
     value: String(acc.id),
@@ -202,6 +208,23 @@
           </p>
         {/if}
         {#if errors.item_id}<p class="text-error text-sm mt-1">{errors.item_id}</p>{/if}
+      </div>
+
+      <div>
+        <label class="ahq-label block mb-1.5" for="client_id">Cliente</label>
+        <SearchableSelect
+          id="client_id"
+          options={clientOptions}
+          bind:value={form.client_id}
+          placeholder="Quem comprou…"
+          searchPlaceholder="Buscar cliente…"
+          emptyLabel="Nenhum cliente cadastrado"
+        />
+        <p class="text-[11px] text-on-surface-variant mt-1">
+          O recibo usa este cliente.
+          <a href="/clients" use:inertia class="text-secondary underline">Cadastrar</a>
+        </p>
+        {#if errors.client_id}<p class="text-error text-sm mt-1">{errors.client_id}</p>{/if}
       </div>
 
       {#if accessories.length > 0}

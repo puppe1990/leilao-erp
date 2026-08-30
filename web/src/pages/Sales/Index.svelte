@@ -63,6 +63,7 @@
               </a>
               <p class="text-on-surface-variant text-sm">
                 {sale.soldAt?.slice?.(0, 10) || sale.soldAt} · {sale.channelLabel}
+                {#if sale.clientName}· {sale.clientName}{/if}
               </p>
             </div>
             <span class={paymentBadge(sale.paymentLabel, sale.canCancel)}>{sale.paymentLabel}</span>
