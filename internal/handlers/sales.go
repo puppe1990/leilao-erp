@@ -182,11 +182,12 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		// Map common store errors to field errors
 		msg := err.Error()
 		if strings.Contains(msg, "not in stock") || strings.Contains(msg, "not found") {
-			if strings.Contains(msg, "client") {
+			switch {
+			case strings.Contains(msg, "client"):
 				ve["client_id"] = msg
-			} else if strings.Contains(msg, "accessory") || strings.Contains(strings.ToLower(msg), "cabo") {
+			case strings.Contains(msg, "accessory") || strings.Contains(strings.ToLower(msg), "cabo"):
 				ve["accessory_ids"] = msg
-			} else {
+			default:
 				ve["item_id"] = msg
 			}
 		} else {
