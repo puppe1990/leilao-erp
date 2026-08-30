@@ -45,6 +45,33 @@ func TestSettings_CompanyName(t *testing.T) {
 	}
 }
 
+func TestSettings_CompanyCNPJ(t *testing.T) {
+	st, err := store.NewSQLiteStore(filepath.Join(t.TempDir(), "s.db"), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+
+	cnpj, err := st.CompanyCNPJ()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cnpj != "" {
+		t.Fatalf("want empty default, got %q", cnpj)
+	}
+
+	if err := st.SetCompanyCNPJ("  11.444.777/0001-61  "); err != nil {
+		t.Fatal(err)
+	}
+	cnpj, err = st.CompanyCNPJ()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cnpj != "11.444.777/0001-61" {
+		t.Fatalf("got %q", cnpj)
+	}
+}
+
 func TestUpdateUserPassword(t *testing.T) {
 	st, err := store.NewSQLiteStore(filepath.Join(t.TempDir(), "s.db"), "development")
 	if err != nil {

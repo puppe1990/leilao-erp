@@ -37,7 +37,7 @@ Admin (dev only): `admin@leilao.local` / `change-me-now`
 | `internal/app`      | routes, bootstrap                                                     |
 | `internal/handlers` | HTTP + Inertia props                                                  |
 | `internal/store`    | SQLite, migrations in `store/migrations/`                             |
-| `internal/domain`   | pure money/margin/allocate (no DB)                                    |
+| `internal/domain`   | pure money/margin/allocate/receipt PDF (no DB)                        |
 | `internal/models`   | structs only                                                          |
 | `internal/db`       | seeds (`RunSeeds` idempotent)                                         |
 | `web/src/pages`     | Inertia Svelte pages (`Sales/New` → `web/src/pages/Sales/New.svelte`) |

@@ -55,6 +55,7 @@ func (h *SalesHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"paymentStatus": sale.PaymentStatus,
 			"paymentLabel":  paymentStatusLabel(sale.PaymentStatus),
 			"canCancel":     sale.PaymentStatus == "pending",
+			"clientName":    sale.ClientName,
 		})
 	}
 
@@ -75,11 +76,17 @@ func (h *SalesHandler) New(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	clients, err := clientReceiptProps(h.store)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	_ = h.inertia.Render(w, r, "Sales/New", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"items":        items,
 		"cashAccounts": accounts,
 		"channels":     channelOptions(),
+		"clients":      clients,
 	}))
 }
 
@@ -90,6 +97,7 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	itemID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("item_id")), 10, 64)
+	clientID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("client_id")), 10, 64)
 	accessoryIDs := parseAccessoryIDs(r)
 	channel := strings.TrimSpace(r.FormValue("channel"))
 	grossStr := strings.TrimSpace(r.FormValue("gross"))
@@ -106,6 +114,9 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ve := make(inertia.ValidationErrors)
 	if itemID <= 0 {
 		ve["item_id"] = "Selecione um item"
+	}
+	if clientID <= 0 {
+		ve["client_id"] = "Selecione o cliente"
 	}
 	if !validChannel(channel) {
 		ve["channel"] = "Canal inválido"
@@ -156,6 +167,7 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.store.CreateSale(store.CreateSaleInput{
 		ItemID:        itemID,
+		ClientID:      clientID,
 		AccessoryIDs:  accessoryIDs,
 		SoldAt:        soldAtValue,
 		Channel:       channel,
@@ -170,9 +182,12 @@ func (h *SalesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		// Map common store errors to field errors
 		msg := err.Error()
 		if strings.Contains(msg, "not in stock") || strings.Contains(msg, "not found") {
-			if strings.Contains(msg, "accessory") || strings.Contains(strings.ToLower(msg), "cabo") {
+			switch {
+			case strings.Contains(msg, "client"):
+				ve["client_id"] = msg
+			case strings.Contains(msg, "accessory") || strings.Contains(strings.ToLower(msg), "cabo"):
 				ve["accessory_ids"] = msg
-			} else {
+			default:
 				ve["item_id"] = msg
 			}
 		} else {
@@ -232,12 +247,18 @@ func (h *SalesHandler) renderNewWithErrors(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	clients, err := clientReceiptProps(h.store)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	ctx := inertia.SetValidationErrors(r.Context(), ve)
 	_ = h.inertia.Render(w, r.WithContext(ctx), "Sales/New", withCompany(h.store, inertia.Props{
 		"site":         meta.ForRequest(h.site, r),
 		"items":        items,
 		"cashAccounts": accounts,
 		"channels":     channelOptions(),
+		"clients":      clients,
 	}))
 }
 
@@ -317,29 +338,45 @@ func (h *SalesHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 		}
 	}
 	margin := domain.Margin(sale.NetCents, sale.UnitCostCentsAtSale)
+	clients, err := clientReceiptProps(h.store)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	companyCNPJ, _ := h.store.CompanyCNPJ()
 	_ = h.inertia.Render(w, r, "Sales/Show", withCompany(h.store, inertia.Props{
-		"site": meta.ForRequest(h.site, r),
+		"site":              meta.ForRequest(h.site, r),
+		"clients":           clients,
+		"companyCnpj":       companyCNPJ,
+		"receiptSellerName": companyName(h.store),
 		"sale": map[string]any{
-			"id":            sale.ID,
-			"itemId":        sale.ItemID,
-			"itemTitle":     title,
-			"soldAt":        sale.SoldAt,
-			"channel":       sale.Channel,
-			"channelLabel":  channelLabel(sale.Channel),
-			"gross":         domain.FormatBRL(sale.GrossCents),
-			"fee":           domain.FormatBRL(sale.FeeCents),
-			"shipping":      domain.FormatBRL(sale.ShippingCents),
-			"net":           domain.FormatBRL(sale.NetCents),
-			"grossRaw":      sale.GrossCents,
-			"feeRaw":        sale.FeeCents,
-			"shippingRaw":   sale.ShippingCents,
-			"paymentStatus": sale.PaymentStatus,
-			"paymentLabel":  paymentStatusLabel(sale.PaymentStatus),
-			"canEdit":       sale.PaymentStatus == "pending",
-			"canDelete":     sale.PaymentStatus == "pending",
-			"unitCost":      domain.FormatBRL(sale.UnitCostCentsAtSale),
-			"margin":        domain.FormatBRL(margin),
-			"lines":         lineProps,
+			"id":              sale.ID,
+			"itemId":          sale.ItemID,
+			"itemTitle":       title,
+			"soldAt":          sale.SoldAt,
+			"channel":         sale.Channel,
+			"channelLabel":    channelLabel(sale.Channel),
+			"gross":           domain.FormatBRL(sale.GrossCents),
+			"fee":             domain.FormatBRL(sale.FeeCents),
+			"shipping":        domain.FormatBRL(sale.ShippingCents),
+			"net":             domain.FormatBRL(sale.NetCents),
+			"grossRaw":        sale.GrossCents,
+			"feeRaw":          sale.FeeCents,
+			"shippingRaw":     sale.ShippingCents,
+			"paymentStatus":   sale.PaymentStatus,
+			"paymentLabel":    paymentStatusLabel(sale.PaymentStatus),
+			"canEdit":         sale.PaymentStatus == "pending",
+			"canDelete":       sale.PaymentStatus == "pending",
+			"canReceipt":      sale.PaymentStatus != "cancelled" && sale.ClientID > 0,
+			"canAttachClient": sale.PaymentStatus != "cancelled" && sale.ClientID == 0,
+			"clientId":        sale.ClientID,
+			"clientName":      sale.ClientName,
+			"clientDocument":  sale.ClientDocument,
+			"clientPhone":     sale.ClientPhone,
+			"clientEmail":     sale.ClientEmail,
+			"unitCost":        domain.FormatBRL(sale.UnitCostCentsAtSale),
+			"margin":          domain.FormatBRL(margin),
+			"lines":           lineProps,
 		},
 	}))
 }

@@ -17,4 +17,9 @@ type Sale struct {
 	PaymentStatus       string
 	UnitCostCentsAtSale int64 // total cost of all lines
 	CreatedAt           time.Time
+	ClientID            int64  // 0 if the sale has no buyer yet
+	ClientName          string // joined from clients
+	ClientDocument      string
+	ClientPhone         string
+	ClientEmail         string
 }

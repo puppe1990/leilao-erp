@@ -13,14 +13,19 @@ func (s *SQLiteStore) FindSaleByID(id int64) (models.Sale, error) {
 	err := s.db.QueryRow(
 		`SELECT s.id, s.item_id, s.sold_at, s.channel, s.gross_cents, s.fee_cents, s.shipping_cents,
 		        s.net_cents, s.payment_status, s.unit_cost_cents_at_sale, s.created_at,
-		        COALESCE(i.title, '')
+		        COALESCE(i.title, ''),
+		        COALESCE(s.client_id, 0), COALESCE(c.name, ''), COALESCE(c.document, ''),
+		        COALESCE(c.phone, ''), COALESCE(c.email, '')
 		 FROM sales s
 		 LEFT JOIN items i ON i.id = s.item_id
+		 LEFT JOIN clients c ON c.id = s.client_id
 		 WHERE s.id = ?`, id,
 	).Scan(
 		&sale.ID, &sale.ItemID, &sale.SoldAt, &sale.Channel, &sale.GrossCents, &sale.FeeCents,
 		&sale.ShippingCents, &sale.NetCents, &sale.PaymentStatus, &sale.UnitCostCentsAtSale,
 		&sale.CreatedAt, &sale.ItemTitle,
+		&sale.ClientID, &sale.ClientName, &sale.ClientDocument,
+		&sale.ClientPhone, &sale.ClientEmail,
 	)
 	if err == sql.ErrNoRows {
 		return models.Sale{}, ErrNotFound
@@ -108,4 +113,41 @@ func (s *SQLiteStore) UpdateSale(id int64, in UpdateSaleInput) error {
 // DeleteSale cancels pending sales (same as CancelPendingSale) or rejects received ones.
 func (s *SQLiteStore) DeleteSale(id int64) error {
 	return s.CancelPendingSale(id)
+}
+
+// SetSaleClient links a buyer to a non-cancelled sale.
+func (s *SQLiteStore) SetSaleClient(saleID, clientID int64) error {
+	if clientID <= 0 {
+		return fmt.Errorf("%w: client id %d is invalid, want id > 0", ErrInvalidInput, clientID)
+	}
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM clients WHERE id = ?`, clientID).Scan(&n); err != nil {
+		return fmt.Errorf("check client: %w", err)
+	}
+	if n == 0 {
+		return fmt.Errorf("client %d not found", clientID)
+	}
+	var status string
+	err := s.db.QueryRow(`SELECT payment_status FROM sales WHERE id = ?`, saleID).Scan(&status)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("load sale: %w", err)
+	}
+	if status == "cancelled" {
+		return fmt.Errorf("%w: cannot set client on cancelled sale %d", ErrCannotUpdate, saleID)
+	}
+	res, err := s.db.Exec(`UPDATE sales SET client_id = ? WHERE id = ?`, clientID, saleID)
+	if err != nil {
+		return fmt.Errorf("set sale client: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

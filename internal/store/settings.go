@@ -10,6 +10,7 @@ import (
 
 const (
 	settingCompanyName   = "company_name"
+	settingCompanyCNPJ   = "company_cnpj"
 	settingWhatsAppPhone = "whatsapp_phone"
 )
 
@@ -46,6 +47,16 @@ func (s *SQLiteStore) CompanyName() (string, error) {
 // SetCompanyName stores the company display name.
 func (s *SQLiteStore) SetCompanyName(name string) error {
 	return s.SetSetting(settingCompanyName, strings.TrimSpace(name))
+}
+
+// CompanyCNPJ returns the configured company CNPJ (may be empty).
+func (s *SQLiteStore) CompanyCNPJ() (string, error) {
+	return s.GetSetting(settingCompanyCNPJ)
+}
+
+// SetCompanyCNPJ stores the company CNPJ as typed (trimmed).
+func (s *SQLiteStore) SetCompanyCNPJ(cnpj string) error {
+	return s.SetSetting(settingCompanyCNPJ, strings.TrimSpace(cnpj))
 }
 
 // WhatsAppPhone returns the public shop WhatsApp number (may be empty).

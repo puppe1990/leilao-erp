@@ -1,12 +1,27 @@
 <script>
-  import { inertia, router } from '@inertiajs/svelte'
+  import { inertia, router, useForm } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import SearchableSelect from '@/components/SearchableSelect.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let sale = {}
   export let errors = {}
   export let companyName = 'AuctionHQ'
   export let site = {}
+  export let clients = []
+  export let companyCnpj = ''
+  export let receiptSellerName = ''
+
+  const clientList = Array.isArray(clients) ? clients : []
+
+  let attachForm = useForm({
+    client_id: sale.clientId ? String(sale.clientId) : '',
+  })
+
+  $: clientOptions = clientList.map((c) => ({
+    value: String(c.id),
+    label: c.document ? `${c.name} · ${c.document}` : c.name,
+  }))
 
   async function destroy() {
     const ok = await askConfirm({
@@ -85,6 +100,72 @@
       </ul>
     </div>
   {/if}
+
+  <section class="ahq-card p-5 mb-section-padding">
+    <h2 class="font-headline-md text-headline-md text-primary mb-1">Cliente</h2>
+    {#if sale.clientId}
+      <p class="font-semibold text-primary">{sale.clientName}</p>
+      {#if sale.clientDocument}
+        <p class="font-mono text-sm text-on-surface-variant mt-1">CPF/CNPJ {sale.clientDocument}</p>
+      {/if}
+      {#if sale.clientPhone}
+        <p class="text-sm text-on-surface-variant mt-0.5">Telefone {sale.clientPhone}</p>
+      {/if}
+      {#if sale.clientEmail}
+        <p class="text-sm text-on-surface-variant mt-0.5">{sale.clientEmail}</p>
+      {/if}
+    {:else if sale.canAttachClient}
+      <p class="text-on-surface-variant text-sm mb-3">
+        Esta venda ainda não tem comprador. Vincule um cliente cadastrado.
+      </p>
+      <form
+        class="space-y-3"
+        on:submit|preventDefault={() => attachForm.post(`/sales/${sale.id}/client`)}
+      >
+        <SearchableSelect
+          id="attach-client"
+          options={clientOptions}
+          bind:value={attachForm.client_id}
+          placeholder="Selecionar cliente…"
+          emptyLabel="Nenhum cliente"
+        />
+        {#if errors.client_id}
+          <p class="text-error text-sm">{errors.client_id}</p>
+        {/if}
+        <p class="text-[11px] text-on-surface-variant">
+          <a href="/clients" use:inertia class="text-secondary underline">Cadastrar cliente</a>
+        </p>
+        <button type="submit" class="ahq-btn-primary" disabled={!attachForm.client_id}>
+          Salvar cliente na venda
+        </button>
+      </form>
+    {:else}
+      <p class="text-on-surface-variant text-sm">Sem cliente nesta venda.</p>
+    {/if}
+  </section>
+
+  <section class="ahq-card p-5 mb-section-padding">
+    <h2 class="font-headline-md text-headline-md text-primary mb-1">Recibo de venda</h2>
+    <p class="text-on-surface-variant text-sm mb-4">
+      PDF com CNPJ da empresa e dados do cliente desta venda. Não é documento fiscal.
+    </p>
+
+    {#if sale.paymentStatus === 'cancelled'}
+      <p class="text-error text-sm">Venda cancelada não emite recibo.</p>
+    {:else if !sale.clientId}
+      <p class="text-on-surface-variant text-sm">Vincule um cliente acima para emitir o recibo.</p>
+    {:else if !companyCnpj}
+      <p class="text-on-surface-variant text-sm">
+        Salve o CNPJ em
+        <a href="/config" use:inertia class="text-secondary underline">Configurações</a>
+        para emitir o recibo.
+      </p>
+    {:else}
+      <a href={`/sales/${sale.id}/recibo.pdf`} class="ahq-btn-primary" target="_blank" rel="noopener">
+        Baixar PDF
+      </a>
+    {/if}
+  </section>
 
   <div class="flex flex-wrap gap-3">
     {#if sale.canEdit}

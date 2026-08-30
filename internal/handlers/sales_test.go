@@ -72,9 +72,14 @@ func TestSalesHandler_Index_Inertia(t *testing.T) {
 func TestSalesHandler_Create_Direct_Redirects(t *testing.T) {
 	h, s := newSalesHandler(t)
 	accountID, itemIDs := seedLotWithItems(t, s, 2)
+	clientID, err := s.CreateClient(store.ClientInput{Name: "Maria Silva", Document: "529.982.247-25"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	form := url.Values{
 		"item_id":         {fmt.Sprintf("%d", itemIDs[0])},
+		"client_id":       {fmt.Sprintf("%d", clientID)},
 		"channel":         {"direct"},
 		"gross":           {"150,00"},
 		"fee":             {"0"},
@@ -111,6 +116,9 @@ func TestSalesHandler_Create_Direct_Redirects(t *testing.T) {
 	if sales[0].GrossCents != 15000 {
 		t.Errorf("gross = %d, want 15000", sales[0].GrossCents)
 	}
+	if sales[0].ClientID != clientID || sales[0].ClientName != "Maria Silva" {
+		t.Errorf("client = %d %q", sales[0].ClientID, sales[0].ClientName)
+	}
 
 	items, err := s.ListItemsInStock()
 	if err != nil {
@@ -119,6 +127,24 @@ func TestSalesHandler_Create_Direct_Redirects(t *testing.T) {
 	if len(items) != 1 {
 		t.Errorf("in_stock items = %d, want 1", len(items))
 	}
+}
+
+func TestSalesHandler_Create_RequiresClient(t *testing.T) {
+	h, s := newSalesHandler(t)
+	accountID, itemIDs := seedLotWithItems(t, s, 1)
+
+	form := url.Values{
+		"item_id":         {fmt.Sprintf("%d", itemIDs[0])},
+		"channel":         {"direct"},
+		"gross":           {"150,00"},
+		"payment_status":  {"received"},
+		"cash_account_id": {fmt.Sprintf("%d", accountID)},
+	}
+	req := inertiaRequest(http.MethodPost, "/sales", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+	assertInertiaErrors(t, rr, "client_id")
 }
 
 func TestSalesHandler_Create_SoldItem_Validation(t *testing.T) {
@@ -136,9 +162,14 @@ func TestSalesHandler_Create_SoldItem_Validation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	clientID, err := s.CreateClient(store.ClientInput{Name: "Maria Silva", Document: "529.982.247-25"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	form := url.Values{
 		"item_id":         {fmt.Sprintf("%d", itemIDs[0])},
+		"client_id":       {fmt.Sprintf("%d", clientID)},
 		"channel":         {"direct"},
 		"gross":           {"150,00"},
 		"payment_status":  {"received"},

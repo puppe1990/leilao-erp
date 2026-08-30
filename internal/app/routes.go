@@ -80,6 +80,8 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Get("/sales/new", middleware.RequireAuthFunc("/login", sales.New))
 	r.Post("/sales", middleware.RequireAuthFunc("/login", sales.Create))
 	r.Get("/sales/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.Show)))
+	r.Get("/sales/{id}/recibo.pdf", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.ReceiptPDF)))
+	r.Post("/sales/{id}/client", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.AttachClient)))
 	r.Get("/sales/{id}/edit", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.Edit)))
 	r.Post("/sales/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.Update)))
 	r.Post("/sales/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", sales.Destroy)))

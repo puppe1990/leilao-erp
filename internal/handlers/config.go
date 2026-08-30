@@ -10,6 +10,7 @@ import (
 	"github.com/puppe1990/cais/pkg/cais/session"
 	inertia "github.com/romsar/gonertia/v3"
 
+	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
@@ -48,11 +49,16 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	cnpj, err := h.store.CompanyCNPJ()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	flash := ""
 	switch r.URL.Query().Get("saved") {
 	case "company":
-		flash = "Nome da empresa atualizado."
+		flash = "Dados da empresa atualizados."
 	case "password":
 		flash = "Senha alterada com sucesso."
 	case "whatsapp":
@@ -64,6 +70,7 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"email":         user.Email,
 		"companyName":   companyName(h.store),
 		"companyForm":   name, // raw stored value (may be empty)
+		"companyCnpj":   cnpj,
 		"whatsappPhone": waPhone,
 		"shopURL":       "/",
 		"flash":         flash,
@@ -94,7 +101,23 @@ func (h *ConfigHandler) UpdateCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cnpj := strings.TrimSpace(r.FormValue("company_cnpj"))
+	if cnpj != "" {
+		formatted, err := domain.FormatCNPJ(cnpj)
+		if err != nil || !domain.ValidCNPJ(cnpj) {
+			h.renderConfigErrors(w, r, inertia.ValidationErrors{
+				"company_cnpj": "CNPJ inválido",
+			}, "")
+			return
+		}
+		cnpj = formatted
+	}
+
 	if err := h.store.SetCompanyName(name); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.store.SetCompanyCNPJ(cnpj); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -183,13 +206,20 @@ func (h *ConfigHandler) renderConfigErrors(w http.ResponseWriter, r *http.Reques
 	if v := strings.TrimSpace(r.FormValue("company_name")); v != "" {
 		rawName = v
 	}
+	cnpj, _ := h.store.CompanyCNPJ()
+	if v := r.FormValue("company_cnpj"); v != "" {
+		cnpj = strings.TrimSpace(v)
+	}
+	waPhone, _ := h.store.WhatsAppPhone()
 
 	ctx := inertia.SetValidationErrors(r.Context(), errs)
 	_ = h.inertia.Render(w, r.WithContext(ctx), "Config/Index", withCompany(h.store, inertia.Props{
-		"site":        meta.ForRequest(h.site, r),
-		"email":       email,
-		"companyName": companyName(h.store),
-		"companyForm": rawName,
-		"flash":       flash,
+		"site":          meta.ForRequest(h.site, r),
+		"email":         email,
+		"companyName":   companyName(h.store),
+		"companyForm":   rawName,
+		"companyCnpj":   cnpj,
+		"whatsappPhone": waPhone,
+		"flash":         flash,
 	}))
 }

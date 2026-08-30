@@ -447,3 +447,71 @@ func TestCreateSale_RejectsSoldItem(t *testing.T) {
 		t.Fatal("expected error on second sale of sold item")
 	}
 }
+
+func TestCreateSale_StoresClient(t *testing.T) {
+	st := newTestStore(t)
+	accountID, err := st.InsertCashAccount("PIX", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lotID, err := st.CreateLotPurchase(CreateLotInput{
+		Name:          "Lote",
+		PurchasedAt:   "2026-07-20",
+		ItemTitle:     "Monitor",
+		ItemQty:       1,
+		Costs:         []CostInput{{Label: "Arremate", AmountCents: 10000, AlreadyPaid: true}},
+		CashAccountID: accountID,
+		PaidAt:        "2026-07-20T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, err := st.ListItemsByLot(lotID)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("items err=%v n=%d", err, len(items))
+	}
+	clientID, err := st.CreateClient(ClientInput{
+		Name:     "Maria Silva",
+		Document: "529.982.247-25",
+		Phone:    "11 99999-0000",
+		Email:    "maria@example.com",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	saleID, err := st.CreateSale(CreateSaleInput{
+		ItemID:        items[0].ID,
+		ClientID:      clientID,
+		SoldAt:        "2026-07-22T12:00:00Z",
+		Channel:       "direct",
+		GrossCents:    19900,
+		PaymentStatus: "received",
+		CashAccountID: accountID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sale, err := st.FindSaleByID(saleID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sale.ClientID != clientID {
+		t.Fatalf("client_id=%d want %d", sale.ClientID, clientID)
+	}
+	if sale.ClientName != "Maria Silva" {
+		t.Fatalf("client name=%q", sale.ClientName)
+	}
+	if sale.ClientDocument != "529.982.247-25" {
+		t.Fatalf("document=%q", sale.ClientDocument)
+	}
+
+	listed, err := st.ListSales()
+	if err != nil || len(listed) != 1 {
+		t.Fatalf("list err=%v n=%d", err, len(listed))
+	}
+	if listed[0].ClientName != "Maria Silva" {
+		t.Fatalf("list client=%q", listed[0].ClientName)
+	}
+}
