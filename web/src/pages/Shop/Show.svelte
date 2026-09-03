@@ -62,7 +62,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=6'
+      link.href = '/static/css/shop.css?v=7'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -175,7 +175,7 @@
   {#if og.image || product.thumbUrl || photos[0]?.url}
     <meta name="twitter:image" content={og.image || product.thumbUrl || photos[0]?.url} />
   {/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=6" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=7" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>

@@ -73,6 +73,7 @@ type Store interface {
 	UpdateProductDescriptions(productID int64, description, listingText string) error
 	UpdateProductOLXAttrs(productID int64, in ProductOLXAttrs) error
 	UpdateProductShopVisible(productID int64, visible bool) error
+	UpdateProductOlxPublished(productID int64, published bool) error
 	RenameProduct(productID int64, newName string) error
 	AddProductMedia(productID int64, in ProductMediaInput) (int64, error)
 	ListProductMedia(productID int64) ([]models.ProductMedia, error)

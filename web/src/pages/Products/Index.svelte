@@ -5,6 +5,9 @@
   import {
     brandsFromProducts,
     filterAndSortProducts,
+    loadProductSorts,
+    saveProductSorts,
+    stackProductSort,
   } from '@/lib/productsTable.js'
 
   export let products = []
@@ -24,10 +27,14 @@
   /** @type {'all'|'with'|'without'|'unset'} */
   let filterBase = 'all'
   let filterBrand = 'all'
-  /** @type {string} */
-  let sortKey = 'name'
-  /** @type {'asc'|'desc'} */
-  let sortDir = 'asc'
+  /** @type {'all'|'published'|'unpublished'} */
+  let filterOlx = 'all'
+  /** @type {{ key: string, dir: 'asc'|'desc' }[]} */
+  let sorts = loadProductSorts()
+  let sortsReady = true
+
+  // Persist sort stack whenever it changes (after first paint with loaded value).
+  $: if (sortsReady) saveProductSorts(sorts)
 
   const filterSelectClass =
     'ahq-select h-9 text-sm min-w-[8rem] w-full text-left flex items-center justify-between gap-2'
@@ -65,6 +72,11 @@
     { value: 'all', label: 'Todas' },
     ...brands.map((b) => ({ value: b, label: b })),
   ]
+  $: olxOptions = [
+    { value: 'all', label: 'Todas' },
+    { value: 'published', label: 'Publicado na OLX' },
+    { value: 'unpublished', label: 'Falta publicar' },
+  ]
 
   $: filtered = filterAndSortProducts(products, {
     query,
@@ -74,8 +86,8 @@
     filterMedia,
     filterBase,
     filterBrand,
-    sortKey,
-    sortDir,
+    filterOlx,
+    sorts,
   })
   $: hasActiveFilters =
     filterType !== 'all' ||
@@ -84,7 +96,13 @@
     filterMedia !== 'all' ||
     filterBase !== 'all' ||
     filterBrand !== 'all' ||
+    filterOlx !== 'all' ||
     !!query.trim()
+  $: multiSort = sorts.length > 1
+  /** @type {Record<string, number>} */
+  $: sortRankByKey = Object.fromEntries(sorts.map((s, i) => [s.key, i + 1]))
+  /** @type {Record<string, 'asc'|'desc'>} */
+  $: sortDirByKey = Object.fromEntries(sorts.map((s) => [s.key, s.dir]))
 
   function clearFilters() {
     query = ''
@@ -94,20 +112,29 @@
     filterMedia = 'all'
     filterBase = 'all'
     filterBrand = 'all'
+    filterOlx = 'all'
   }
 
+  function clearSorts() {
+    sorts = [{ key: 'name', dir: 'asc' }]
+    saveProductSorts(sorts)
+  }
+
+  /** Empilha: última coluna clicada vira #1; as anteriores continuam como desempate. */
   function toggleSort(key) {
-    if (sortKey === key) {
-      sortDir = sortDir === 'asc' ? 'desc' : 'asc'
-      return
-    }
-    sortKey = key
-    sortDir = key === 'name' || key === 'type' ? 'asc' : 'desc'
+    sorts = stackProductSort(sorts, key)
   }
 
   function sortIcon(key) {
-    if (sortKey !== key) return 'unfold_more'
-    return sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward'
+    const dir = sortDirByKey[key]
+    if (!dir) return 'unfold_more'
+    return dir === 'asc' ? 'arrow_upward' : 'arrow_downward'
+  }
+
+  /** @param {string} key */
+  function sortRank(key) {
+    if (!multiSort) return 0
+    return sortRankByKey[key] || 0
   }
 </script>
 
@@ -237,12 +264,39 @@
               buttonClass={filterSelectClass}
             />
           </div>
+          <div class="min-w-[9rem]">
+            <label class="ahq-label text-[10px] block mb-1" for="pf-olx">OLX</label>
+            <SearchableSelect
+              id="pf-olx"
+              bind:value={filterOlx}
+              options={olxOptions}
+              searchPlaceholder="Buscar…"
+              allowClear={false}
+              buttonClass={filterSelectClass}
+            />
+          </div>
           {#if hasActiveFilters}
             <button type="button" class="ahq-btn-ghost h-9 px-3 text-sm" on:click={clearFilters}>
               Limpar filtros
             </button>
           {/if}
+          {#if multiSort}
+            <button
+              type="button"
+              class="ahq-btn-ghost h-9 px-3 text-sm"
+              title="Voltar à ordem só por nome"
+              on:click={clearSorts}
+            >
+              Limpar ordem ({sorts.length})
+            </button>
+          {/if}
         </div>
+        {#if multiSort}
+          <p class="text-[11px] text-on-surface-variant">
+            Ordenação empilhada: última coluna clicada é a principal (#1); as outras viram desempate
+            (#2, #3…). Clicar de novo na mesma coluna inverte a direção.
+          </p>
+        {/if}
       </div>
 
       <div class="overflow-x-auto">
@@ -256,7 +310,9 @@
                   class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('name')}
                 >
-                  Nome <span class="material-symbols-outlined text-[14px]">{sortIcon('name')}</span>
+                  Nome
+                  {#if sortRank('name')}<span class="text-[10px] font-bold text-secondary">{sortRank('name')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('name')}</span>
                 </button>
               </th>
               <th class="px-1 py-1 w-28">
@@ -265,7 +321,9 @@
                   class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('type')}
                 >
-                  Tipo <span class="material-symbols-outlined text-[14px]">{sortIcon('type')}</span>
+                  Tipo
+                  {#if sortRank('type')}<span class="text-[10px] font-bold text-secondary">{sortRank('type')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('type')}</span>
                 </button>
               </th>
               <th class="px-1 py-1 w-20">
@@ -274,7 +332,9 @@
                   class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('qty')}
                 >
-                  Estoque <span class="material-symbols-outlined text-[14px]">{sortIcon('qty')}</span>
+                  Estoque
+                  {#if sortRank('qty')}<span class="text-[10px] font-bold text-secondary">{sortRank('qty')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('qty')}</span>
                 </button>
               </th>
               <th class="px-1 py-1 w-24">
@@ -283,7 +343,9 @@
                   class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('media')}
                 >
-                  Mídia <span class="material-symbols-outlined text-[14px]">{sortIcon('media')}</span>
+                  Mídia
+                  {#if sortRank('media')}<span class="text-[10px] font-bold text-secondary">{sortRank('media')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('media')}</span>
                 </button>
               </th>
               <th class="px-1 py-1 w-32">
@@ -292,14 +354,46 @@
                   class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
                   on:click={() => toggleSort('salePrice')}
                 >
-                  Preço <span class="material-symbols-outlined text-[14px]">{sortIcon('salePrice')}</span>
+                  Preço
+                  {#if sortRank('salePrice')}<span class="text-[10px] font-bold text-secondary">{sortRank('salePrice')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('salePrice')}</span>
                 </button>
               </th>
-              <th class="px-2 py-2.5 font-medium text-[11px] uppercase tracking-wide text-center w-20">
-                Catálogo
+              <th class="px-1 py-1 w-24">
+                <button
+                  type="button"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  on:click={() => toggleSort('catalog')}
+                  title="Visível no catálogo"
+                >
+                  Catálogo
+                  {#if sortRank('catalog')}<span class="text-[10px] font-bold text-secondary">{sortRank('catalog')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('catalog')}</span>
+                </button>
               </th>
-              <th class="px-2 py-2.5 font-medium text-[11px] uppercase tracking-wide text-center w-20">
-                Frete OLX
+              <th class="px-1 py-1 w-24">
+                <button
+                  type="button"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  on:click={() => toggleSort('olx')}
+                  title="Já publicado na OLX"
+                >
+                  OLX
+                  {#if sortRank('olx')}<span class="text-[10px] font-bold text-secondary">{sortRank('olx')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('olx')}</span>
+                </button>
+              </th>
+              <th class="px-1 py-1 w-24">
+                <button
+                  type="button"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  on:click={() => toggleSort('freteOlx')}
+                  title="Entregar grátis pela OLX"
+                >
+                  Frete OLX
+                  {#if sortRank('freteOlx')}<span class="text-[10px] font-bold text-secondary">{sortRank('freteOlx')}</span>{/if}
+                  <span class="material-symbols-outlined text-[14px]">{sortIcon('freteOlx')}</span>
+                </button>
               </th>
               <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-36">
                 Ações
@@ -386,6 +480,23 @@
                       title="Oculto no catálogo"
                     >
                       Não
+                    </span>
+                  {/if}
+                </td>
+                <td class="px-2 py-2.5 text-center">
+                  {#if p.olxPublished}
+                    <span
+                      class="inline-flex items-center justify-center text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container"
+                      title="Já publicado na OLX"
+                    >
+                      No ar
+                    </span>
+                  {:else}
+                    <span
+                      class="inline-flex items-center justify-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant"
+                      title="Ainda não publicado na OLX"
+                    >
+                      Falta
                     </span>
                   {/if}
                 </td>

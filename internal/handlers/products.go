@@ -65,6 +65,7 @@ func productListRow(p models.Product) map[string]any {
 		"refreshRate":     p.RefreshRate,
 		"condition":       p.ItemCondition,
 		"olxFreeShipping": p.OlxFreeShipping,
+		"olxPublished":    p.OlxPublished,
 		"shopVisible":     p.ShopVisible,
 		"features": map[string]bool{
 			"curved":         p.FeatCurved,
@@ -92,17 +93,13 @@ func olxFormOptions() map[string]any {
 	}
 	return map[string]any{
 		"screenTypes": opt("LED", "LCD", "IPS", "VA", "TN", "OLED", "QLED", "Plasma"),
+		// Labels match OLX "Resolução máxima" dropdown (copy-paste safe).
 		"resolutions": opt(
-			"1280x1024 (SXGA)",
-			"1366x768 (HD)",
-			"1440x900 (HD+)",
-			"1600x900 (HD+)",
-			"1680x1050 (WSXGA+)",
-			"1920x1080 (Full HD)",
-			"2560x1080 (Ultrawide FHD)",
-			"2560x1440 (QHD)",
-			"3440x1440 (Ultrawide QHD)",
-			"3840x2160 (4K UHD)",
+			"até 720p - HD",
+			"1080p - Full HD",
+			"1400p - 2K Quad HD",
+			"2160p - 4K Ultra HD",
+			"Maior que 4K",
 		),
 		"refreshRates": opt("60 Hz", "75 Hz", "100 Hz", "120 Hz", "144 Hz", "165 Hz", "180 Hz", "200 Hz", "240 Hz"),
 		"conditions": opt(
@@ -279,6 +276,15 @@ func (h *ProductsHandler) Update(w http.ResponseWriter, r *http.Request, id int6
 		v := strings.TrimSpace(r.FormValue("shop_visible"))
 		visible := v == "1" || v == "true" || v == "on" || v == "yes"
 		if err := h.store.UpdateProductShopVisible(id, visible); err != nil {
+			renderEditError(err.Error())
+			return
+		}
+	}
+
+	if r.FormValue("save_olx_published") == "1" {
+		v := strings.TrimSpace(r.FormValue("olx_published"))
+		published := v == "1" || v == "true" || v == "on" || v == "yes"
+		if err := h.store.UpdateProductOlxPublished(id, published); err != nil {
 			renderEditError(err.Error())
 			return
 		}
