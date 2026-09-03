@@ -14,6 +14,8 @@ type ClientInput struct {
 	Phone    string
 	Email    string
 	Document string
+	Type     string
+	Address  models.Address
 	Notes    string
 }
 
@@ -25,6 +27,16 @@ func normalizeClientInput(in ClientInput) (ClientInput, error) {
 	in.Phone = strings.TrimSpace(in.Phone)
 	in.Email = strings.TrimSpace(in.Email)
 	in.Document = strings.TrimSpace(in.Document)
+	if in.Type != "company" {
+		in.Type = "person"
+	}
+	in.Address.CEP = strings.TrimSpace(in.Address.CEP)
+	in.Address.Street = strings.TrimSpace(in.Address.Street)
+	in.Address.Number = strings.TrimSpace(in.Address.Number)
+	in.Address.Complement = strings.TrimSpace(in.Address.Complement)
+	in.Address.Neighborhood = strings.TrimSpace(in.Address.Neighborhood)
+	in.Address.City = strings.TrimSpace(in.Address.City)
+	in.Address.State = strings.TrimSpace(in.Address.State)
 	in.Notes = strings.TrimSpace(in.Notes)
 	return in, nil
 }
@@ -35,9 +47,13 @@ func (s *SQLiteStore) CreateClient(in ClientInput) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	a := in.Address
 	res, err := s.db.Exec(
-		`INSERT INTO clients (name, phone, email, document, notes) VALUES (?, ?, ?, ?, ?)`,
-		in.Name, nullStr(in.Phone), nullStr(in.Email), nullStr(in.Document), nullStr(in.Notes),
+		`INSERT INTO clients (name, phone, email, document, client_type, cep, street, number, complement, neighborhood, city, state, notes)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		in.Name, nullStr(in.Phone), nullStr(in.Email), nullStr(in.Document), in.Type,
+		nullStr(a.CEP), nullStr(a.Street), nullStr(a.Number), nullStr(a.Complement),
+		nullStr(a.Neighborhood), nullStr(a.City), nullStr(a.State), nullStr(in.Notes),
 	)
 	if err != nil {
 		return 0, fmt.Errorf("insert client: %w", err)
@@ -51,10 +67,15 @@ func (s *SQLiteStore) UpdateClient(id int64, in ClientInput) error {
 	if err != nil {
 		return err
 	}
+	a := in.Address
 	res, err := s.db.Exec(
-		`UPDATE clients SET name = ?, phone = ?, email = ?, document = ?, notes = ?,
+		`UPDATE clients SET name = ?, phone = ?, email = ?, document = ?, client_type = ?,
+		 cep = ?, street = ?, number = ?, complement = ?, neighborhood = ?, city = ?, state = ?, notes = ?,
 		 updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-		in.Name, nullStr(in.Phone), nullStr(in.Email), nullStr(in.Document), nullStr(in.Notes), id,
+		in.Name, nullStr(in.Phone), nullStr(in.Email), nullStr(in.Document), in.Type,
+		nullStr(a.CEP), nullStr(a.Street), nullStr(a.Number), nullStr(a.Complement),
+		nullStr(a.Neighborhood), nullStr(a.City), nullStr(a.State), nullStr(in.Notes),
+		id,
 	)
 	if err != nil {
 		return fmt.Errorf("update client: %w", err)
@@ -83,10 +104,15 @@ func (s *SQLiteStore) DeleteClient(id int64) error {
 func (s *SQLiteStore) FindClient(id int64) (models.Client, error) {
 	var c models.Client
 	var phone, email, document, notes sql.NullString
+	var cep, street, number, complement, neighborhood, city, state sql.NullString
 	err := s.db.QueryRow(
-		`SELECT id, name, phone, email, document, notes, created_at, updated_at
+		`SELECT id, name, phone, email, document, client_type,
+		 cep, street, number, complement, neighborhood, city, state,
+		 notes, created_at, updated_at
 		 FROM clients WHERE id = ?`, id,
-	).Scan(&c.ID, &c.Name, &phone, &email, &document, &notes, &c.CreatedAt, &c.UpdatedAt)
+	).Scan(&c.ID, &c.Name, &phone, &email, &document, &c.Type,
+		&cep, &street, &number, &complement, &neighborhood, &city, &state,
+		&notes, &c.CreatedAt, &c.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return models.Client{}, ErrNotFound
 	}
@@ -97,6 +123,15 @@ func (s *SQLiteStore) FindClient(id int64) (models.Client, error) {
 	c.Email = email.String
 	c.Document = document.String
 	c.Notes = notes.String
+	c.Address = models.Address{
+		CEP:          cep.String,
+		Street:       street.String,
+		Number:       number.String,
+		Complement:   complement.String,
+		Neighborhood: neighborhood.String,
+		City:         city.String,
+		State:        state.String,
+	}
 	return c, nil
 }
 
@@ -110,16 +145,15 @@ func (s *SQLiteStore) SearchClients(query string) ([]models.Client, error) {
 	q := strings.TrimSpace(query)
 	var rows *sql.Rows
 	var err error
+	selectClause := `SELECT id, name, phone, email, document, client_type,
+		 cep, street, number, complement, neighborhood, city, state,
+		 notes, created_at, updated_at
+		 FROM clients`
 	if q == "" {
-		rows, err = s.db.Query(
-			`SELECT id, name, phone, email, document, notes, created_at, updated_at
-			 FROM clients ORDER BY name COLLATE NOCASE, id`,
-		)
+		rows, err = s.db.Query(selectClause + ` ORDER BY name COLLATE NOCASE, id`)
 	} else {
 		like := "%" + q + "%"
-		rows, err = s.db.Query(
-			`SELECT id, name, phone, email, document, notes, created_at, updated_at
-			 FROM clients
+		rows, err = s.db.Query(selectClause+`
 			 WHERE name LIKE ? COLLATE NOCASE
 			    OR IFNULL(phone,'') LIKE ?
 			    OR IFNULL(email,'') LIKE ? COLLATE NOCASE
@@ -135,13 +169,23 @@ func (s *SQLiteStore) SearchClients(query string) ([]models.Client, error) {
 	return scanClients(rows)
 }
 
+func nullStr(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 func scanClients(rows *sql.Rows) ([]models.Client, error) {
 	var out []models.Client
 	for rows.Next() {
 		var c models.Client
 		var phone, email, document, notes sql.NullString
+		var cep, street, number, complement, neighborhood, city, state sql.NullString
 		if err := rows.Scan(
-			&c.ID, &c.Name, &phone, &email, &document, &notes, &c.CreatedAt, &c.UpdatedAt,
+			&c.ID, &c.Name, &phone, &email, &document, &c.Type,
+			&cep, &street, &number, &complement, &neighborhood, &city, &state,
+			&notes, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan client: %w", err)
 		}
@@ -149,14 +193,16 @@ func scanClients(rows *sql.Rows) ([]models.Client, error) {
 		c.Email = email.String
 		c.Document = document.String
 		c.Notes = notes.String
+		c.Address = models.Address{
+			CEP:          cep.String,
+			Street:       street.String,
+			Number:       number.String,
+			Complement:   complement.String,
+			Neighborhood: neighborhood.String,
+			City:         city.String,
+			State:        state.String,
+		}
 		out = append(out, c)
 	}
 	return out, rows.Err()
-}
-
-func nullStr(s string) any {
-	if s == "" {
-		return nil
-	}
-	return s
 }

@@ -11,38 +11,128 @@
 
   let search = query || ''
 
-  let createForm = useForm({
+  const emptyClient = {
     name: '',
     phone: '',
     email: '',
     document: '',
-    notes: '',
-  })
-
-  let editingId = null
-  let edit = {
-    name: '',
-    phone: '',
-    email: '',
-    document: '',
+    type: 'person',
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
     notes: '',
   }
 
+  let createForm = useForm({ ...emptyClient })
+  let editingId = null
+  let edit = { ...emptyClient }
+  let cnpjBusy = false
+  let cnpjError = ''
+
+  // --- CNPJ lookup helpers -------------------------------------------------
+
+  function onlyDigits(s) {
+    return String(s || '').replace(/\D/g, '')
+  }
+
+  function formatDocumentInput(value) {
+    const d = onlyDigits(value).slice(0, 14)
+    if (d.length <= 11) {
+      return d
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+    }
+    return d
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+  }
+
+  function formatPhoneInput(value) {
+    const d = onlyDigits(value).slice(0, 11)
+    if (d.length <= 10) {
+      return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d{1,4})$/, '$1-$2')
+    }
+    return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d{1,4})$/, '$1-$2')
+  }
+
+  function formatCEPInput(value) {
+    const d = onlyDigits(value).slice(0, 8)
+    return d.replace(/(\d{5})(\d{1,3})$/, '$1-$2')
+  }
+
+  function applyToForm(target, company) {
+    if (company.name) target.name = company.name
+    if (company.cnpj) target.document = company.cnpj
+    if (company.phone) target.phone = company.phone
+    if (company.email) target.email = company.email
+    if (company.street) target.street = company.street
+    if (company.number) target.number = company.number
+    if (company.complement) target.complement = company.complement
+    if (company.neighborhood) target.neighborhood = company.neighborhood
+    if (company.city) target.city = company.city
+    if (company.state) target.state = company.state
+    if (company.cep) target.cep = company.cep
+    if (target.type !== 'company') target.type = 'company'
+  }
+
+  function showCNPJError(message) {
+    cnpjError = message || 'Falha ao consultar o CNPJ — tente novamente em instantes.'
+  }
+
+  async function lookupCNPJ(target) {
+    const digits = onlyDigits(target.document)
+    if (digits.length !== 14) {
+      cnpjError = 'Digite um CNPJ com 14 dígitos para buscar.'
+      return
+    }
+    cnpjError = ''
+    cnpjBusy = true
+    try {
+      const res = await fetch(`/clients/cnpj?cnpj=${digits}`, {
+        headers: { Accept: 'application/json' },
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showCNPJError(data.error)
+        return
+      }
+      const company = await res.json().catch(() => null)
+      if (!company) {
+        showCNPJError()
+        return
+      }
+      applyToForm(target, company)
+    } catch {
+      showCNPJError()
+    } finally {
+      cnpjBusy = false
+    }
+  }
+
+  // --- client CRUD ----------------------------------------------------------
+
   function submitCreate() {
     createForm.post('/clients', {
-      onSuccess: () => createForm.reset(),
+      onSuccess: () => {
+        createForm.reset()
+        createForm.type = 'person'
+        cnpjError = ''
+      },
     })
   }
 
   function startEdit(c) {
     editingId = c.id
-    edit = {
-      name: c.name || '',
-      phone: c.phone || '',
-      email: c.email || '',
-      document: c.document || '',
-      notes: c.notes || '',
-    }
+    cnpjError = ''
+    edit = { ...emptyClient }
+    for (const k of Object.keys(edit)) edit[k] = c[k] || ''
   }
 
   function cancelEdit() {
@@ -92,29 +182,89 @@
 
   <section class="ahq-card p-4 mb-section-padding">
     <h2 class="font-semibold text-primary mb-3">Novo cliente</h2>
+    {#if cnpjError}
+      <p class="mb-3 text-error text-sm bg-error-container/30 border border-error/20 rounded-lg px-3 py-2">
+        {cnpjError}
+      </p>
+    {/if}
     <form on:submit|preventDefault={submitCreate} class="grid gap-3 sm:grid-cols-2">
       <div class="sm:col-span-2">
         <label class="ahq-label block mb-1" for="c_name">Nome *</label>
-        <input id="c_name" class="ahq-input h-10" bind:value={createForm.name} required placeholder="Nome completo" />
-      </div>
-      <div>
-        <label class="ahq-label block mb-1" for="c_phone">Telefone</label>
-        <input id="c_phone" class="ahq-input h-10 font-mono" bind:value={createForm.phone} placeholder="(11) 99999-0000" />
-      </div>
-      <div>
-        <label class="ahq-label block mb-1" for="c_email">E-mail</label>
-        <input id="c_email" type="email" class="ahq-input h-10" bind:value={createForm.email} placeholder="email@exemplo.com" />
+        <input id="c_name" class="ahq-input h-10" bind:value={createForm.name} required placeholder="Nome completo ou razão social" />
       </div>
       <div>
         <label class="ahq-label block mb-1" for="c_doc">CPF/CNPJ</label>
-        <input id="c_doc" class="ahq-input h-10 font-mono" bind:value={createForm.document} placeholder="Opcional" />
+        <div class="flex gap-2">
+          <input
+            id="c_doc"
+            class="ahq-input h-10 font-mono flex-1"
+            bind:value={createForm.document}
+            maxlength="18"
+            inputmode="numeric"
+            placeholder="000.000.000-00 / 00.000.000/0000-00"
+            on:input={(e) => (createForm.document = formatDocumentInput(e.currentTarget.value))}
+          />
+          <button
+            type="button"
+            class="ahq-btn-ghost h-10 px-3 text-sm whitespace-nowrap"
+            disabled={cnpjBusy || onlyDigits(createForm.document).length !== 14}
+            on:click={() => lookupCNPJ(createForm)}
+            title="Buscar dados do CNPJ na Receita (BrasilAPI)"
+          >
+            {cnpjBusy ? 'Buscando…' : 'Buscar CNPJ'}
+          </button>
+        </div>
+        <p class="text-[11px] text-on-surface-variant mt-1">
+          Preenche razão social, telefone, e-mail e endereço automaticamente.
+        </p>
+      </div>
+      <div>
+        <label class="ahq-label block mb-1" for="c_phone">Telefone</label>
+        <input
+          id="c_phone"
+          class="ahq-input h-10 font-mono"
+          bind:value={createForm.phone}
+          maxlength="15"
+          placeholder="(11) 99999-0000"
+          on:input={(e) => (createForm.phone = formatPhoneInput(e.currentTarget.value))}
+        />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="ahq-label block mb-1" for="c_email">E-mail</label>
+        <input id="c_email" type="email" class="ahq-input h-10" bind:value={createForm.email} placeholder="email@exemplo.com" />
+      </div>
+      <div class="sm:col-span-2 ahq-card bg-surface-container-low/40 border border-outline-variant rounded-lg p-3">
+        <p class="text-[11px] font-medium uppercase tracking-wide text-on-surface-variant mb-2">Endereço</p>
+        <div class="grid gap-2 sm:grid-cols-6">
+          <div class="sm:col-span-2">
+            <input class="ahq-input h-9 text-sm font-mono w-full" bind:value={createForm.cep} maxlength="9" inputmode="numeric" placeholder="CEP" on:input={(e) => (createForm.cep = formatCEPInput(e.currentTarget.value))} />
+          </div>
+          <div class="sm:col-span-3">
+            <input class="ahq-input h-9 text-sm w-full" bind:value={createForm.street} placeholder="Logradouro" />
+          </div>
+          <div>
+            <input class="ahq-input h-9 text-sm font-mono w-full" bind:value={createForm.number} placeholder="Número" />
+          </div>
+          <div class="sm:col-span-2">
+            <input class="ahq-input h-9 text-sm w-full" bind:value={createForm.complement} placeholder="Complemento" />
+          </div>
+          <div class="sm:col-span-2">
+            <input class="ahq-input h-9 text-sm w-full" bind:value={createForm.neighborhood} placeholder="Bairro" />
+          </div>
+          <div class="sm:col-span-2">
+            <input class="ahq-input h-9 text-sm w-full" bind:value={createForm.city} placeholder="Cidade" />
+          </div>
+          <div>
+            <input class="ahq-input h-9 text-sm font-mono w-full" bind:value={createForm.state} maxlength="2" placeholder="UF" />
+          </div>
+        </div>
       </div>
       <div>
         <label class="ahq-label block mb-1" for="c_notes">Notas</label>
         <input id="c_notes" class="ahq-input h-10" bind:value={createForm.notes} placeholder="Preferências, etc." />
       </div>
       <div class="sm:col-span-2">
-        <button type="submit" class="ahq-btn-primary h-10 px-5" disabled={createForm.processing}>
+        <button type="submit" class="ahq-btn-primary h-10 px-5" disabled={createForm.processing || cnpjBusy}>
           Salvar cliente
         </button>
       </div>
@@ -170,11 +320,41 @@
               {#if editingId === c.id}
                 <tr class="bg-secondary-container/20">
                   <td class="px-3 py-2" colspan="4">
+                    {#if cnpjError}
+                      <p class="mb-2 text-error text-xs">{cnpjError}</p>
+                    {/if}
                     <div class="grid sm:grid-cols-2 gap-2">
                       <input class="ahq-input h-9 text-sm" bind:value={edit.name} placeholder="Nome" />
-                      <input class="ahq-input h-9 text-sm font-mono" bind:value={edit.phone} placeholder="Telefone" />
+                      <div class="flex gap-2">
+                        <input
+                          class="ahq-input h-9 text-sm font-mono flex-1"
+                          bind:value={edit.document}
+                          maxlength="18"
+                          placeholder="CPF/CNPJ"
+                          on:input={(e) => (edit.document = formatDocumentInput(e.currentTarget.value))}
+                        />
+                        <button
+                          type="button"
+                          class="text-secondary font-medium text-xs whitespace-nowrap px-1"
+                          disabled={cnpjBusy || onlyDigits(edit.document).length !== 14}
+                          on:click={() => lookupCNPJ(edit)}
+                        >
+                          {cnpjBusy ? '…' : 'Buscar CNPJ'}
+                        </button>
+                      </div>
+                      <input class="ahq-input h-9 text-sm font-mono" bind:value={edit.phone} maxlength="15" placeholder="Telefone" on:input={(e) => (edit.phone = formatPhoneInput(e.currentTarget.value))} />
                       <input class="ahq-input h-9 text-sm" bind:value={edit.email} placeholder="E-mail" />
-                      <input class="ahq-input h-9 text-sm font-mono" bind:value={edit.document} placeholder="CPF/CNPJ" />
+                      <input class="ahq-input h-9 text-sm font-mono" bind:value={edit.cep} maxlength="9" placeholder="CEP" on:input={(e) => (edit.cep = formatCEPInput(e.currentTarget.value))} />
+                      <div class="flex gap-2">
+                        <input class="ahq-input h-9 text-sm flex-1" bind:value={edit.street} placeholder="Logradouro" />
+                        <input class="ahq-input h-9 text-sm w-24 font-mono" bind:value={edit.number} placeholder="Nº" />
+                      </div>
+                      <input class="ahq-input h-9 text-sm" bind:value={edit.neighborhood} placeholder="Bairro" />
+                      <div class="flex gap-2">
+                        <input class="ahq-input h-9 text-sm flex-1" bind:value={edit.city} placeholder="Cidade" />
+                        <input class="ahq-input h-9 text-sm w-16 font-mono" bind:value={edit.state} maxlength="2" placeholder="UF" />
+                      </div>
+                      <input class="ahq-input h-9 text-sm" bind:value={edit.complement} placeholder="Complemento" />
                       <input class="ahq-input h-9 text-sm sm:col-span-2" bind:value={edit.notes} placeholder="Notas" />
                     </div>
                   </td>
@@ -197,7 +377,12 @@
                   </td>
                   <td class="px-3 py-2.5 font-mono text-on-surface-variant">{c.phone || '—'}</td>
                   <td class="px-3 py-2.5 text-on-surface-variant break-all">{c.email || '—'}</td>
-                  <td class="px-3 py-2.5 font-mono text-on-surface-variant">{c.document || '—'}</td>
+                  <td class="px-3 py-2.5 font-mono text-on-surface-variant">
+                    {c.document || '—'}
+                    {#if c.type === 'company'}
+                      <span class="ml-1 text-[10px] uppercase text-secondary">PJ</span>
+                    {/if}
+                  </td>
                   <td class="px-3 py-2.5 text-right whitespace-nowrap">
                     <button
                       type="button"

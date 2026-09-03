@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/puppe1990/cais/pkg/cais"
 
+	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
@@ -22,6 +25,84 @@ func setupClientsHandler(t *testing.T) (*ClientsHandler, *store.SQLiteStore) {
 	t.Cleanup(func() { _ = st.Close() })
 	h := NewClientsHandler(setupTestRenderer(t), st, testSite(), cais.Config{Env: "development"}, setupTestInertia(t))
 	return h, st
+}
+
+// fakeCNPJLookuper stubs the external CNPJ API for handler tests.
+type fakeCNPJLookuper struct {
+	company domain.CompanyFromCNPJ
+	err     error
+}
+
+func (f fakeCNPJLookuper) Lookup(*http.Request) (domain.CompanyFromCNPJ, error) {
+	return f.company, f.err
+}
+
+func TestClients_CNPJLookup(t *testing.T) {
+	h, _ := setupClientsHandler(t)
+	h.cnpj = fakeCNPJLookuper{company: domain.CompanyFromCNPJ{
+		CNPJ: "19.131.243/0001-97", LegalName: "OPEN KNOWLEDGE BRASIL", TradeName: "REDE PELO CONHECIMENTO LIVRE",
+		Street: "PAULISTA", Number: "37", City: "SAO PAULO", State: "SP", CEP: "01.311-902",
+		Phone: "(11) 23851939", Email: "contato@ok.org.br",
+	}}
+
+	req := httptest.NewRequest(http.MethodGet, "/clients/cnpj?cnpj=19.131.243/0001-97", nil)
+	rr := httptest.NewRecorder()
+	h.CNPJLookup(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rr.Code, rr.Body.String())
+	}
+	var got map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got["cnpj"] != "19.131.243/0001-97" || got["name"] != "OPEN KNOWLEDGE BRASIL" || got["state"] != "SP" {
+		t.Fatalf("payload = %v", got)
+	}
+}
+
+func TestClients_CNPJLookup_Invalid(t *testing.T) {
+	h, _ := setupClientsHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/clients/cnpj?cnpj=123", nil)
+	rr := httptest.NewRecorder()
+	h.CNPJLookup(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), "CNPJ inválido") {
+		t.Fatalf("body = %s", rr.Body.String())
+	}
+}
+
+func TestClients_CNPJLookup_NotFound(t *testing.T) {
+	h, _ := setupClientsHandler(t)
+	h.cnpj = fakeCNPJLookuper{err: domain.ErrCNPJNotFound}
+
+	req := httptest.NewRequest(http.MethodGet, "/clients/cnpj?cnpj=19131243000197", nil)
+	rr := httptest.NewRecorder()
+	h.CNPJLookup(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rr.Code)
+	}
+}
+
+func TestClients_CNPJLookup_UpstreamError(t *testing.T) {
+	h, _ := setupClientsHandler(t)
+	h.cnpj = fakeCNPJLookuper{err: errors.New("boom")}
+
+	req := httptest.NewRequest(http.MethodGet, "/clients/cnpj?cnpj=19131243000197", nil)
+	rr := httptest.NewRecorder()
+	h.CNPJLookup(rr, req)
+
+	if rr.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want 502", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), "Falha ao consultar") {
+		t.Fatalf("body = %s", rr.Body.String())
+	}
 }
 
 func TestClients_CreateUpdateDelete(t *testing.T) {
