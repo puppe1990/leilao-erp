@@ -131,6 +131,7 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 		          ORDER BY m.sort_order, m.id LIMIT 1
 		        ), ''),
 		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.olx_published, 0),
 		        COALESCE(p.shop_visible, 0)
 		 FROM products p
 		 ORDER BY p.name`,
@@ -144,13 +145,13 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	for rows.Next() {
 		var p models.Product
 		var hint sql.NullInt64
-		var freeShip, shopVis int
+		var freeShip, olxPub, shopVis int
 		if err := rows.Scan(
 			&p.ID, &p.Name, &p.Slug, &hint, &p.Kind, &p.CreatedAt,
 			&p.Description, &p.ListingText,
 			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 			&p.FirstPhotoURL,
-			&freeShip, &shopVis,
+			&freeShip, &olxPub, &shopVis,
 		); err != nil {
 			return nil, fmt.Errorf("scan product: %w", err)
 		}
@@ -159,6 +160,7 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 			p.SalePriceHintCents = &v
 		}
 		p.OlxFreeShipping = freeShip != 0
+		p.OlxPublished = olxPub != 0
 		p.ShopVisible = shopVis != 0
 		out = append(out, p)
 	}
@@ -181,6 +183,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 		          ORDER BY m.sort_order, m.id LIMIT 1
 		        ), ''),
 		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.olx_published, 0),
 		        COALESCE(p.shop_visible, 0)
 		 FROM products p
 		 WHERE COALESCE(p.shop_visible, 0) = 1
@@ -201,13 +204,13 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 	for rows.Next() {
 		var p models.Product
 		var hint sql.NullInt64
-		var freeShip, shopVis int
+		var freeShip, olxPub, shopVis int
 		if err := rows.Scan(
 			&p.ID, &p.Name, &p.Slug, &hint, &p.Kind, &p.CreatedAt,
 			&p.Description, &p.ListingText, &p.ItemCondition,
 			&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 			&p.FirstPhotoURL,
-			&freeShip, &shopVis,
+			&freeShip, &olxPub, &shopVis,
 		); err != nil {
 			return nil, fmt.Errorf("scan shop product: %w", err)
 		}
@@ -216,6 +219,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 			p.SalePriceHintCents = &v
 		}
 		p.OlxFreeShipping = freeShip != 0
+		p.OlxPublished = olxPub != 0
 		p.ShopVisible = shopVis != 0
 		out = append(out, p)
 	}
@@ -225,14 +229,14 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 func (s *SQLiteStore) scanProductDetail(query string, arg any) (models.Product, error) {
 	var p models.Product
 	var hint sql.NullInt64
-	var curved, box, dp, hdr, wide, cables, audio, hdmi, ultra, freeShip, shopVis int
+	var curved, box, dp, hdr, wide, cables, audio, hdmi, ultra, freeShip, olxPub, shopVis int
 	err := s.db.QueryRow(query, arg).Scan(
 		&p.ID, &p.Name, &p.Slug, &hint, &p.Kind, &p.CreatedAt,
 		&p.Description, &p.ListingText,
 		&p.QtyInStock, &p.PhotoCount, &p.VideoCount,
 		&p.ScreenType, &p.MaxResolution, &p.RefreshRate, &p.ItemCondition,
 		&curved, &box, &dp, &hdr, &wide, &cables, &audio, &hdmi, &ultra,
-		&freeShip, &shopVis,
+		&freeShip, &olxPub, &shopVis,
 	)
 	if err == sql.ErrNoRows {
 		return models.Product{}, ErrNotFound
@@ -254,6 +258,7 @@ func (s *SQLiteStore) scanProductDetail(query string, arg any) (models.Product, 
 	p.FeatHDMI = hdmi != 0
 	p.FeatUltrawide = ultra != 0
 	p.OlxFreeShipping = freeShip != 0
+	p.OlxPublished = olxPub != 0
 	p.ShopVisible = shopVis != 0
 	return p, nil
 }
@@ -270,6 +275,7 @@ const productDetailSQL = `SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price
 		        COALESCE(p.feat_widescreen, 0), COALESCE(p.feat_includes_cables, 0),
 		        COALESCE(p.feat_audio, 0), COALESCE(p.feat_hdmi, 0), COALESCE(p.feat_ultrawide, 0),
 		        COALESCE(p.olx_free_shipping, 0),
+		        COALESCE(p.olx_published, 0),
 		        COALESCE(p.shop_visible, 0)
 		 FROM products p WHERE `
 
@@ -371,6 +377,22 @@ func (s *SQLiteStore) UpdateProductShopVisible(productID int64, visible bool) er
 	)
 	if err != nil {
 		return fmt.Errorf("update product shop_visible: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// UpdateProductOlxPublished marks whether the product already has a listing on OLX.
+func (s *SQLiteStore) UpdateProductOlxPublished(productID int64, published bool) error {
+	res, err := s.db.Exec(
+		`UPDATE products SET olx_published = ? WHERE id = ?`,
+		boolToInt(published), productID,
+	)
+	if err != nil {
+		return fmt.Errorf("update product olx_published: %w", err)
 	}
 	n, _ := res.RowsAffected()
 	if n == 0 {

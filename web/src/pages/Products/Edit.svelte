@@ -18,6 +18,7 @@
   let refreshRate = product.refreshRate || ''
   let condition = product.condition || ''
   let olxFreeShipping = !!product.olxFreeShipping
+  let olxPublished = !!product.olxPublished
   let shopVisible = !!product.shopVisible
   let features = {
     curved: false,
@@ -80,6 +81,8 @@
       olx_free_shipping: olxFreeShipping ? '1' : '0',
       save_shop_visible: '1',
       shop_visible: shopVisible ? '1' : '0',
+      save_olx_published: '1',
+      olx_published: olxPublished ? '1' : '0',
       return_to: `/products/${product.id}`,
     }
     for (const f of featureDefs) {
@@ -113,7 +116,8 @@
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
-  <form on:submit|preventDefault={submit} class="space-y-4 max-w-2xl">
+  <form on:submit|preventDefault={submit} class="space-y-4 max-w-6xl">
+    <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
     <section class="ahq-card p-5 space-y-4">
       <h2 class="font-semibold text-primary">Cadastro</h2>
       <div>
@@ -259,6 +263,35 @@
       </div>
 
       <div class="rounded-xl border-2 border-outline-variant p-4 space-y-2">
+        <p class="font-semibold text-primary text-sm">Já publicado na OLX</p>
+        <p class="text-xs text-on-surface-variant">
+          Marque quando o anúncio já estiver no ar — ajuda a ver o que ainda falta publicar.
+        </p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <button
+            type="button"
+            class="flex-1 min-w-[8rem] rounded-lg border px-3 py-2.5 text-sm
+              {olxPublished
+              ? 'border-secondary bg-secondary-container/40 text-on-secondary-container font-semibold'
+              : 'border-outline-variant'}"
+            on:click={() => (olxPublished = true)}
+          >
+            Sim — no ar
+          </button>
+          <button
+            type="button"
+            class="flex-1 min-w-[8rem] rounded-lg border px-3 py-2.5 text-sm
+              {!olxPublished
+              ? 'border-outline-variant bg-surface-container-high font-semibold'
+              : 'border-outline-variant'}"
+            on:click={() => (olxPublished = false)}
+          >
+            Não — falta publicar
+          </button>
+        </div>
+      </div>
+
+      <div class="rounded-xl border-2 border-outline-variant p-4 space-y-2">
         <p class="font-semibold text-primary text-sm">Entregar grátis pela OLX</p>
         <p class="text-xs text-on-surface-variant">
           Flag de decisão: Sim se for oferecer frete grátis nesse anúncio (só paga se vender).
@@ -287,8 +320,9 @@
         </div>
       </div>
     </section>
+    </div>
 
-    <div class="flex flex-col sm:flex-row gap-3">
+    <div class="flex flex-col sm:flex-row gap-3 max-w-md">
       <button type="submit" class="ahq-btn-primary flex-1 h-11" disabled={busy}>Salvar</button>
       <a
         href={`/products/${product.id}`}

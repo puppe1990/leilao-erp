@@ -39,6 +39,8 @@ type Product struct {
 	FeatUltrawide      bool
 	// OlxFreeShipping: offer "Entregar grátis pela OLX" on the listing.
 	OlxFreeShipping bool
+	// OlxPublished: product already has an active listing on OLX.
+	OlxPublished bool
 	// ShopVisible: when true (and photo+stock), product appears on the public catalog.
 	ShopVisible bool
 	CreatedAt   time.Time

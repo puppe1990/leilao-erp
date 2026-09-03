@@ -153,7 +153,7 @@ func TestProductOLXAttrs(t *testing.T) {
 	}
 	if err := st.UpdateProductOLXAttrs(id, store.ProductOLXAttrs{
 		ScreenType:      "IPS",
-		MaxResolution:   "1920x1080 (Full HD)",
+		MaxResolution:   "1080p - Full HD",
 		RefreshRate:     "60 Hz",
 		ItemCondition:   "Usado - Bom",
 		FeatHDMI:        true,
@@ -169,6 +169,35 @@ func TestProductOLXAttrs(t *testing.T) {
 	}
 	if p.ScreenType != "IPS" || p.RefreshRate != "60 Hz" || !p.FeatHDMI || !p.FeatDisplayPort || p.FeatCurved || !p.OlxFreeShipping {
 		t.Fatalf("olx attrs=%+v", p)
+	}
+	if p.OlxPublished {
+		t.Fatal("olx_published should default false")
+	}
+	if err := st.UpdateProductOlxPublished(id, true); err != nil {
+		t.Fatal(err)
+	}
+	p, err = st.FindProduct(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !p.OlxPublished {
+		t.Fatal("expected olx_published=true")
+	}
+	list, err := st.ListProducts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, row := range list {
+		if row.ID == id {
+			found = true
+			if !row.OlxPublished {
+				t.Fatal("list should surface olx_published")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("product missing from list")
 	}
 }
 

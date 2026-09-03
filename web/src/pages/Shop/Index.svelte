@@ -2,6 +2,7 @@
   import { inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
   import ShopCart from '@/components/ShopCart.svelte'
+  import MonitorIcon from '@/components/MonitorIcon.svelte'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -33,7 +34,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=6'
+      link.href = '/static/css/shop.css?v=7'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -135,7 +136,7 @@
       'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=6" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=7" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -148,7 +149,7 @@
     <div class="shop-header-inner">
       <a href="/" use:inertia class="shop-logo">
         <div class="shop-logo-mark">
-          <span class="material-symbols-outlined">storefront</span>
+          <MonitorIcon size={22} />
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -304,7 +305,22 @@
           <article class="shop-card">
             <a href={p.href || `/produto/${p.slug || p.id}`} use:inertia class="shop-card-media">
               {#if p.thumbUrl}
-                <img src={p.thumbUrl} alt={p.name} loading="lazy" />
+                <img
+                  src={p.thumbUrl}
+                  alt={p.name}
+                  loading="lazy"
+                  decoding="async"
+                  on:load={(e) => e.currentTarget.classList.add('is-loaded')}
+                  on:error={(e) => {
+                    // fallback to full image if thumb missing
+                    const el = e.currentTarget
+                    if (p.imageUrl && el.src !== p.imageUrl) {
+                      el.src = p.imageUrl
+                    } else {
+                      el.classList.add('is-loaded')
+                    }
+                  }}
+                />
               {/if}
               {#if p.badge}
                 <span class="shop-badge {p.badge === 'DEFEITO' ? 'shop-badge-bad' : 'shop-badge-ok'}">

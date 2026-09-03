@@ -1,6 +1,8 @@
 <script>
+  import { onMount } from 'svelte'
   import { inertia, router } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
+  import MonitorIcon from '@/components/MonitorIcon.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let product = {}
@@ -10,10 +12,55 @@
 
   let videoURL = ''
   let mediaBusy = false
+  let lightboxOpen = false
+  let lightboxIndex = 0
+
+  $: mediaList = Array.isArray(product.media) ? product.media : []
+  $: lightboxItem = mediaList[lightboxIndex] || null
 
   function isVideo(m) {
     return m?.kind === 'video'
   }
+
+  function portal(node) {
+    document.body.appendChild(node)
+    return {
+      destroy() {
+        if (node.parentNode) node.parentNode.removeChild(node)
+      },
+    }
+  }
+
+  function openLightbox(index) {
+    if (!mediaList.length) return
+    lightboxIndex = Math.max(0, Math.min(index, mediaList.length - 1))
+    lightboxOpen = true
+    document.body.style.overflow = 'hidden'
+  }
+
+  function closeLightbox() {
+    lightboxOpen = false
+    document.body.style.overflow = ''
+  }
+
+  function slide(dir) {
+    if (mediaList.length < 2) return
+    lightboxIndex = (lightboxIndex + dir + mediaList.length) % mediaList.length
+  }
+
+  onMount(() => {
+    const onKey = (e) => {
+      if (!lightboxOpen) return
+      if (e.key === 'Escape') closeLightbox()
+      if (e.key === 'ArrowRight') slide(1)
+      if (e.key === 'ArrowLeft') slide(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  })
 
   async function copyText(text) {
     const t = String(text || '').trim()
@@ -147,7 +194,7 @@
     product.condition ||
     activeFeatures.length > 0}
 
-  <section class="ahq-card p-4 mb-4 space-y-3">
+  <section class="ahq-card p-4 mb-4 space-y-4">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <h2 class="font-semibold text-primary">Atributos OLX</h2>
       <a
@@ -158,11 +205,8 @@
         Editar atributos
       </a>
     </div>
-    {#if !hasOlx}
-      <p class="text-sm text-on-surface-variant">
-        Ainda sem atributos. Preencha na edição para copiar no anúncio da OLX.
-      </p>
-    {:else}
+
+    {#if hasOlx}
       <dl class="grid sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <div>
           <dt class="text-on-surface-variant text-xs">Tipo de tela</dt>
@@ -180,44 +224,6 @@
           <dt class="text-on-surface-variant text-xs">Condição</dt>
           <dd class="font-medium text-primary">{product.condition || '—'}</dd>
         </div>
-        <div class="sm:col-span-2">
-          <dt class="text-on-surface-variant text-xs">Catálogo (ecommerce)</dt>
-          <dd class="mt-0.5">
-            {#if product.shopVisible}
-              <span
-                class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
-              >
-                <span class="material-symbols-outlined text-[16px]">storefront</span>
-                Visível no catálogo
-              </span>
-            {:else}
-              <span
-                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
-              >
-                Oculto no catálogo
-              </span>
-            {/if}
-          </dd>
-        </div>
-        <div class="sm:col-span-2">
-          <dt class="text-on-surface-variant text-xs">Entregar grátis pela OLX</dt>
-          <dd class="mt-0.5">
-            {#if product.olxFreeShipping}
-              <span
-                class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
-              >
-                <span class="material-symbols-outlined text-[16px]">local_shipping</span>
-                Sim — oferecer frete grátis
-              </span>
-            {:else}
-              <span
-                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
-              >
-                Não — só retirada / frete do comprador
-              </span>
-            {/if}
-          </dd>
-        </div>
       </dl>
       {#if activeFeatures.length}
         <div>
@@ -233,7 +239,66 @@
           </ul>
         </div>
       {/if}
+    {:else}
+      <p class="text-sm text-on-surface-variant">
+        Ainda sem atributos de tela. Preencha na edição para copiar no anúncio da OLX.
+      </p>
     {/if}
+
+    <!-- Flags em linha (3 colunas), abaixo dos atributos de tela -->
+    <div class="grid gap-2 sm:grid-cols-3 border-t border-outline-variant pt-3">
+      <div class="rounded-xl border border-outline-variant px-3 py-2.5 space-y-1">
+        <p class="text-xs font-semibold text-primary">Visível no catálogo</p>
+        {#if product.shopVisible}
+          <span
+            class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
+          >
+            <MonitorIcon size={16} />
+            Sim — mostrar
+          </span>
+        {:else}
+          <span
+            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
+          >
+            Não — ocultar
+          </span>
+        {/if}
+      </div>
+      <div class="rounded-xl border border-outline-variant px-3 py-2.5 space-y-1">
+        <p class="text-xs font-semibold text-primary">Já publicado na OLX</p>
+        {#if product.olxPublished}
+          <span
+            class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
+          >
+            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+            Sim — no ar
+          </span>
+        {:else}
+          <span
+            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
+          >
+            Não — falta publicar
+          </span>
+        {/if}
+      </div>
+      <div class="rounded-xl border border-outline-variant px-3 py-2.5 space-y-1">
+        <p class="text-xs font-semibold text-primary">Entregar grátis pela OLX</p>
+        {#if product.olxFreeShipping}
+          <span
+            class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container"
+          >
+            <span class="material-symbols-outlined text-[16px]">local_shipping</span>
+            Sim
+          </span>
+        {:else}
+          <span
+            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant"
+          >
+            Não
+          </span>
+        {/if}
+      </div>
+    </div>
   </section>
 
   <div class="grid gap-4 lg:grid-cols-2">
@@ -277,34 +342,33 @@
   <section class="ahq-card p-4 mt-4 space-y-4">
     <h2 class="font-semibold text-primary">Fotos e vídeos</h2>
 
-    {#if !(product.media || []).length}
+    {#if !mediaList.length}
       <p class="text-sm text-on-surface-variant">Nenhuma mídia ainda.</p>
     {:else}
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {#each product.media as m (m.id)}
+        {#each mediaList as m, i (m.id)}
           <li class="flex gap-3 items-start border border-outline-variant rounded-lg p-3">
-            <div
-              class="w-24 h-20 shrink-0 rounded bg-surface-container flex items-center justify-center overflow-hidden"
+            <button
+              type="button"
+              class="w-24 h-20 shrink-0 rounded bg-surface-container flex items-center justify-center overflow-hidden
+                ring-offset-2 hover:ring-2 hover:ring-secondary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-secondary cursor-zoom-in"
+              title={isVideo(m) ? 'Ampliar vídeo' : 'Ampliar foto'}
+              aria-label={isVideo(m) ? 'Abrir vídeo ampliado' : 'Abrir foto ampliada'}
+              on:click={() => openLightbox(i)}
             >
               {#if isVideo(m)}
                 <span class="material-symbols-outlined text-3xl text-secondary">movie</span>
               {:else}
-                <img src={m.url} alt="" class="w-full h-full object-cover" />
+                <img src={m.url} alt="" class="w-full h-full object-cover pointer-events-none" />
               {/if}
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-xs uppercase text-on-surface-variant">{isVideo(m) ? 'Vídeo' : 'Foto'}</p>
-              <a
-                href={m.url}
-                target="_blank"
-                rel="noopener"
-                class="text-sm text-secondary break-all hover:underline"
-              >
-                {m.url}
-              </a>
+            </button>
+            <div class="min-w-0 flex-1 flex flex-col justify-between gap-2 self-stretch">
+              <p class="text-xs uppercase text-on-surface-variant font-medium tracking-wide">
+                {isVideo(m) ? 'Vídeo' : 'Foto'}
+              </p>
               <button
                 type="button"
-                class="block mt-2 text-error text-sm font-medium"
+                class="self-start text-error text-sm font-medium"
                 disabled={mediaBusy}
                 on:click={() => deleteMedia(m)}
               >
@@ -372,3 +436,95 @@
     </div>
   </section>
 </AppShell>
+
+{#if lightboxOpen && lightboxItem}
+  <div
+    use:portal
+    class="shop-lightbox"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Mídia ampliada"
+  >
+    <button
+      type="button"
+      class="shop-lightbox-backdrop"
+      aria-label="Fechar"
+      on:click={closeLightbox}
+    ></button>
+
+    <div class="shop-lightbox-bar">
+      <span class="shop-lightbox-count">
+        {lightboxIndex + 1} / {mediaList.length}
+      </span>
+      <button
+        type="button"
+        class="shop-lightbox-close"
+        on:click={closeLightbox}
+        aria-label="Fechar galeria"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="shop-lightbox-stage" role="presentation">
+      {#if mediaList.length > 1}
+        <button
+          type="button"
+          class="shop-lightbox-nav shop-lightbox-prev"
+          on:click={() => slide(-1)}
+          aria-label="Anterior"
+        >
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+      {/if}
+
+      <div class="shop-lightbox-frame">
+        {#if isVideo(lightboxItem)}
+          <video
+            class="shop-lightbox-video"
+            controls
+            playsinline
+            muted
+            autoplay
+            preload="metadata"
+            src={lightboxItem.url}
+          >
+            <source src={lightboxItem.url} type="video/mp4" />
+          </video>
+        {:else}
+          <img
+            class="shop-lightbox-img"
+            src={lightboxItem.url}
+            alt={product.name || 'Foto do produto'}
+          />
+        {/if}
+      </div>
+
+      {#if mediaList.length > 1}
+        <button
+          type="button"
+          class="shop-lightbox-nav shop-lightbox-next"
+          on:click={() => slide(1)}
+          aria-label="Próxima"
+        >
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      {/if}
+    </div>
+
+    {#if mediaList.length > 1}
+      <div class="shop-lightbox-dots" role="tablist" aria-label="Slides">
+        {#each mediaList as m, i (m.id)}
+          <button
+            type="button"
+            class="shop-lightbox-dot"
+            class:is-on={lightboxIndex === i}
+            class:is-video={isVideo(m)}
+            on:click={() => (lightboxIndex = i)}
+            aria-label={isVideo(m) ? `Vídeo ${i + 1}` : `Foto ${i + 1}`}
+          ></button>
+        {/each}
+      </div>
+    {/if}
+  </div>
+{/if}
