@@ -100,7 +100,17 @@ npm run build          # or: cais css && vite build
 cais build --os linux --arch amd64 -o bin/server-linux
 ```
 
-Static assets are embedded via `web/embed.go` for templates; production still needs `web/static` on disk (or set `STATIC_DIR`). Package:
+**Fast redeploy (Lightsail / `eletronicos.gestaobem.com`):** from a machine with the PEM key:
+
+```bash
+./deploy/deploy.sh              # test + build + scp + restart + health (~1–2 min)
+./deploy/deploy.sh --skip-tests # faster when you already ran tests
+make deploy
+```
+
+Defaults: `SSH_KEY=~/.ssh/lightsail-default-key-us-east-1.pem`, host `ubuntu@52.73.89.19`. Product photos on the server are preserved (local `web/static/uploads` is not pushed unless `--sync-uploads`).
+
+Static assets are embedded via `web/embed.go` for templates; production still needs `web/static` on disk (or set `STATIC_DIR`). Manual package:
 
 ```bash
 tar czf release.tar.gz bin/server-linux web/static
