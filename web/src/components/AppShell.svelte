@@ -7,6 +7,7 @@
     setShopTheme,
   } from '@/lib/shopTheme.js'
   import ConfirmModal from '@/components/ConfirmModal.svelte'
+  import MonitorIcon from '@/components/MonitorIcon.svelte'
 
   /** @type {'dashboard'|'lots'|'stock'|'products'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
@@ -84,7 +85,7 @@
         class="h-16 px-4 flex items-center gap-3 border-b border-outline-variant min-w-0"
       >
         <div class="ahq-brand-mark">
-          <span class="material-symbols-outlined text-[20px]">storefront</span>
+          <MonitorIcon size={20} />
         </div>
         <div class="min-w-0">
           <div class="flex items-center gap-2 min-w-0">
@@ -121,7 +122,7 @@
             hover:bg-surface-container-high hover:text-secondary transition-all"
           title="Abrir catálogo público"
         >
-          <span class="material-symbols-outlined">storefront</span>
+          <MonitorIcon size={20} />
           <span class="text-sm font-semibold">Catálogo</span>
         </a>
         <a
@@ -169,7 +170,7 @@
   >
     <a href="/dashboard" use:inertia class="flex items-center gap-2.5 min-w-0">
       <div class="ahq-brand-mark !w-8 !h-8">
-        <span class="material-symbols-outlined text-[18px]">storefront</span>
+        <MonitorIcon size={18} />
       </div>
       <span class="font-headline-md text-headline-md font-black text-on-surface truncate"
         >{brandMain}<span class="text-secondary">.</span></span

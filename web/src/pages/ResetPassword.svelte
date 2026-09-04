@@ -2,6 +2,7 @@
   import { useForm, inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
   import PasswordInput from '@/components/PasswordInput.svelte'
+  import MonitorIcon from '@/components/MonitorIcon.svelte'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -39,7 +40,7 @@
   >
     <a href="/login" use:inertia class="flex items-center gap-3">
       <div class="ahq-brand-mark">
-        <span class="material-symbols-outlined text-[20px]">storefront</span>
+        <MonitorIcon size={20} />
       </div>
       <span class="font-headline-md text-headline-md font-black text-on-surface"
         >Admin<span class="text-secondary">.</span></span
