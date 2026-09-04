@@ -41,6 +41,11 @@ func TestCashHandler_Index_OK(t *testing.T) {
 	assertInertiaProp(t, rr, "balances")
 	assertInertiaProp(t, rr, "entries")
 	assertInertiaProp(t, rr, "cashAccounts")
+	assertInertiaProp(t, rr, "statement")
+	sel := assertInertiaProp(t, rr, "selectedAccountId")
+	if sel == nil || fmt.Sprint(sel) == "0" {
+		t.Fatalf("selectedAccountId = %v, want first account", sel)
+	}
 }
 
 func TestCashHandler_CreateManual_Redirects(t *testing.T) {
@@ -66,8 +71,9 @@ func TestCashHandler_CreateManual_Redirects(t *testing.T) {
 	if rr.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want 303 body=%s", rr.Code, rr.Body.String())
 	}
-	if loc := rr.Header().Get("Location"); loc != "/cash" {
-		t.Errorf("Location = %q, want /cash", loc)
+	wantLoc := fmt.Sprintf("/cash?account_id=%d", accountID)
+	if loc := rr.Header().Get("Location"); loc != wantLoc {
+		t.Errorf("Location = %q, want %s", loc, wantLoc)
 	}
 
 	entries, err := s.ListCashEntries(0)

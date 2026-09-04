@@ -6,18 +6,23 @@
   import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let balances = []
-  export let entries = []
+  export let statement = []
   export let cashAccounts = []
-  export let filterAccountId = 0
+  export let selectedAccountId = 0
+  export let selectedName = ''
+  export let selectedBalance = ''
   export let categories = []
   export let errors = {}
   export let site = {}
   export let companyName = 'AuctionHQ'
 
+  const accountList = Array.isArray(balances) ? balances : []
+  const rows = Array.isArray(statement) ? statement : []
+
   let form = useForm({
-    account_id: cashAccounts[0]?.id?.toString() || '',
-    direction: 'out',
-    category: 'despesa',
+    account_id: selectedAccountId ? String(selectedAccountId) : '',
+    direction: 'in',
+    category: 'ajuste',
     amount: '',
     memo: '',
     occurred_at: new Date().toISOString().slice(0, 10),
@@ -29,7 +34,7 @@
     opening_balance: '0,00',
   })
 
-  let filterAccount = filterAccountId > 0 ? String(filterAccountId) : ''
+  let showNewAccount = false
   let editingEntryId = null
   let editEntry = {
     account_id: '',
@@ -39,42 +44,18 @@
     memo: '',
     occurred_at: '',
   }
-  let editingAccountId = null
-  let editAccount = {
-    name: '',
-    kind: 'pix',
-    opening_balance: '0,00',
-  }
 
-  $: cashAccountOptions = (Array.isArray(cashAccounts) ? cashAccounts : []).map((a) => ({
-    value: String(a.id),
-    label: a.name,
-  }))
-  $: filterAccountOptions = [
-    { value: '', label: 'Todas as contas' },
-    ...cashAccountOptions,
-  ]
-  $: categoryOptions = (Array.isArray(categories) && categories.length
-    ? categories
-    : [
-        { value: 'despesa', label: 'Despesa' },
-        { value: 'ajuste', label: 'Ajuste' },
-        { value: 'frete', label: 'Frete' },
-        { value: 'taxa', label: 'Taxa' },
-      ]
-  ).map((c) => ({ value: c.value, label: c.label }))
-  const kindOptions = [
-    { value: 'pix', label: 'PIX' },
-    { value: 'bank', label: 'Banco' },
-    { value: 'cash', label: 'Dinheiro' },
-    { value: 'other', label: 'Outro' },
-  ]
   const directionOptions = [
     { value: 'in', label: 'Entrada' },
     { value: 'out', label: 'Saída' },
   ]
 
+  function selectAccount(id) {
+    window.location = `/cash?account_id=${id}`
+  }
+
   function submitEntry() {
+    form.account_id = selectedAccountId ? String(selectedAccountId) : form.account_id
     form.post('/cash/entries', {
       onSuccess: () => form.reset('amount', 'memo'),
     })
@@ -82,27 +63,9 @@
 
   function submitAccount() {
     accountForm.post('/cash/accounts', {
-      onSuccess: () => accountForm.reset('name', 'opening_balance'),
-    })
-  }
-
-  function startEditAccount(b) {
-    editingAccountId = b.id
-    editAccount = {
-      name: b.name || '',
-      kind: b.kind || 'pix',
-      opening_balance: b.openingRaw || '0,00',
-    }
-  }
-
-  function cancelEditAccount() {
-    editingAccountId = null
-  }
-
-  function saveAccount(id) {
-    router.post(`/cash/accounts/${id}`, { ...editAccount }, {
       onSuccess: () => {
-        editingAccountId = null
+        accountForm.reset('name', 'opening_balance')
+        showNewAccount = false
       },
     })
   }
@@ -134,8 +97,8 @@
   async function deleteEntry(id) {
     const ok = await askConfirm({
       title: 'Excluir lançamento',
-      message: 'Tem certeza que deseja excluir este lançamento?',
-      detail: 'O saldo da conta será recalculado. Essa ação não pode ser desfeita.',
+      message: 'Excluir este lançamento do extrato?',
+      detail: 'O saldo da conta será recalculado.',
       confirmLabel: 'Excluir',
       tone: 'danger',
     })
@@ -143,30 +106,17 @@
     router.post(`/cash/entries/${id}/delete`)
   }
 
-  async function deleteAccount(id) {
-    const ok = await askConfirm({
-      title: 'Excluir conta',
-      message: 'Tem certeza que deseja excluir esta conta de caixa?',
-      detail: 'Só funciona se não houver lançamentos vinculados.',
-      confirmLabel: 'Excluir conta',
-      tone: 'danger',
-      icon: 'account_balance_wallet',
-    })
-    if (!ok) return
-    router.post(`/cash/accounts/${id}/delete`)
-  }
-
-  function onFilterAccount(v) {
-    filterAccount = v
-    window.location = v ? `/cash?account_id=${v}` : '/cash'
+  function lineDate(line) {
+    const raw = line.occurredAt || ''
+    return raw.slice ? raw.slice(0, 10) : raw
   }
 </script>
 
 <AppShell {companyName} active="cash">
   <div class="mb-section-padding">
-    <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Caixa</h1>
+    <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Contas correntes</h1>
     <p class="text-on-surface-variant text-body-md mt-1">
-      Contas e lançamentos — CRUD completo (criar, editar, excluir).
+      Extrato e saldo de cada conta, como no banco.
     </p>
     <div class="mt-3"><Nav active="cash" /></div>
   </div>
@@ -175,274 +125,170 @@
     <p class="mb-4 text-error text-sm ahq-card p-3 bg-error-container/30">{errors.form}</p>
   {/if}
 
-  <!-- Contas -->
-  <section class="mb-section-padding">
-    <h2 class="font-headline-md text-headline-md text-primary mb-stack-gap">Contas</h2>
-    <div class="grid gap-3 sm:grid-cols-2 mb-4">
-      {#each balances as b}
-        <div class="ahq-card p-4">
-          {#if editingAccountId === b.id}
-            <div class="grid gap-2">
-              <input class="ahq-input h-9 text-sm" bind:value={editAccount.name} placeholder="Nome" />
-              <SearchableSelect
-                id={`edit_acc_kind_${b.id}`}
-                bind:value={editAccount.kind}
-                options={kindOptions}
-                placeholder="Tipo"
-                searchPlaceholder="Buscar tipo…"
-                allowClear={false}
-                buttonClass="ahq-select h-9 w-full text-left flex items-center justify-between gap-2 text-sm"
-              />
-              <input
-                class="ahq-input h-9 text-sm font-mono"
-                bind:value={editAccount.opening_balance}
-                placeholder="Saldo inicial"
-              />
-              <div class="flex gap-2 justify-end">
-                <button type="button" class="text-secondary text-sm font-medium" on:click={() => saveAccount(b.id)}>
-                  Salvar
-                </button>
-                <button type="button" class="text-on-surface-variant text-sm" on:click={cancelEditAccount}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          {:else}
-            <div class="flex justify-between gap-2">
-              <div>
-                <p class="ahq-label">{b.kind}</p>
-                <p class="font-semibold text-primary">{b.name}</p>
-                <p class="ahq-value mt-1">{b.balance}</p>
-                {#if b.opening}
-                  <p class="text-[10px] text-on-surface-variant mt-1">Abertura: {b.opening}</p>
-                {/if}
-              </div>
-              <div class="flex flex-col gap-1 items-end">
-                <button
-                  type="button"
-                  class="text-on-surface-variant hover:text-secondary text-sm"
-                  on:click={() => startEditAccount(b)}
-                  title="Editar conta"
-                >
-                  <span class="material-symbols-outlined text-[18px]">edit</span>
-                </button>
-                <button
-                  type="button"
-                  class="text-error text-sm"
-                  on:click={() => deleteAccount(b.id)}
-                  title="Excluir conta"
-                >
-                  <span class="material-symbols-outlined text-[18px]">delete</span>
-                </button>
-              </div>
-            </div>
-          {/if}
-        </div>
-      {/each}
-    </div>
-
-    <form on:submit|preventDefault={submitAccount} class="ahq-card p-4 grid gap-3 sm:grid-cols-3">
-      <div>
-        <label class="ahq-label block mb-1" for="acc_name">Nova conta</label>
-        <input id="acc_name" class="ahq-input h-10" bind:value={accountForm.name} placeholder="Nome" />
-        {#if errors.name}<p class="text-error text-xs mt-1">{errors.name}</p>{/if}
-      </div>
-      <div>
-        <label class="ahq-label block mb-1" for="acc_kind">Tipo</label>
-        <SearchableSelect
-          id="acc_kind"
-          bind:value={accountForm.kind}
-          options={kindOptions}
-          placeholder="Tipo"
-          searchPlaceholder="Buscar tipo…"
-          allowClear={false}
-          buttonClass="ahq-select h-10 w-full text-left flex items-center justify-between gap-2"
-        />
-      </div>
-      <div>
-        <label class="ahq-label block mb-1" for="acc_open">Saldo inicial</label>
-        <input id="acc_open" class="ahq-input h-10 font-mono" bind:value={accountForm.opening_balance} />
-      </div>
-      <button type="submit" class="sm:col-span-3 ahq-btn-primary h-10" disabled={accountForm.processing}>
-        Criar conta
-      </button>
-    </form>
-  </section>
-
-  <!-- Lançamento -->
-  <section class="ahq-card p-5 mb-section-padding">
-    <h2 class="font-headline-md text-headline-md text-primary mb-3">Novo lançamento</h2>
-    <form on:submit|preventDefault={submitEntry} class="grid gap-3 sm:grid-cols-2">
-      <div>
-        <label class="ahq-label block mb-1.5" for="account_id">Conta</label>
-        <SearchableSelect
-          id="account_id"
-          bind:value={form.account_id}
-          options={cashAccountOptions}
-          placeholder="Selecione…"
-          searchPlaceholder="Buscar conta…"
-        />
-        {#if errors.account_id}<p class="text-error text-xs mt-1">{errors.account_id}</p>{/if}
-      </div>
-      <div>
-        <label class="ahq-label block mb-1.5" for="direction">Direção</label>
-        <SearchableSelect
-          id="direction"
-          bind:value={form.direction}
-          options={directionOptions}
-          placeholder="Direção"
-          searchPlaceholder="Buscar…"
-          allowClear={false}
-        />
-      </div>
-      <div>
-        <label class="ahq-label block mb-1.5" for="category">Categoria</label>
-        <SearchableSelect
-          id="category"
-          bind:value={form.category}
-          options={categoryOptions}
-          placeholder="Categoria"
-          searchPlaceholder="Buscar…"
-          allowClear={false}
-        />
-      </div>
-      <div>
-        <label class="ahq-label block mb-1.5" for="amount">Valor (R$)</label>
-        <input id="amount" type="text" bind:value={form.amount} placeholder="0,00" class="ahq-input font-mono" />
-        {#if errors.amount}<p class="text-error text-xs mt-1">{errors.amount}</p>{/if}
-      </div>
-      <div>
-        <label class="ahq-label block mb-1.5" for="occurred_at">Data</label>
-        <input id="occurred_at" type="date" bind:value={form.occurred_at} class="ahq-input font-mono" />
-      </div>
-      <div>
-        <label class="ahq-label block mb-1.5" for="memo">Descrição / memo</label>
-        <input id="memo" type="text" bind:value={form.memo} class="ahq-input" placeholder="Ex.: cabo HDMI→VGA" />
-      </div>
-      <div class="sm:col-span-2">
-        <button type="submit" class="ahq-btn-primary" disabled={form.processing}>Registrar lançamento</button>
-      </div>
-    </form>
-  </section>
-
-  <!-- Extrato -->
-  <section>
-    <div class="flex items-center justify-between mb-stack-gap gap-2 flex-wrap">
-      <h2 class="font-headline-md text-headline-md text-primary">Extrato</h2>
-      {#if cashAccounts.length > 0}
-        <div class="min-w-[12rem]">
-          <SearchableSelect
-            id="filter_account"
-            bind:value={filterAccount}
-            options={filterAccountOptions}
-            placeholder="Todas as contas"
-            searchPlaceholder="Buscar conta…"
-            allowClear={false}
-            buttonClass="ahq-select h-10 w-full text-left flex items-center justify-between gap-2"
-            onChange={onFilterAccount}
-          />
-        </div>
-      {/if}
-    </div>
-
-    {#if entries.length === 0}
-      <div class="ahq-card p-8 text-center text-on-surface-variant border-dashed">Nenhum lançamento.</div>
-    {:else}
-      <div class="ahq-card divide-y divide-outline-variant">
-        {#each entries as e (e.id)}
-          <div class="p-4">
-            {#if editingEntryId === e.id}
-              <div class="grid gap-2 sm:grid-cols-2">
-                <SearchableSelect
-                  id={`edit_acc_${e.id}`}
-                  bind:value={editEntry.account_id}
-                  options={cashAccountOptions}
-                  placeholder="Conta"
-                  searchPlaceholder="Buscar conta…"
-                  allowClear={false}
-                  buttonClass="ahq-select h-9 w-full text-left flex items-center justify-between gap-2 text-sm"
-                />
-                <SearchableSelect
-                  id={`edit_dir_${e.id}`}
-                  bind:value={editEntry.direction}
-                  options={directionOptions}
-                  placeholder="Direção"
-                  allowClear={false}
-                  buttonClass="ahq-select h-9 w-full text-left flex items-center justify-between gap-2 text-sm"
-                />
-                <SearchableSelect
-                  id={`edit_cat_${e.id}`}
-                  bind:value={editEntry.category}
-                  options={categoryOptions}
-                  placeholder="Categoria"
-                  allowClear={false}
-                  buttonClass="ahq-select h-9 w-full text-left flex items-center justify-between gap-2 text-sm"
-                />
-                <input class="ahq-input h-9 font-mono text-sm" bind:value={editEntry.amount} placeholder="Valor" />
-                <input type="date" class="ahq-input h-9 font-mono text-sm" bind:value={editEntry.occurred_at} />
-                <input class="ahq-input h-9 text-sm" bind:value={editEntry.memo} placeholder="Memo" />
-                <div class="sm:col-span-2 flex gap-3 justify-end">
-                  <button type="button" class="text-secondary text-sm font-medium" on:click={() => saveEntry(e.id)}>
-                    Salvar
-                  </button>
-                  <button type="button" class="text-on-surface-variant text-sm" on:click={cancelEditEntry}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            {:else}
-              <div class="flex gap-3 items-start">
-                <div
-                  class="w-10 h-10 rounded-full flex items-center justify-center shrink-0
-                    {e.direction === 'in' ? 'bg-tertiary-fixed/20' : 'bg-error-container/60'}"
-                >
-                  <span
-                    class="material-symbols-outlined text-[20px] {e.direction === 'in'
-                      ? 'text-on-tertiary-container'
-                      : 'text-error'}"
-                  >
-                    {e.direction === 'in' ? 'arrow_downward' : 'arrow_upward'}
-                  </span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex justify-between gap-2">
-                    <p class="font-semibold text-primary truncate">{e.categoryLabel}</p>
-                    <p
-                      class="font-mono font-semibold shrink-0 {e.direction === 'in'
-                        ? 'text-on-tertiary-container'
-                        : 'text-error'}"
-                    >
-                      {e.direction === 'in' ? '+' : '−'}{e.amount}
-                    </p>
-                  </div>
-                  <p class="text-on-surface-variant text-sm">
-                    {e.occurredDate || e.occurredAt?.slice?.(0, 10) || e.occurredAt} · {e.accountName}
-                    {#if e.memo}<span> · {e.memo}</span>{/if}
-                  </p>
-                  {#if e.canEdit || e.canDelete}
-                    <div class="flex gap-3 mt-1">
-                      {#if e.canEdit}
-                        <button
-                          type="button"
-                          class="text-xs text-secondary font-medium"
-                          on:click={() => startEditEntry(e)}
-                        >
-                          Editar
-                        </button>
-                      {/if}
-                      {#if e.canDelete}
-                        <button type="button" class="text-xs text-error" on:click={() => deleteEntry(e.id)}>
-                          Excluir
-                        </button>
-                      {/if}
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            {/if}
-          </div>
+  <div class="md:flex md:gap-6 md:items-start">
+    <aside class="md:w-56 shrink-0 mb-6 md:mb-0">
+      <p class="ahq-label mb-2">Contas</p>
+      <div class="flex flex-col gap-1">
+        {#each accountList as b}
+          <button
+            type="button"
+            class="text-left ahq-card p-3 transition-colors
+              {String(b.id) === String(selectedAccountId)
+              ? 'border-secondary'
+              : 'hover:bg-surface-container-low'}"
+            on:click={() => selectAccount(b.id)}
+          >
+            <p class="font-semibold text-primary truncate">{b.name}</p>
+            <p class="font-mono text-sm mt-0.5">{b.balance}</p>
+          </button>
+        {:else}
+          <p class="text-sm text-on-surface-variant">Nenhuma conta ainda.</p>
         {/each}
       </div>
-    {/if}
-  </section>
+      <button
+        type="button"
+        class="mt-3 text-sm text-secondary font-medium"
+        on:click={() => (showNewAccount = !showNewAccount)}
+      >
+        {showNewAccount ? 'Cancelar' : '+ Nova conta'}
+      </button>
+      {#if showNewAccount}
+        <form on:submit|preventDefault={submitAccount} class="ahq-card p-3 mt-2 space-y-2">
+          <input class="ahq-input h-9 text-sm" bind:value={accountForm.name} placeholder="Nome (ex: Nubank)" />
+          {#if errors.name}<p class="text-error text-xs">{errors.name}</p>{/if}
+          <input
+            class="ahq-input h-9 text-sm font-mono"
+            bind:value={accountForm.opening_balance}
+            placeholder="Saldo inicial"
+          />
+          <button type="submit" class="ahq-btn-primary h-9 w-full text-xs" disabled={accountForm.processing}>
+            Criar
+          </button>
+        </form>
+      {/if}
+    </aside>
+
+    <div class="flex-1 min-w-0">
+      {#if !selectedAccountId}
+        <div class="ahq-card p-8 text-center text-on-surface-variant border-dashed">
+          Crie uma conta corrente para ver o extrato.
+        </div>
+      {:else}
+        <div class="ahq-card p-5 mb-section-padding">
+          <p class="ahq-label">Saldo atual</p>
+          <h2 class="font-headline-md text-headline-md text-primary mt-1">{selectedName}</h2>
+          <p class="ahq-value mt-2">{selectedBalance}</p>
+        </div>
+
+        <section class="ahq-card p-5 mb-section-padding">
+          <h3 class="font-semibold text-primary mb-3">Novo lançamento</h3>
+          <form on:submit|preventDefault={submitEntry} class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="ahq-label block mb-1" for="direction">Tipo</label>
+              <SearchableSelect
+                id="direction"
+                bind:value={form.direction}
+                options={directionOptions}
+                allowClear={false}
+              />
+            </div>
+            <div>
+              <label class="ahq-label block mb-1" for="amount">Valor (R$)</label>
+              <input id="amount" class="ahq-input font-mono" bind:value={form.amount} placeholder="0,00" />
+              {#if errors.amount}<p class="text-error text-xs mt-1">{errors.amount}</p>{/if}
+            </div>
+            <div>
+              <label class="ahq-label block mb-1" for="occurred_at">Data</label>
+              <input id="occurred_at" type="date" class="ahq-input font-mono" bind:value={form.occurred_at} />
+            </div>
+            <div>
+              <label class="ahq-label block mb-1" for="memo">Histórico</label>
+              <input id="memo" class="ahq-input" bind:value={form.memo} placeholder="PIX recebido, Uber…" />
+            </div>
+            <div class="sm:col-span-2">
+              <button type="submit" class="ahq-btn-primary" disabled={form.processing}>Lançar no extrato</button>
+            </div>
+          </form>
+        </section>
+
+        <section>
+          <h3 class="font-headline-md text-headline-md text-primary mb-3">Extrato</h3>
+          <div class="ahq-card overflow-x-auto">
+            <table class="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr class="text-left border-b border-outline-variant">
+                  <th class="ahq-label px-3 py-2">Data</th>
+                  <th class="ahq-label px-3 py-2">Histórico</th>
+                  <th class="ahq-label px-3 py-2 text-right">Entrada</th>
+                  <th class="ahq-label px-3 py-2 text-right">Saída</th>
+                  <th class="ahq-label px-3 py-2 text-right">Saldo</th>
+                  <th class="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-outline-variant">
+                {#each rows as line (line.kind + '-' + line.entryId)}
+                  <tr class="align-top">
+                    {#if editingEntryId && line.entry && editingEntryId === line.entry.id}
+                      <td colspan="6" class="p-3">
+                        <div class="grid gap-2 sm:grid-cols-2">
+                          <SearchableSelect
+                            bind:value={editEntry.direction}
+                            options={directionOptions}
+                            allowClear={false}
+                          />
+                          <input class="ahq-input h-9 font-mono text-sm" bind:value={editEntry.amount} />
+                          <input type="date" class="ahq-input h-9 font-mono text-sm" bind:value={editEntry.occurred_at} />
+                          <input class="ahq-input h-9 text-sm" bind:value={editEntry.memo} placeholder="Histórico" />
+                          <div class="sm:col-span-2 flex gap-3 justify-end">
+                            <button
+                              type="button"
+                              class="text-secondary text-sm font-medium"
+                              on:click={() => saveEntry(line.entry.id)}
+                            >
+                              Salvar
+                            </button>
+                            <button type="button" class="text-on-surface-variant text-sm" on:click={cancelEditEntry}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    {:else}
+                      <td class="px-3 py-2 font-mono text-on-surface-variant whitespace-nowrap">
+                        {line.kind === 'opening' ? '—' : lineDate(line)}
+                      </td>
+                      <td class="px-3 py-2 text-primary">{line.description}</td>
+                      <td class="px-3 py-2 text-right font-mono text-secondary">{line.credit || ''}</td>
+                      <td class="px-3 py-2 text-right font-mono text-error">{line.debit || ''}</td>
+                      <td class="px-3 py-2 text-right font-mono font-semibold">{line.balance}</td>
+                      <td class="px-3 py-2 text-right whitespace-nowrap">
+                        {#if line.canEdit}
+                          <button
+                            type="button"
+                            class="text-xs text-secondary font-medium mr-2"
+                            on:click={() => startEditEntry(line.entry)}
+                          >
+                            Editar
+                          </button>
+                        {/if}
+                        {#if line.canDelete}
+                          <button
+                            type="button"
+                            class="text-xs text-error"
+                            on:click={() => deleteEntry(line.entry.id)}
+                          >
+                            Excluir
+                          </button>
+                        {/if}
+                      </td>
+                    {/if}
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      {/if}
+    </div>
+  </div>
 </AppShell>

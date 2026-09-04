@@ -44,10 +44,18 @@ func (h *CashHandler) renderIndex(w http.ResponseWriter, r *http.Request, accoun
 		return
 	}
 
+	if accountFilter <= 0 && len(accounts) > 0 {
+		accountFilter = accounts[0].ID
+	}
+
 	accountNameByID := make(map[int64]string, len(accounts))
 	balances := make([]map[string]any, 0, len(accounts))
+	var selected models.CashAccount
 	for _, a := range accounts {
 		accountNameByID[a.ID] = a.Name
+		if a.ID == accountFilter {
+			selected = a
+		}
 		bal, err := h.store.CashBalance(a.ID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -71,8 +79,43 @@ func (h *CashHandler) renderIndex(w http.ResponseWriter, r *http.Request, accoun
 	}
 
 	entryRows := make([]map[string]any, 0, len(entries))
+	ledger := make([]domain.LedgerEntry, 0, len(entries))
+	entryByID := make(map[int64]models.CashEntry, len(entries))
 	for _, e := range entries {
+		entryByID[e.ID] = e
 		entryRows = append(entryRows, cashEntryRow(e, accountNameByID[e.AccountID]))
+		ledger = append(ledger, domain.LedgerEntry{
+			ID:          e.ID,
+			OccurredAt:  e.OccurredAt,
+			Description: cashHistory(e),
+			Direction:   e.Direction,
+			AmountCents: e.AmountCents,
+		})
+	}
+
+	statement := make([]map[string]any, 0)
+	if selected.ID > 0 {
+		for _, line := range domain.BuildStatement(selected.OpeningBalanceCents, ledger) {
+			row := map[string]any{
+				"kind":        line.Kind,
+				"entryId":     line.EntryID,
+				"occurredAt":  line.OccurredAt,
+				"description": line.Description,
+				"credit":      formatStatementAmount(line.CreditCents),
+				"debit":       formatStatementAmount(line.DebitCents),
+				"balance":     domain.FormatBRL(line.BalanceCents),
+				"canEdit":     false,
+				"canDelete":   false,
+			}
+			if line.Kind == "movement" {
+				if e, ok := entryByID[line.EntryID]; ok {
+					row["canEdit"] = store.CashEntryIsManual(e)
+					row["canDelete"] = store.CashEntryIsManual(e)
+					row["entry"] = cashEntryRow(e, accountNameByID[e.AccountID])
+				}
+			}
+			statement = append(statement, row)
+		}
 	}
 
 	accountOptions := make([]map[string]any, 0, len(accounts))
@@ -84,14 +127,49 @@ func (h *CashHandler) renderIndex(w http.ResponseWriter, r *http.Request, accoun
 		})
 	}
 
+	selectedName := ""
+	selectedBalance := ""
+	if selected.ID > 0 {
+		selectedName = selected.Name
+		if bal, err := h.store.CashBalance(selected.ID); err == nil {
+			selectedBalance = domain.FormatBRL(bal)
+		}
+	}
+
 	_ = h.inertia.Render(w, r, "Cash/Index", withCompany(h.store, inertia.Props{
-		"site":            meta.ForRequest(h.site, r),
-		"balances":        balances,
-		"entries":         entryRows,
-		"cashAccounts":    accountOptions,
-		"filterAccountId": accountFilter,
-		"categories":      manualCashCategoryOptions(),
+		"site":              meta.ForRequest(h.site, r),
+		"balances":          balances,
+		"entries":           entryRows,
+		"statement":         statement,
+		"selectedAccountId": accountFilter,
+		"selectedName":      selectedName,
+		"selectedBalance":   selectedBalance,
+		"cashAccounts":      accountOptions,
+		"filterAccountId":   accountFilter,
+		"categories":        manualCashCategoryOptions(),
 	}))
+}
+
+func cashHistory(e models.CashEntry) string {
+	label := cashCategoryLabel(e.Category)
+	if e.Memo != nil && strings.TrimSpace(*e.Memo) != "" {
+		return label + " · " + strings.TrimSpace(*e.Memo)
+	}
+	return label
+}
+
+func formatStatementAmount(cents int64) string {
+	if cents == 0 {
+		return ""
+	}
+	return domain.FormatBRL(cents)
+}
+
+func cashURL(accountID int64) string {
+	if accountID <= 0 {
+		return "/cash"
+	}
+	return fmt.Sprintf("/cash?account_id=%d", accountID)
 }
 
 func cashEntryRow(e models.CashEntry, accountName string) map[string]any {
@@ -149,7 +227,7 @@ func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
 
 	ve := make(inertia.ValidationErrors)
 	if accountID <= 0 {
-		ve["account_id"] = "Selecione a conta de caixa"
+		ve["account_id"] = "Selecione a conta"
 	}
 	if direction != "in" && direction != "out" {
 		ve["direction"] = "Selecione entrada ou saída"
@@ -175,7 +253,7 @@ func (h *CashHandler) CreateManual(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+	h.inertia.Redirect(w, r, cashURL(accountID), http.StatusSeeOther)
 }
 
 func (h *CashHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, id int64) {
@@ -196,7 +274,7 @@ func (h *CashHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, id int
 
 	ve := make(inertia.ValidationErrors)
 	if accountID <= 0 {
-		ve["account_id"] = "Selecione a conta de caixa"
+		ve["account_id"] = "Selecione a conta"
 	}
 	if direction != "in" && direction != "out" {
 		ve["direction"] = "Selecione entrada ou saída"
@@ -217,11 +295,11 @@ func (h *CashHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, id int
 
 	if err := h.store.UpdateCashEntry(id, accountID, direction, amountCents, occurredAtValue, category, memo); err != nil {
 		ve["form"] = err.Error()
-		h.renderIndex(w, r, 0, ve)
+		h.renderIndex(w, r, accountID, ve)
 		return
 	}
 
-	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+	h.inertia.Redirect(w, r, cashURL(accountID), http.StatusSeeOther)
 }
 
 func cashDirectionLabel(direction string) string {
@@ -273,11 +351,12 @@ func (h *CashHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
 		h.renderIndex(w, r, 0, inertia.ValidationErrors{"name": "Nome obrigatório"})
 		return
 	}
-	if _, err := h.store.InsertCashAccount(name, kind, opening); err != nil {
+	id, err := h.store.InsertCashAccount(name, kind, opening)
+	if err != nil {
 		h.renderIndex(w, r, 0, inertia.ValidationErrors{"form": err.Error()})
 		return
 	}
-	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+	h.inertia.Redirect(w, r, cashURL(id), http.StatusSeeOther)
 }
 
 func (h *CashHandler) UpdateAccount(w http.ResponseWriter, r *http.Request, id int64) {
@@ -289,10 +368,10 @@ func (h *CashHandler) UpdateAccount(w http.ResponseWriter, r *http.Request, id i
 	kind := strings.TrimSpace(r.FormValue("kind"))
 	opening, _ := domain.ParseBRLToCents(r.FormValue("opening_balance"))
 	if err := h.store.UpdateCashAccount(id, name, kind, opening); err != nil {
-		h.renderIndex(w, r, 0, inertia.ValidationErrors{"form": err.Error()})
+		h.renderIndex(w, r, id, inertia.ValidationErrors{"form": err.Error()})
 		return
 	}
-	h.inertia.Redirect(w, r, "/cash", http.StatusSeeOther)
+	h.inertia.Redirect(w, r, cashURL(id), http.StatusSeeOther)
 }
 
 func (h *CashHandler) DestroyAccount(w http.ResponseWriter, r *http.Request, id int64) {
