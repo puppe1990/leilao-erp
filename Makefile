@@ -1,4 +1,4 @@
-.PHONY: dev build test css css-watch lint format format-check pre-commit-install ci
+.PHONY: dev build test css css-watch lint format format-check pre-commit-install ci deploy
 
 CAIS := $(shell command -v cais 2>/dev/null || command -v $(HOME)/go/bin/cais 2>/dev/null)
 
@@ -44,3 +44,7 @@ dev: css
 	$(MAKE) css-watch &
 	npm run dev:fe &
 	$(CAIS) dev
+
+# Lightsail redeploy (~1–2 min). See deploy/deploy.sh for flags/env.
+deploy:
+	./deploy/deploy.sh
