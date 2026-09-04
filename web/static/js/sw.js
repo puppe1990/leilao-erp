@@ -1,4 +1,4 @@
-const CACHE_VERSION = 31;
+const CACHE_VERSION = 43;
 const CACHE = "cais-static-v" + CACHE_VERSION;
 
 const PRECACHE = [
