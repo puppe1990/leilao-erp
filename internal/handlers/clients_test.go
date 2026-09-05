@@ -155,6 +155,50 @@ func TestClients_CreateUpdateDelete(t *testing.T) {
 	}
 }
 
+func TestClients_CreatePersistsAddress(t *testing.T) {
+	h, st := setupClientsHandler(t)
+
+	form := url.Values{}
+	form.Set("name", "MATHEUS NUNES PUPPE 02399708024")
+	form.Set("type", "company")
+	form.Set("document", "24.490.987/0001-38")
+	form.Set("phone", "(51) 93701099")
+	form.Set("email", "matheus.puppe90@hotmail.com")
+	form.Set("cep", "03.058-000")
+	form.Set("street", "RUA CONSELHEIRO COTEGIPE")
+	form.Set("number", "219")
+	form.Set("complement", "APT 114B")
+	form.Set("neighborhood", "BELENZINHO")
+	form.Set("city", "SAO PAULO")
+	form.Set("state", "SP")
+	req := inertiaRequest(http.MethodPost, "/clients", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.Create(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("create status=%d body=%s", rr.Code, rr.Body.String())
+	}
+
+	list, err := st.ListClients()
+	if err != nil || len(list) != 1 {
+		t.Fatalf("%+v %v", list, err)
+	}
+	got := list[0]
+	if got.Type != "company" {
+		t.Errorf("Type = %q, want company", got.Type)
+	}
+	if got.Address.Street != "RUA CONSELHEIRO COTEGIPE" || got.Address.Number != "219" {
+		t.Errorf("Address = %+v", got.Address)
+	}
+	if got.Address.Complement != "APT 114B" || got.Address.CEP != "03.058-000" {
+		t.Errorf("Address = %+v", got.Address)
+	}
+	if got.Address.Neighborhood != "BELENZINHO" || got.Address.City != "SAO PAULO" || got.Address.State != "SP" {
+		t.Errorf("Address = %+v", got.Address)
+	}
+}
+
 func TestClients_CreateRequiresName(t *testing.T) {
 	h, st := setupClientsHandler(t)
 	form := url.Values{}

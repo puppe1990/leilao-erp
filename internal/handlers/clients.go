@@ -95,6 +95,25 @@ func writeJSONError(w http.ResponseWriter, status int, message string) {
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
+func clientInputFromRequest(r *http.Request) store.ClientInput {
+	in := store.ClientInput{
+		Name:     r.FormValue("name"),
+		Phone:    r.FormValue("phone"),
+		Email:    r.FormValue("email"),
+		Document: r.FormValue("document"),
+		Type:     r.FormValue("type"),
+		Notes:    r.FormValue("notes"),
+	}
+	in.Address.CEP = r.FormValue("cep")
+	in.Address.Street = r.FormValue("street")
+	in.Address.Number = r.FormValue("number")
+	in.Address.Complement = r.FormValue("complement")
+	in.Address.Neighborhood = r.FormValue("neighborhood")
+	in.Address.City = r.FormValue("city")
+	in.Address.State = r.FormValue("state")
+	return in
+}
+
 // Index lists clients with optional ?q= search.
 func (h *ClientsHandler) Index(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -138,13 +157,7 @@ func (h *ClientsHandler) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	in := store.ClientInput{
-		Name:     r.FormValue("name"),
-		Phone:    r.FormValue("phone"),
-		Email:    r.FormValue("email"),
-		Document: r.FormValue("document"),
-		Notes:    r.FormValue("notes"),
-	}
+	in := clientInputFromRequest(r)
 	if _, err := h.store.CreateClient(in); err != nil {
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
 		r = r.WithContext(ctx)
@@ -160,13 +173,7 @@ func (h *ClientsHandler) Update(w http.ResponseWriter, r *http.Request, id int64
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	in := store.ClientInput{
-		Name:     r.FormValue("name"),
-		Phone:    r.FormValue("phone"),
-		Email:    r.FormValue("email"),
-		Document: r.FormValue("document"),
-		Notes:    r.FormValue("notes"),
-	}
+	in := clientInputFromRequest(r)
 	if err := h.store.UpdateClient(id, in); err != nil {
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})
 		r = r.WithContext(ctx)
