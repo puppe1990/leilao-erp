@@ -209,7 +209,7 @@
             class="ahq-btn-ghost h-10 px-3 text-sm whitespace-nowrap"
             disabled={cnpjBusy || onlyDigits(createForm.document).length !== 14}
             on:click={() => lookupCNPJ(createForm)}
-            title="Buscar dados do CNPJ na Receita (BrasilAPI)"
+            title="Buscar dados do CNPJ na Receita Federal"
           >
             {cnpjBusy ? 'Buscando…' : 'Buscar CNPJ'}
           </button>
