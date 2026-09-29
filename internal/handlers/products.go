@@ -15,21 +15,28 @@ import (
 )
 
 type ProductsHandler struct {
-	renderer  *cais.Renderer
-	store     store.Store
-	site      meta.Site
-	cfg       cais.Config
-	inertia   *inertia.Inertia
-	staticDir string // web/static absolute path for product uploads
+	renderer   *cais.Renderer
+	store      store.Store
+	site       meta.Site
+	cfg        cais.Config
+	inertia    *inertia.Inertia
+	staticDir  string // web/static absolute path (dev fallback for uploads)
+	uploadsDir string // persistent dir served at /static/uploads
 }
 
 func NewProductsHandler(renderer *cais.Renderer, s store.Store, site meta.Site, cfg cais.Config, i *inertia.Inertia) *ProductsHandler {
 	return &ProductsHandler{renderer: renderer, store: s, site: site, cfg: cfg, inertia: i}
 }
 
-// WithStaticDir sets the directory served at /static (for media uploads).
+// WithStaticDir sets the directory served at /static (dev fallback for uploads).
 func (h *ProductsHandler) WithStaticDir(dir string) *ProductsHandler {
 	h.staticDir = dir
+	return h
+}
+
+// WithUploadsDir sets the persistent product-media directory (/static/uploads).
+func (h *ProductsHandler) WithUploadsDir(dir string) *ProductsHandler {
+	h.uploadsDir = dir
 	return h
 }
 

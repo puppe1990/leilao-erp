@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"bytes"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -120,5 +124,55 @@ func TestProducts_AddMedia_RejectsBadKind(t *testing.T) {
 	list, _ := st.ListProductMedia(pid)
 	if len(list) != 0 {
 		t.Fatal("should not insert audio")
+	}
+}
+
+func TestProducts_AddMedia_WritesToUploadsDirNotStatic(t *testing.T) {
+	h, st, staticDir := setupProductsHandler(t)
+	uploadsDir := t.TempDir()
+	h.WithUploadsDir(uploadsDir)
+	pid := seedProductID(t, st)
+
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	if err := mw.WriteField("kind", "photo"); err != nil {
+		t.Fatal(err)
+	}
+	fw, err := mw.CreateFormFile("file", "cam.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(fw, "fake-jpeg"); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	req := inertiaRequest(http.MethodPost, "/products/"+strconv.FormatInt(pid, 10)+"/media", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.AddMedia(rr, req, pid)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+
+	staticHits, err := filepath.Glob(filepath.Join(staticDir, "uploads", "products", "*", "*.jpg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(staticHits) != 0 {
+		t.Fatalf("wrote into static dir: %v", staticHits)
+	}
+	uploadHits, err := filepath.Glob(filepath.Join(uploadsDir, "products", strconv.FormatInt(pid, 10), "*.jpg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(uploadHits) != 1 {
+		t.Fatalf("want 1 file in uploads dir, got %v", uploadHits)
+	}
+	if _, err := os.Stat(uploadHits[0]); err != nil {
+		t.Fatal(err)
 	}
 }

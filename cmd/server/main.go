@@ -75,6 +75,7 @@ func bootstrapWithConfig(cfg cais.Config) (*app.App, error) {
 		_ = s.Close()
 		return nil, err
 	}
+	uploadsDir := app.ResolveUploadsDir(os.Getenv("UPLOADS_DIR"), cfg.DBPath, staticDir)
 
 	inertiaI, err := inertia.NewFromFileFS(tmplFS, "app.html")
 	if err != nil {
@@ -83,11 +84,12 @@ func bootstrapWithConfig(cfg cais.Config) (*app.App, error) {
 	}
 
 	return app.New(cfg, app.Deps{
-		Renderer:  renderer,
-		Store:     s,
-		StaticDir: staticDir,
-		Site:      meta.SiteFrom("leilao-erp", cfg.AppURL),
-		Catalog:   catalog,
-		Inertia:   inertiaI,
+		Renderer:   renderer,
+		Store:      s,
+		StaticDir:  staticDir,
+		UploadsDir: uploadsDir,
+		Site:       meta.SiteFrom("leilao-erp", cfg.AppURL),
+		Catalog:    catalog,
+		Inertia:    inertiaI,
 	})
 }

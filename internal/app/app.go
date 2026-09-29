@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/puppe1990/cais/pkg/cais"
@@ -20,12 +22,13 @@ import (
 )
 
 type Deps struct {
-	Renderer  *cais.Renderer
-	Store     store.Store
-	StaticDir string
-	Site      meta.Site
-	Catalog   *i18n.Catalog
-	Inertia   *inertia.Inertia
+	Renderer   *cais.Renderer
+	Store      store.Store
+	StaticDir  string
+	UploadsDir string
+	Site       meta.Site
+	Catalog    *i18n.Catalog
+	Inertia    *inertia.Inertia
 }
 
 type App struct {
@@ -76,6 +79,15 @@ func New(cfg cais.Config, deps Deps) (*App, error) {
 	}
 	r.Use(middleware.Recover)
 	r.Use(securityHeadersAuctionHQ(cfg))
+	uploadsDir := deps.UploadsDir
+	if uploadsDir == "" && deps.StaticDir != "" {
+		uploadsDir = filepath.Join(deps.StaticDir, "uploads")
+	}
+	if uploadsDir != "" {
+		_ = os.MkdirAll(uploadsDir, 0o755)
+		deps.UploadsDir = uploadsDir
+		r.StaticForEnv("/static/uploads", uploadsDir, cfg)
+	}
 	r.StaticForEnv("/static", deps.StaticDir, cfg)
 
 	registerRoutes(r, deps, cfg)

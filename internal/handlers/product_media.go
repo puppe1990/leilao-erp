@@ -93,8 +93,19 @@ func (h *ProductsHandler) mediaError(w http.ResponseWriter, r *http.Request, pro
 	h.Show(w, r, productID)
 }
 
+func (h *ProductsHandler) mediaRoot() string {
+	if h.uploadsDir != "" {
+		return h.uploadsDir
+	}
+	if h.staticDir != "" {
+		return filepath.Join(h.staticDir, "uploads")
+	}
+	return ""
+}
+
 func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName string, src io.Reader) (string, error) {
-	if h.staticDir == "" {
+	root := h.mediaRoot()
+	if root == "" {
 		return "", fmt.Errorf("upload indisponível (static dir vazio)")
 	}
 	ext := strings.ToLower(filepath.Ext(originalName))
@@ -114,7 +125,7 @@ func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName 
 			}
 		}
 	}
-	dir := filepath.Join(h.staticDir, "uploads", "products", strconv.FormatInt(productID, 10))
+	dir := filepath.Join(root, "products", strconv.FormatInt(productID, 10))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("criar pasta upload: %w", err)
 	}
@@ -134,13 +145,21 @@ func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName 
 }
 
 func (h *ProductsHandler) tryRemoveLocalUpload(mediaURL string) {
-	if h.staticDir == "" || !strings.HasPrefix(mediaURL, "/static/uploads/") {
+	root := h.mediaRoot()
+	if root == "" || !strings.HasPrefix(mediaURL, "/static/uploads/") {
 		return
 	}
-	rel := strings.TrimPrefix(mediaURL, "/static/")
-	path := filepath.Join(h.staticDir, filepath.FromSlash(rel))
-	// only delete inside uploads
-	if !strings.Contains(filepath.ToSlash(path), "/uploads/") {
+	rel := strings.TrimPrefix(mediaURL, "/static/uploads/")
+	path := filepath.Join(root, filepath.FromSlash(rel))
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return
+	}
+	pathAbs, err := filepath.Abs(path)
+	if err != nil {
+		return
+	}
+	if !strings.HasPrefix(pathAbs, rootAbs+string(os.PathSeparator)) && pathAbs != rootAbs {
 		return
 	}
 	_ = os.Remove(path)
