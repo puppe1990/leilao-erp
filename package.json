@@ -14,7 +14,7 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "vite build",
+    "build": "tailwindcss -i ./input.css -o ./web/static/css/styles.css --minify && vite build",
     "dev:fe": "vite",
     "test:fe": "vitest run",
     "test": "npm run format:check && vitest run"
