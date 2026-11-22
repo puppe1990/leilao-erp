@@ -65,3 +65,34 @@ func TestSignupRoutesNotRegistered(t *testing.T) {
 		t.Errorf("POST /signup status = %d, want non-success (signup must not be registered)", postRR.Code)
 	}
 }
+
+func TestLotPathRedirectsToProductRoute(t *testing.T) {
+	s, err := store.NewSQLiteStore(":memory:", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	i, err := inertia.New(`<!DOCTYPE html><html><body>{{ .inertia }}</body></html>`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(cais.Config{Env: "test"}, Deps{
+		Renderer: cais.NewRendererStub(i18n.DefaultCatalog()),
+		Store:    s,
+		Site:     meta.Site{AppName: "leilao-erp", AppURL: "http://localhost"},
+		Catalog:  i18n.DefaultCatalog(),
+		Inertia:  i,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/lote", nil)
+	rr := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rr, req)
+	if rr.Code != http.StatusMovedPermanently {
+		t.Fatalf("status=%d want 301", rr.Code)
+	}
+	if loc := rr.Header().Get("Location"); loc != "/produto/lote-monitores" {
+		t.Fatalf("Location=%q", loc)
+	}
+}

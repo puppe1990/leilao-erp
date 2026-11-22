@@ -10,6 +10,8 @@ func TestCatalogThumbURL(t *testing.T) {
 		{"/static/uploads/products/1/a.jpeg", "/static/uploads/products/1/a.thumb.jpg"},
 		{"/static/uploads/products/1/a.thumb.jpg", "/static/uploads/products/1/a.thumb.jpg"},
 		{"https://cdn.example/a.jpg", "https://cdn.example/a.jpg"},
+		{"https://f005.backblazeb2.com/file/eletronicos-phoenix/products/1/a.jpg", "https://f005.backblazeb2.com/file/eletronicos-phoenix/products/1/a.thumb.jpg"},
+		{"https://f005.backblazeb2.com/file/eletronicos-phoenix/products/1/a.thumb.jpg", "https://f005.backblazeb2.com/file/eletronicos-phoenix/products/1/a.thumb.jpg"},
 		{"", ""},
 		{"/static/uploads/products/1/a.mp4", "/static/uploads/products/1/a.mp4"},
 	}

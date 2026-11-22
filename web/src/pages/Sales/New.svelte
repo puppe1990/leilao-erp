@@ -347,7 +347,7 @@
 
         {#if form.payment_status === 'received'}
           <div>
-            <label class="ahq-label block mb-1.5" for="cash_account_id">Conta de caixa</label>
+            <label class="ahq-label block mb-1.5" for="cash_account_id">Conta corrente</label>
             <SearchableSelect
               id="cash_account_id"
               bind:value={form.cash_account_id}

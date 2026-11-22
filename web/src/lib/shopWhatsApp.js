@@ -35,6 +35,11 @@ export function buildCartOrderMessage(items, opts = {}) {
   const list = Array.isArray(items) ? items.filter((it) => it && (Number(it.qty) || 0) > 0) : []
   if (list.length === 0) return ''
 
+  const lot = list.find((it) => it.isLot || String(it.id) === 'lot')
+  if (lot) {
+    return buildLotCartMessage(lot, opts)
+  }
+
   const company = (opts.companyName || '').trim()
   const lines = []
   if (company) {
@@ -73,6 +78,31 @@ export function buildCartOrderMessage(items, opts = {}) {
     lines.push('')
     lines.push('Prefiro pagar no PIX.')
   }
+  lines.push('Pode confirmar disponibilidade e combinar entrega/retirada?')
+  return lines.join('\n')
+}
+
+/**
+ * Closed-price lot order (no extra 10% PIX off).
+ * @param {{ name?: string, qty?: number, priceCents?: number }} lot
+ * @param {{ companyName?: string }} [opts]
+ */
+function buildLotCartMessage(lot, opts = {}) {
+  const company = (opts.companyName || '').trim()
+  const price = formatBRL(Number(lot.priceCents) || 0)
+  const name = String(lot.name || 'lote de monitores')
+  const lines = []
+  if (company) {
+    lines.push(`Olá ${company}! Quero o lote completo.`)
+  } else {
+    lines.push('Olá! Quero o lote completo.')
+  }
+  lines.push('')
+  lines.push(name)
+  if ((Number(lot.priceCents) || 0) > 0) {
+    lines.push(`Preço fechado: ${price}`)
+  }
+  lines.push('')
   lines.push('Pode confirmar disponibilidade e combinar entrega/retirada?')
   return lines.join('\n')
 }

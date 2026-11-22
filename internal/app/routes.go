@@ -33,6 +33,9 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 
 	// Public catalog (WhatsApp orders) — only products with photos + stock
 	r.Get("/", shop.Index)
+	r.Get("/lote", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/produto/lote-monitores", http.StatusMovedPermanently)
+	})
 	r.Get("/produto/{slug}", cais.StringParam("slug", shop.Show))
 	// Legacy /loja URLs
 	r.Get("/loja", func(w http.ResponseWriter, r *http.Request) {

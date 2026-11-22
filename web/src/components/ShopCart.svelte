@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { shopCart, cartCount, cartSummary, formatCartBRL } from '@/lib/shopCart.js'
+  import { shopCart, cartCount, cartSummary, formatCartBRL, itemPixCents } from '@/lib/shopCart.js'
   import { buildWhatsAppCartURL } from '@/lib/shopWhatsApp.js'
 
   export let whatsappDigits = ''
@@ -148,9 +148,9 @@
                   <div class="shop-cart-line-price">
                     {#if it.priceCents > 0}
                       <span class="shop-cart-pix"
-                        >{formatCartBRL(Math.floor((it.priceCents * 90) / 100))}</span
+                        >{formatCartBRL(itemPixCents({ ...it, qty: 1 }))}</span
                       >
-                      <span class="shop-cart-pix-tag">PIX un.</span>
+                      <span class="shop-cart-pix-tag">{it.fixedPix || it.isLot ? 'lote' : 'PIX un.'}</span>
                     {:else}
                       <span class="shop-cart-pix">Consulte</span>
                     {/if}

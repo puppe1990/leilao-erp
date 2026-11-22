@@ -2,6 +2,7 @@
   import { inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
   import ShopCart from '@/components/ShopCart.svelte'
+  import MonitorIcon from '@/components/MonitorIcon.svelte'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -62,7 +63,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=7'
+      link.href = '/static/css/shop.css?v=9'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -175,7 +176,7 @@
   {#if og.image || product.thumbUrl || photos[0]?.url}
     <meta name="twitter:image" content={og.image || product.thumbUrl || photos[0]?.url} />
   {/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=7" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=9" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -249,6 +250,10 @@
                 <span class="material-symbols-outlined">zoom_in</span>
               </span>
             </button>
+          {:else}
+            <div class="shop-card-media-fallback">
+              <MonitorIcon size={72} />
+            </div>
           {/if}
           {#if product.badge}
             <span

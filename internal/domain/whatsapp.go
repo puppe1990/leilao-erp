@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -44,5 +45,27 @@ func WhatsAppOrderURL(phone, productName, priceLabel string) string {
 		b.WriteString(p)
 	}
 	b.WriteString("\n\nPode me passar a disponibilidade e formas de pagamento?")
+	return "https://wa.me/" + digits + "?text=" + url.QueryEscape(b.String())
+}
+
+// WhatsAppLotURL builds a click-to-chat URL for the remaining auction-lot bundle.
+func WhatsAppLotURL(phone string, qty int, priceLabel string) string {
+	digits := NormalizeWhatsAppPhone(phone)
+	if digits == "" {
+		return ""
+	}
+	n := qty
+	if n < 1 {
+		n = 1
+	}
+	var b strings.Builder
+	b.WriteString("Olá! Quero o lote completo de ")
+	fmt.Fprintf(&b, "%d", n)
+	b.WriteString(" monitores")
+	if p := strings.TrimSpace(priceLabel); p != "" {
+		b.WriteString(" por ")
+		b.WriteString(p)
+	}
+	b.WriteString(".\n\nPode confirmar disponibilidade e combinar entrega/retirada?")
 	return "https://wa.me/" + digits + "?text=" + url.QueryEscape(b.String())
 }

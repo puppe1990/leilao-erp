@@ -171,3 +171,157 @@ func TestShopHandler_Show_NotShopVisible_NotFound(t *testing.T) {
 		t.Fatalf("status=%d want 404", rr.Code)
 	}
 }
+
+func TestShopHandler_Show_NoPhoto_VisibleWithStock_OK(t *testing.T) {
+	h, s := newShopHandler(t)
+	acc, err := s.InsertCashAccount("PIX", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateLotPurchase(store.CreateLotInput{
+		Name: "Lote sem foto", PurchasedAt: "2026-01-01",
+		ItemTitle: "Monitor Sem Foto Detalhe", ItemQty: 1,
+		CashAccountID: acc, PaidAt: "2026-01-01T12:00:00Z",
+		Costs: []store.CostInput{{Label: "Arremate", AmountCents: 4000, AlreadyPaid: true}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	products, err := s.ListProducts()
+	if err != nil || len(products) == 0 {
+		t.Fatalf("products %v %v", products, err)
+	}
+	p := products[0]
+	if err := s.UpdateProductShopVisible(p.ID, true); err != nil {
+		t.Fatal(err)
+	}
+
+	req := inertiaRequest(http.MethodGet, "/produto/"+p.Slug, nil)
+	rr := httptest.NewRecorder()
+	h.Show(rr, req, p.Slug)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200 body=%s", rr.Code, rr.Body.String())
+	}
+	assertInertiaComponent(t, rr, "Shop/Show")
+}
+
+func seedLeilaoShopLot(t *testing.T, s *store.SQLiteStore) {
+	t.Helper()
+	acc, err := s.InsertCashAccount("PIX", "pix", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lotID, err := s.CreateLotPurchase(store.CreateLotInput{
+		Name: "Monitores — leilão Jul/2026", PurchasedAt: "2026-07-01",
+		ItemTitle: "Monitor Lote A", ItemQty: 2,
+		CashAccountID: acc, PaidAt: "2026-07-01T12:00:00Z",
+		Costs: []store.CostInput{{Label: "Arremate", AmountCents: 20000, AlreadyPaid: true}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, err := s.ListItemsByLot(lotID)
+	if err != nil || len(items) < 2 {
+		t.Fatalf("items %v %v", items, err)
+	}
+	hint := int64(12900)
+	if err := s.UpdateItem(items[1].ID, store.UpdateItemInput{Title: "Monitor Lote B", SalePriceHintCents: &hint}); err != nil {
+		t.Fatal(err)
+	}
+	products, err := s.ListProducts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range products {
+		if _, err := s.AddProductMedia(p.ID, store.ProductMediaInput{
+			Kind: "photo", URL: "/static/uploads/products/1/lot.jpg",
+		}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.AddProductMedia(p.ID, store.ProductMediaInput{
+			Kind: "video", URL: "/static/uploads/products/1/lot.mp4",
+		}); err != nil {
+			t.Fatal(err)
+		}
+		_ = s.UpdateProductShopVisible(p.ID, true)
+	}
+	if err := s.SetWhatsAppPhone("11999990000"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestShopHandler_Index_IncludesLotOffer(t *testing.T) {
+	h, s := newShopHandler(t)
+	seedLeilaoShopLot(t, s)
+
+	req := inertiaRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	offer := assertInertiaProp(t, rr, "lotOffer")
+	m, ok := offer.(map[string]any)
+	if !ok || m == nil {
+		t.Fatalf("lotOffer not object: %T %v", offer, offer)
+	}
+	if fmt.Sprint(m["qty"]) == "0" {
+		t.Fatalf("lotOffer qty empty: %v", m)
+	}
+	if !strings.Contains(rr.Body.String(), "lot.jpg") {
+		t.Fatal("expected lot photo in index payload")
+	}
+	if !strings.Contains(rr.Body.String(), "/produto/"+store.ShopLotSlug) {
+		t.Fatal("expected lot product href in index payload")
+	}
+	prods := assertInertiaProp(t, rr, "products")
+	list, ok := prods.([]any)
+	if !ok || len(list) < 1 {
+		t.Fatalf("products %T %v", prods, prods)
+	}
+	first, _ := list[0].(map[string]any)
+	if fmt.Sprint(first["slug"]) != store.ShopLotSlug {
+		t.Fatalf("first product slug=%v want %s", first["slug"], store.ShopLotSlug)
+	}
+	if fmt.Sprint(first["isLot"]) != "true" {
+		t.Fatalf("first product isLot=%v", first["isLot"])
+	}
+}
+
+func TestShopHandler_Show_LotSlug_OK(t *testing.T) {
+	h, s := newShopHandler(t)
+	seedLeilaoShopLot(t, s)
+
+	req := inertiaRequest(http.MethodGet, "/produto/"+store.ShopLotSlug, nil)
+	rr := httptest.NewRecorder()
+	h.Show(rr, req, store.ShopLotSlug)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	assertInertiaComponent(t, rr, "Shop/Lot")
+	offer := assertInertiaProp(t, rr, "lotOffer")
+	m, ok := offer.(map[string]any)
+	if !ok {
+		t.Fatalf("lotOffer %T", offer)
+	}
+	if fmt.Sprint(m["href"]) != "/produto/"+store.ShopLotSlug {
+		t.Fatalf("href=%v", m["href"])
+	}
+	photos, _ := m["photos"].([]any)
+	videos, _ := m["videos"].([]any)
+	if len(photos) < 1 {
+		t.Fatalf("want photos, got %v", m["photos"])
+	}
+	if len(videos) < 1 {
+		t.Fatalf("want videos, got %v", m["videos"])
+	}
+}
+
+func TestShopHandler_Lot_NotFoundWithoutOffer(t *testing.T) {
+	h, _ := newShopHandler(t)
+	req := inertiaRequest(http.MethodGet, "/produto/"+store.ShopLotSlug, nil)
+	rr := httptest.NewRecorder()
+	h.Show(rr, req, store.ShopLotSlug)
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("status=%d want 404", rr.Code)
+	}
+}

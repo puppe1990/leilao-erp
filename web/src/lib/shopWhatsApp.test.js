@@ -51,6 +51,28 @@ describe('buildCartOrderMessage', () => {
   })
 })
 
+describe('lot order message', () => {
+  it('uses closed lot price without extra PIX discount', () => {
+    const msg = buildCartOrderMessage(
+      [
+        {
+          id: 'lot',
+          name: 'Lote de 22 monitores',
+          qty: 1,
+          priceCents: 150000,
+          fixedPix: true,
+          isLot: true,
+        },
+      ],
+      { companyName: 'Puppe Eletrônicos' },
+    )
+    expect(msg).toContain('lote')
+    expect(msg).toContain('22 monitores')
+    expect(msg).toMatch(/1\.500/)
+    expect(msg).not.toContain('10% OFF')
+  })
+})
+
 describe('buildWhatsAppCartURL', () => {
   it('encodes cart message', () => {
     const url = buildWhatsAppCartURL('5511999990000', [

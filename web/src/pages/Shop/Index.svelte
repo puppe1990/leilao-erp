@@ -2,6 +2,7 @@
   import { inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
   import ShopCart from '@/components/ShopCart.svelte'
+  import ShopLotBanner from '@/components/ShopLotBanner.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import {
     applyShopThemeToDocument,
@@ -11,6 +12,7 @@
   } from '@/lib/shopTheme.js'
 
   export let products = []
+  export let lotOffer = null
   export let companyName = 'Puppe Eletrônicos'
   export let whatsappSet = false
   export let whatsappDigits = ''
@@ -34,7 +36,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=7'
+      link.href = '/static/css/shop.css?v=9'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -56,6 +58,11 @@
   $: categories = [
     { id: 'all', label: 'TODOS', count: list.length },
     {
+      id: 'lote',
+      label: 'LOTE',
+      count: list.filter((p) => p.isLot || p.category === 'lote').length,
+    },
+    {
       id: 'com-base',
       label: 'COM BASE',
       count: list.filter((p) => p.category === 'com-base').length,
@@ -70,7 +77,7 @@
       label: 'DEFEITO / PEÇAS',
       count: list.filter((p) => p.category === 'defeito').length,
     },
-  ]
+  ].filter((c) => c.id === 'all' || c.count > 0)
 
   $: filtered = list
     .filter((p) => {
@@ -87,6 +94,8 @@
     })
     .slice()
     .sort((a, b) => {
+      if (a.isLot && !b.isLot) return -1
+      if (b.isLot && !a.isLot) return 1
       if (sortBy === 'price-asc') return (a.priceCents || 0) - (b.priceCents || 0)
       if (sortBy === 'price-desc') return (b.priceCents || 0) - (a.priceCents || 0)
       if (a.badge === 'DEFEITO' && b.badge !== 'DEFEITO') return 1
@@ -136,13 +145,13 @@
       'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=7" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=9" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
   <div class="shop-banner">
     <span class="material-symbols-outlined" style="font-size:16px">bolt</span>
-    Monte o carrinho · envie o pedido no WhatsApp · 10% OFF no PIX
+    Monte o carrinho · lote fechado por R$ 1.500 · 10% OFF no PIX nas unidades
   </div>
 
   <header class="shop-header">
@@ -207,7 +216,7 @@
     <h1>Monitores <em>testados</em> com preço de catálogo</h1>
     <p>
       Monte o carrinho com os monitores que quiser, veja fotos e vídeos reais e envie o pedido no
-      WhatsApp. PIX com 10% off ou cartão.
+      WhatsApp. Ou leve o lote inteiro por R$ 1.500.
     </p>
     <div class="shop-hero-actions">
       <button type="button" class="shop-btn-wa" on:click={scrollCatalog}>
@@ -245,6 +254,8 @@
       </div>
     </div>
   </section>
+
+  <ShopLotBanner {lotOffer} onAdd={addToCart} />
 
   <div class="shop-cats">
     <div class="shop-cats-inner">
@@ -303,7 +314,12 @@
       <div class="shop-grid">
         {#each filtered as p (p.id)}
           <article class="shop-card">
-            <a href={p.href || `/produto/${p.slug || p.id}`} use:inertia class="shop-card-media">
+            <a
+              href={p.href || `/produto/${p.slug || p.id}`}
+              use:inertia
+              class="shop-card-media"
+              aria-label={p.name}
+            >
               {#if p.thumbUrl}
                 <img
                   src={p.thumbUrl}
@@ -312,7 +328,6 @@
                   decoding="async"
                   on:load={(e) => e.currentTarget.classList.add('is-loaded')}
                   on:error={(e) => {
-                    // fallback to full image if thumb missing
                     const el = e.currentTarget
                     if (p.imageUrl && el.src !== p.imageUrl) {
                       el.src = p.imageUrl
@@ -321,6 +336,10 @@
                     }
                   }}
                 />
+              {:else}
+                <span class="shop-card-media-fallback">
+                  <MonitorIcon size={56} />
+                </span>
               {/if}
               {#if p.badge}
                 <span class="shop-badge {p.badge === 'DEFEITO' ? 'shop-badge-bad' : 'shop-badge-ok'}">
@@ -337,13 +356,20 @@
             <div class="shop-card-body">
               <div style="display:flex;justify-content:space-between;align-items:center">
                 <span class="shop-brand">{p.brand || 'MONITOR'}</span>
-                <span style="font-size:10px;color:#737373;font-weight:700">{p.qtyInStock || 0} un.</span>
+                <span style="font-size:10px;color:#737373;font-weight:700"
+                  >{p.isLot ? `${p.qty || 0} un.` : `${p.qtyInStock || 0} un.`}</span
+                >
               </div>
               <a href={p.href || `/produto/${p.slug || p.id}`} use:inertia class="shop-card-title"
                 >{p.name}</a
               >
               <div class="shop-price-box">
-                {#if p.pixPrice}
+                {#if p.isLot || p.fixedPix}
+                  <div>
+                    <span class="shop-pix">{p.pixPrice || p.price}</span>
+                    <span class="shop-pix-tag">lote</span>
+                  </div>
+                {:else if p.pixPrice}
                   <div>
                     <span class="shop-pix">{p.pixPrice}</span>
                     <span class="shop-pix-tag">PIX</span>
@@ -450,6 +476,18 @@
               <span class="material-symbols-outlined" style="color:#fbbf24;font-size:18px">location_on</span>
               Retirada / entrega
             </button>
+            {#if lotOffer}
+              <button
+                type="button"
+                on:click={() =>
+                  generalWhatsApp(
+                    `Olá! Quero o lote completo de ${lotOffer.qty} monitores por ${lotOffer.price}.`,
+                  )}
+              >
+                <span class="material-symbols-outlined" style="color:#fbbf24;font-size:18px">inventory_2</span>
+                Lote por {lotOffer.price}
+              </button>
+            {/if}
           </div>
         </div>
       {/if}
