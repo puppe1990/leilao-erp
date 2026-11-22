@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Redeploy leilao-erp to AWS Lightsail (~1–2 min).
+# Redeploy leilao-erp to Hetzner CX33 (~1–2 min).
 #
 # Usage:
 #   ./deploy/deploy.sh
@@ -13,8 +13,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/lightsail-default-key-us-east-1.pem}"
-SSH_HOST="${SSH_HOST:-ubuntu@52.73.89.19}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+SSH_HOST="${SSH_HOST:-ubuntu@167.233.201.9}"
 REMOTE_ROOT="${REMOTE_ROOT:-/opt/leilao-erp}"
 HEALTH_URL="${HEALTH_URL:-https://eletronicos.gestaobem.com/health}"
 KEEP_RELEASES="${KEEP_RELEASES:-5}"

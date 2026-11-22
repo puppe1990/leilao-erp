@@ -91,4 +91,65 @@ describe('cartTotals', () => {
   it('itemPixCents applies 10% off', () => {
     expect(itemPixCents({ qty: 2, priceCents: 10000 })).toBe(18000)
   })
+
+  it('itemPixCents keeps lot price without extra 10%', () => {
+    expect(itemPixCents({ qty: 1, priceCents: 150000, fixedPix: true })).toBe(150000)
+  })
+})
+
+describe('lot cart item', () => {
+  it('maps fixedPix and isLot from product', () => {
+    const seed = productToCartSeed({
+      id: 'lot',
+      name: 'Lote de 22 monitores',
+      priceCents: 150000,
+      pixPrice: 'R$ 1.500,00',
+      qtyInStock: 1,
+      fixedPix: true,
+      isLot: true,
+    })
+    expect(seed).toMatchObject({
+      id: 'lot',
+      fixedPix: true,
+      isLot: true,
+      maxQty: 1,
+    })
+  })
+
+  it('replaces cart when adding the lot', () => {
+    shopCart.add({ id: 1, name: 'A', priceCents: 10000, qtyInStock: 2 }, 1)
+    shopCart.add(
+      {
+        id: 'lot',
+        name: 'Lote de 22 monitores',
+        priceCents: 150000,
+        qtyInStock: 1,
+        fixedPix: true,
+        isLot: true,
+      },
+      1,
+    )
+    const items = get(shopCart)
+    expect(items).toHaveLength(1)
+    expect(items[0].id).toBe('lot')
+    expect(items[0].fixedPix).toBe(true)
+  })
+
+  it('removes lot when adding a unit', () => {
+    shopCart.add(
+      {
+        id: 'lot',
+        name: 'Lote de 22 monitores',
+        priceCents: 150000,
+        qtyInStock: 1,
+        isLot: true,
+        fixedPix: true,
+      },
+      1,
+    )
+    shopCart.add({ id: 4, name: 'Dell', priceCents: 12900, qtyInStock: 1 }, 1)
+    const items = get(shopCart)
+    expect(items).toHaveLength(1)
+    expect(items[0].id).toBe(4)
+  })
 })

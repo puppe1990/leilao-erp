@@ -64,6 +64,7 @@ type Store interface {
 	EnsureProductByName(name, kind string, saleHint *int64) (int64, error)
 	ListProducts() ([]models.Product, error)
 	ListProductsWithPhotos() ([]models.Product, error)
+	ShopLotOffer() (*ShopLotOffer, error)
 	FindProduct(id int64) (models.Product, error)
 	FindProductBySlug(slug string) (models.Product, error)
 	BackfillProductSlugs() error

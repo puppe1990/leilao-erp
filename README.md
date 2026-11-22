@@ -100,7 +100,7 @@ npm run build          # or: cais css && vite build
 cais build --os linux --arch amd64 -o bin/server-linux
 ```
 
-**Fast redeploy (Lightsail / `eletronicos.gestaobem.com`):** from a machine with the PEM key:
+**Fast redeploy (Hetzner CX33 / `eletronicos.gestaobem.com`):** from a machine with the Mac ed25519 key:
 
 ```bash
 ./deploy/deploy.sh              # test + build + scp + restart + health (~1–2 min)
@@ -108,7 +108,7 @@ cais build --os linux --arch amd64 -o bin/server-linux
 make deploy
 ```
 
-Defaults: `SSH_KEY=~/.ssh/lightsail-default-key-us-east-1.pem`, host `ubuntu@52.73.89.19`. Product photos on the server are preserved (local `web/static/uploads` is not pushed unless `--sync-uploads`).
+Defaults: `SSH_KEY=~/.ssh/id_ed25519`, host `ubuntu@167.233.201.9`. Product photos on the server are preserved (local `web/static/uploads` is not pushed unless `--sync-uploads`).
 
 Static assets are embedded via `web/embed.go` for templates; production still needs `web/static` on disk (or set `STATIC_DIR`). Manual package:
 

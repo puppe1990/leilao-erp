@@ -52,3 +52,24 @@ func TestWhatsAppOrderURL_EmptyPhone(t *testing.T) {
 		t.Fatal("want empty when no phone")
 	}
 }
+
+func TestWhatsAppLotURL(t *testing.T) {
+	u := WhatsAppLotURL("11987654321", 22, "R$ 1.500,00")
+	if !strings.HasPrefix(u, "https://wa.me/5511987654321?text=") {
+		t.Fatalf("prefix: %s", u)
+	}
+	parsed, err := url.Parse(u)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := parsed.Query().Get("text")
+	if !strings.Contains(text, "22 monitores") {
+		t.Errorf("missing qty: %q", text)
+	}
+	if !strings.Contains(text, "1.500") {
+		t.Errorf("missing price: %q", text)
+	}
+	if !strings.Contains(strings.ToLower(text), "lote") {
+		t.Errorf("missing lote: %q", text)
+	}
+}

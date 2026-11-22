@@ -184,7 +184,15 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}
 	company := companyName(h.store)
 
-	rows := make([]map[string]any, 0, len(products))
+	lotOffer, err := h.loadLotOffer(phone)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rows := make([]map[string]any, 0, len(products)+1)
+	if lotOffer != nil {
+		rows = append(rows, lotOffer)
+	}
 	for _, p := range products {
 		rows = append(rows, shopProductRow(p, phone))
 	}
@@ -207,6 +215,7 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"site":           meta.ForRequest(h.site, r),
 		"companyName":    company,
 		"products":       rows,
+		"lotOffer":       lotOffer,
 		"whatsappSet":    domain.NormalizeWhatsAppPhone(phone) != "",
 		"whatsappHint":   phone,
 		"whatsappDigits": domain.NormalizeWhatsAppPhone(phone),
@@ -226,6 +235,10 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, slug string) 
 		http.Error(w, "produto não encontrado", http.StatusNotFound)
 		return
 	}
+	if isShopLotSlug(slug) {
+		h.Lot(w, r)
+		return
+	}
 
 	// Legacy /produto/123 → /produto/slug
 	if id, err := strconv.ParseInt(slug, 10, 64); err == nil && id > 0 {
@@ -242,7 +255,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, slug string) 
 		http.Error(w, "produto não encontrado", http.StatusNotFound)
 		return
 	}
-	if !p.ShopVisible || p.PhotoCount < 1 || p.QtyInStock < 1 {
+	if !p.ShopVisible || p.QtyInStock < 1 {
 		http.Error(w, "produto indisponível no catálogo", http.StatusNotFound)
 		return
 	}
@@ -257,10 +270,6 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, slug string) 
 		case "video":
 			videos = append(videos, row)
 		}
-	}
-	if len(photos) == 0 {
-		http.Error(w, "produto indisponível no catálogo", http.StatusNotFound)
-		return
 	}
 
 	phone, _ := h.store.WhatsAppPhone()

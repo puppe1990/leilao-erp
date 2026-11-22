@@ -16,6 +16,12 @@ func TestFormatBRL(t *testing.T) {
 	if got := domain.FormatBRL(0); got != "R$ 0,00" {
 		t.Fatalf("got %q", got)
 	}
+	if got := domain.FormatBRL(150000); got != "R$ 1.500,00" {
+		t.Fatalf("got %q", got)
+	}
+	if got := domain.FormatBRL(306800); got != "R$ 3.068,00" {
+		t.Fatalf("got %q", got)
+	}
 }
 
 func TestParseBRLToCents(t *testing.T) {

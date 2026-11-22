@@ -15,6 +15,8 @@ const STORAGE_KEY = 'puppe-shop-cart-v1'
  *   thumbUrl?: string,
  *   qty: number,
  *   maxQty: number,
+ *   fixedPix?: boolean,
+ *   isLot?: boolean,
  * }} CartItem
  */
 
@@ -36,6 +38,8 @@ function load() {
         thumbUrl: it.thumbUrl || '',
         qty: Math.max(1, Math.floor(Number(it.qty) || 1)),
         maxQty: Math.max(1, Math.floor(Number(it.maxQty) || 99)),
+        fixedPix: !!it.fixedPix,
+        isLot: !!it.isLot,
       }))
   } catch {
     return []
@@ -67,7 +71,9 @@ export function formatCartBRL(cents) {
 export function itemPixCents(item) {
   const unit = Number(item.priceCents) || 0
   if (unit <= 0) return 0
-  return Math.floor((unit * 90) / 100) * (Number(item.qty) || 1)
+  const qty = Number(item.qty) || 1
+  if (item?.fixedPix || item?.isLot) return unit * qty
+  return Math.floor((unit * 90) / 100) * qty
 }
 
 /**
@@ -114,6 +120,8 @@ export function productToCartSeed(product) {
     pixPrice: product.pixPrice || '',
     thumbUrl: product.thumbUrl || '',
     maxQty,
+    fixedPix: !!(product.fixedPix || product.isLot),
+    isLot: !!product.isLot,
   }
 }
 
@@ -144,7 +152,19 @@ function createCartStore() {
       const addQty = Math.max(1, Math.floor(Number(qty) || 1))
       let ok = false
       update((items) => {
-        const next = items.slice()
+        let next = items.slice()
+        if (seed.isLot) {
+          next = [
+            {
+              ...seed,
+              qty: Math.min(seed.maxQty, addQty),
+            },
+          ]
+          persist(next)
+          ok = true
+          return next
+        }
+        next = next.filter((x) => !x.isLot && String(x.id) !== 'lot')
         const i = next.findIndex((x) => String(x.id) === String(seed.id))
         if (i >= 0) {
           const cur = next[i]

@@ -167,8 +167,8 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	return out, rows.Err()
 }
 
-// ListProductsWithPhotos returns shop-visible, in-stock products that have at least one photo.
-// Used by the public mini shop.
+// ListProductsWithPhotos returns shop-visible, in-stock catalog products.
+// Photo is optional so every available monitor can appear (icon fallback).
 func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 	rows, err := s.db.Query(
 		`SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
@@ -187,9 +187,6 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 		        COALESCE(p.shop_visible, 0)
 		 FROM products p
 		 WHERE COALESCE(p.shop_visible, 0) = 1
-		 AND EXISTS (
-		   SELECT 1 FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'
-		 )
 		 AND EXISTS (
 		   SELECT 1 FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'
 		 )

@@ -14,8 +14,8 @@ func CatalogThumbURL(photoURL string) string {
 	if strings.Contains(lower, ".thumb.") {
 		return u
 	}
-	// only rewrite app-local uploads
-	if !strings.HasPrefix(u, "/static/uploads/") {
+	// local uploads or public B2 objects (eletronicos-phoenix)
+	if !strings.HasPrefix(u, "/static/uploads/") && !strings.Contains(lower, "backblazeb2.com") {
 		return u
 	}
 	switch {
