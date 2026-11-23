@@ -49,6 +49,11 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	shopLotOn, err := h.store.ShopLotEnabled()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	cnpj, err := h.store.CompanyCNPJ()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -63,17 +68,20 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		flash = "Senha alterada com sucesso."
 	case "whatsapp":
 		flash = "WhatsApp da loja atualizado."
+	case "shop-lot":
+		flash = "Lote da loja atualizado."
 	}
 
 	_ = h.inertia.Render(w, r, "Config/Index", withCompany(h.store, inertia.Props{
-		"site":          meta.ForRequest(h.site, r),
-		"email":         user.Email,
-		"companyName":   companyName(h.store),
-		"companyForm":   name, // raw stored value (may be empty)
-		"companyCnpj":   cnpj,
-		"whatsappPhone": waPhone,
-		"shopURL":       "/",
-		"flash":         flash,
+		"site":           meta.ForRequest(h.site, r),
+		"email":          user.Email,
+		"companyName":    companyName(h.store),
+		"companyForm":    name, // raw stored value (may be empty)
+		"companyCnpj":    cnpj,
+		"whatsappPhone":  waPhone,
+		"shopLotEnabled": shopLotOn,
+		"shopURL":        "/",
+		"flash":          flash,
 	}))
 }
 
@@ -139,6 +147,23 @@ func (h *ConfigHandler) UpdateWhatsApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.inertia.Redirect(w, r, "/config?saved=whatsapp", http.StatusSeeOther)
+}
+
+func (h *ConfigHandler) UpdateShopLot(w http.ResponseWriter, r *http.Request) {
+	if _, ok := session.UserID(r); !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	on := strings.TrimSpace(r.FormValue("shop_lot_enabled")) == "1"
+	if err := h.store.SetShopLotEnabled(on); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.inertia.Redirect(w, r, "/config?saved=shop-lot", http.StatusSeeOther)
 }
 
 func (h *ConfigHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
@@ -211,15 +236,17 @@ func (h *ConfigHandler) renderConfigErrors(w http.ResponseWriter, r *http.Reques
 		cnpj = strings.TrimSpace(v)
 	}
 	waPhone, _ := h.store.WhatsAppPhone()
+	shopLotOn, _ := h.store.ShopLotEnabled()
 
 	ctx := inertia.SetValidationErrors(r.Context(), errs)
 	_ = h.inertia.Render(w, r.WithContext(ctx), "Config/Index", withCompany(h.store, inertia.Props{
-		"site":          meta.ForRequest(h.site, r),
-		"email":         email,
-		"companyName":   companyName(h.store),
-		"companyForm":   rawName,
-		"companyCnpj":   cnpj,
-		"whatsappPhone": waPhone,
-		"flash":         flash,
+		"site":           meta.ForRequest(h.site, r),
+		"email":          email,
+		"companyName":    companyName(h.store),
+		"companyForm":    rawName,
+		"companyCnpj":    cnpj,
+		"whatsappPhone":  waPhone,
+		"shopLotEnabled": shopLotOn,
+		"flash":          flash,
 	}))
 }

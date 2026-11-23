@@ -41,6 +41,8 @@ type Store interface {
 	SetCompanyCNPJ(cnpj string) error
 	WhatsAppPhone() (string, error)
 	SetWhatsAppPhone(phone string) error
+	ShopLotEnabled() (bool, error)
+	SetShopLotEnabled(enabled bool) error
 
 	// Finance / lots
 	InsertCashAccount(name, kind string, openingBalanceCents int64) (int64, error)

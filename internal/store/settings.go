@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	settingCompanyName   = "company_name"
-	settingCompanyCNPJ   = "company_cnpj"
-	settingWhatsAppPhone = "whatsapp_phone"
+	settingCompanyName    = "company_name"
+	settingCompanyCNPJ    = "company_cnpj"
+	settingWhatsAppPhone  = "whatsapp_phone"
+	settingShopLotEnabled = "shop_lot_enabled"
 )
 
 // GetSetting returns a setting value (empty string if missing).
@@ -67,6 +68,29 @@ func (s *SQLiteStore) WhatsAppPhone() (string, error) {
 // SetWhatsAppPhone stores the WhatsApp number used for public shop orders.
 func (s *SQLiteStore) SetWhatsAppPhone(phone string) error {
 	return s.SetSetting(settingWhatsAppPhone, strings.TrimSpace(phone))
+}
+
+// ShopLotEnabled is the public remaining-lot bundle. Missing setting means on.
+func (s *SQLiteStore) ShopLotEnabled() (bool, error) {
+	v, err := s.GetSetting(settingShopLotEnabled)
+	if err != nil {
+		return true, err
+	}
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "0", "false", "off", "no":
+		return false, nil
+	default:
+		return true, nil
+	}
+}
+
+// SetShopLotEnabled stores "1" or "0" for the public lot bundle.
+func (s *SQLiteStore) SetShopLotEnabled(enabled bool) error {
+	v := "0"
+	if enabled {
+		v = "1"
+	}
+	return s.SetSetting(settingShopLotEnabled, v)
 }
 
 // FindUserByID loads a user by primary key.

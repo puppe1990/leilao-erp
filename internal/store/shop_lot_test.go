@@ -209,6 +209,54 @@ func TestShopLotOffer_ExcludesHiddenCatalogProductsKeepsPrice(t *testing.T) {
 	}
 }
 
+func TestShopLotEnabled_DefaultTrue(t *testing.T) {
+	st := newTestStore(t)
+	on, err := st.ShopLotEnabled()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !on {
+		t.Fatal("want shop lot enabled when setting is missing")
+	}
+}
+
+func TestShopLotOffer_NilWhenDisabled(t *testing.T) {
+	st := newTestStore(t)
+	seedLeilaoAndPessoalLots(t, st)
+	if err := st.SetShopLotEnabled(false); err != nil {
+		t.Fatal(err)
+	}
+	on, err := st.ShopLotEnabled()
+	if err != nil || on {
+		t.Fatalf("enabled=%v err=%v", on, err)
+	}
+	offer, err := st.ShopLotOffer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if offer != nil {
+		t.Fatalf("want nil offer when shop lot is off, got %+v", offer)
+	}
+}
+
+func TestShopLotOffer_ReturnsAfterReenable(t *testing.T) {
+	st := newTestStore(t)
+	seedLeilaoAndPessoalLots(t, st)
+	if err := st.SetShopLotEnabled(false); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetShopLotEnabled(true); err != nil {
+		t.Fatal(err)
+	}
+	offer, err := st.ShopLotOffer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if offer == nil || offer.Qty != 2 {
+		t.Fatalf("want lot offer after re-enable, got %+v", offer)
+	}
+}
+
 func TestShopLotOffer_NilWhenFewerThanTwo(t *testing.T) {
 	st := newTestStore(t)
 	acc, err := st.InsertCashAccount("PIX", "pix", 0)
