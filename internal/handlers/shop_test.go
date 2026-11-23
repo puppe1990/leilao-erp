@@ -316,6 +316,50 @@ func TestShopHandler_Show_LotSlug_OK(t *testing.T) {
 	}
 }
 
+func TestShopHandler_Index_OmitsLotWhenDisabled(t *testing.T) {
+	h, s := newShopHandler(t)
+	seedLeilaoShopLot(t, s)
+	if err := s.SetShopLotEnabled(false); err != nil {
+		t.Fatal(err)
+	}
+
+	req := inertiaRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	offer := assertInertiaProp(t, rr, "lotOffer")
+	if offer != nil {
+		t.Fatalf("lotOffer=%v want nil when disabled", offer)
+	}
+	prods := assertInertiaProp(t, rr, "products")
+	list, ok := prods.([]any)
+	if !ok {
+		t.Fatalf("products %T", prods)
+	}
+	for _, row := range list {
+		m, _ := row.(map[string]any)
+		if fmt.Sprint(m["isLot"]) == "true" || fmt.Sprint(m["slug"]) == store.ShopLotSlug {
+			t.Fatalf("catalog still has lot card: %v", m)
+		}
+	}
+}
+
+func TestShopHandler_Show_LotSlug_NotFoundWhenDisabled(t *testing.T) {
+	h, s := newShopHandler(t)
+	seedLeilaoShopLot(t, s)
+	if err := s.SetShopLotEnabled(false); err != nil {
+		t.Fatal(err)
+	}
+	req := inertiaRequest(http.MethodGet, "/produto/"+store.ShopLotSlug, nil)
+	rr := httptest.NewRecorder()
+	h.Show(rr, req, store.ShopLotSlug)
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("status=%d want 404 body=%s", rr.Code, rr.Body.String())
+	}
+}
+
 func TestShopHandler_Lot_NotFoundWithoutOffer(t *testing.T) {
 	h, _ := newShopHandler(t)
 	req := inertiaRequest(http.MethodGet, "/produto/"+store.ShopLotSlug, nil)

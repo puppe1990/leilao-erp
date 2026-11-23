@@ -43,8 +43,15 @@ type ShopLotMedia struct {
 const shopLotLotFilter = `(l.name LIKE '%leil%' AND lower(l.name) NOT LIKE '%pessoal%')`
 
 // ShopLotOffer returns the public lot deal for remaining leilão stock.
-// Nil when fewer than 2 units remain (not a lot).
+// Nil when the Config toggle is off or fewer than 2 units remain.
 func (s *SQLiteStore) ShopLotOffer() (*ShopLotOffer, error) {
+	on, err := s.ShopLotEnabled()
+	if err != nil {
+		return nil, err
+	}
+	if !on {
+		return nil, nil
+	}
 	items, err := s.shopLotItems()
 	if err != nil {
 		return nil, err

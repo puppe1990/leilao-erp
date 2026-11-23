@@ -8,6 +8,7 @@
   export let companyForm = ''
   export let companyCnpj = ''
   export let whatsappPhone = ''
+  export let shopLotEnabled = true
   export let shopURL = '/'
   export let errors = {}
   export let flash = ''
@@ -22,6 +23,11 @@
     whatsapp_phone: whatsappPhone || '',
   })
 
+  let shopLot = useForm({
+    shop_lot_enabled: shopLotEnabled ? '1' : '0',
+  })
+  let lotOn = !!shopLotEnabled
+
   let password = useForm({
     current_password: '',
     new_password: '',
@@ -34,6 +40,12 @@
 
   function saveWhatsApp() {
     whatsapp.post('/config/whatsapp')
+  }
+
+  function saveShopLot() {
+    shopLot
+      .transform(() => ({ shop_lot_enabled: lotOn ? '1' : '0' }))
+      .post('/config/shop-lot')
   }
 
   function savePassword() {
@@ -126,6 +138,28 @@
       </div>
       <button type="submit" class="ahq-btn-primary" disabled={whatsapp.processing}>
         Salvar WhatsApp
+      </button>
+    </form>
+  </section>
+
+  <section class="ahq-card p-5 mb-section-padding">
+    <h2 class="font-headline-md text-headline-md text-primary mb-1">Lote fechado na loja</h2>
+    <p class="text-on-surface-variant text-sm mb-4">
+      Pacote com os monitores restantes do leilão, preço único (hoje R$&nbsp;1.500). As unidades
+      continuam no catálogo uma a uma.
+    </p>
+    <form on:submit|preventDefault={saveShopLot} class="space-y-4">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" class="mt-1 h-4 w-4 accent-primary" bind:checked={lotOn} />
+        <span>
+          <span class="block text-sm font-medium text-primary">Mostrar o lote no catálogo</span>
+          <span class="block text-[11px] text-on-surface-variant mt-0.5">
+            Desmarque para esconder o banner, o card LOTE e a ficha /produto/lote-monitores.
+          </span>
+        </span>
+      </label>
+      <button type="submit" class="ahq-btn-primary" disabled={shopLot.processing}>
+        Salvar lote da loja
       </button>
     </form>
   </section>

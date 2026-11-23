@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -117,6 +118,61 @@ func TestConfig_UpdatePassword(t *testing.T) {
 	}
 	if !session.VerifyPassword(user.PasswordHash, "senha-nova-123") {
 		t.Fatal("password not updated")
+	}
+}
+
+func TestConfig_Index_shopLotEnabledDefault(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	req := inertiaRequest(http.MethodGet, "/config", nil)
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	v := assertInertiaProp(t, rr, "shopLotEnabled")
+	if fmt.Sprint(v) != "true" {
+		t.Fatalf("shopLotEnabled=%v want true", v)
+	}
+}
+
+func TestConfig_UpdateShopLot_Off(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	form := url.Values{}
+	req := inertiaRequest(http.MethodPost, "/config/shop-lot", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+
+	rr := httptest.NewRecorder()
+	h.UpdateShopLot(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	on, err := st.ShopLotEnabled()
+	if err != nil || on {
+		t.Fatalf("enabled=%v err=%v want false", on, err)
+	}
+}
+
+func TestConfig_UpdateShopLot_On(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	if err := st.SetShopLotEnabled(false); err != nil {
+		t.Fatal(err)
+	}
+	form := url.Values{}
+	form.Set("shop_lot_enabled", "1")
+	req := inertiaRequest(http.MethodPost, "/config/shop-lot", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+
+	rr := httptest.NewRecorder()
+	h.UpdateShopLot(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	on, err := st.ShopLotEnabled()
+	if err != nil || !on {
+		t.Fatalf("enabled=%v err=%v want true", on, err)
 	}
 }
 
