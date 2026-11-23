@@ -60,10 +60,10 @@
 
   async function destroy(row) {
     const ok = await askConfirm({
-      title: 'Excluir achado',
-      message: `Excluir “${row.name}”?`,
+      title: 'Descartar achado',
+      message: `Descartar “${row.name}”?`,
       detail: 'Essa ação não pode ser desfeita.',
-      confirmLabel: 'Excluir',
+      confirmLabel: 'Descartar',
       tone: 'danger',
     })
     if (!ok) return
@@ -177,7 +177,7 @@
             <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-28">Comprar</th>
             <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-28">Vender</th>
             <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-28">Margem</th>
-            <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-36">Ações</th>
+            <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-44">Ações</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-outline-variant">
@@ -225,7 +225,13 @@
                   <button type="button" class="text-secondary font-medium text-sm mr-2" on:click={() => startEdit(row)}>
                     Editar
                   </button>
-                  <button type="button" class="text-error text-sm" on:click={() => destroy(row)}>Excluir</button>
+                  <button
+                    type="button"
+                    class="ahq-btn-ghost h-8 px-3 text-error border-error hover:border-error hover:text-error"
+                    on:click={() => destroy(row)}
+                  >
+                    Descartar
+                  </button>
                 </td>
               </tr>
             {/if}
