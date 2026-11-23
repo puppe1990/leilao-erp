@@ -89,6 +89,12 @@ type Store interface {
 	FindClient(id int64) (models.Client, error)
 	ListClients() ([]models.Client, error)
 	SearchClients(query string) ([]models.Client, error)
+
+	CreateFind(in FindInput) (int64, error)
+	UpdateFind(id int64, in FindInput) error
+	DeleteFind(id int64) error
+	GetFind(id int64) (models.Find, error)
+	ListFinds(source string) ([]models.Find, error)
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)

@@ -30,6 +30,7 @@ func TestStore_Migrations(t *testing.T) {
 		"sales",
 		"receivables",
 		"cash_entries",
+		"finds",
 	}
 	for _, table := range tables {
 		var name string

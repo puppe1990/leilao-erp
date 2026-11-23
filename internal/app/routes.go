@@ -19,6 +19,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 		WithStaticDir(deps.StaticDir).
 		WithUploadsDir(deps.UploadsDir)
 	clients := handlers.NewClientsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
+	finds := handlers.NewFindsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	sales := handlers.NewSalesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	cash := handlers.NewCashHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	payables := handlers.NewPayablesHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
@@ -81,6 +82,11 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/clients", middleware.RequireAuthFunc("/login", clients.Create))
 	r.Post("/clients/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", clients.Update)))
 	r.Post("/clients/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", clients.Destroy)))
+
+	r.Get("/finds", middleware.RequireAuthFunc("/login", finds.Index))
+	r.Post("/finds", middleware.RequireAuthFunc("/login", finds.Create))
+	r.Post("/finds/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", finds.Update)))
+	r.Post("/finds/{id}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", finds.Destroy)))
 
 	r.Get("/sales", middleware.RequireAuthFunc("/login", sales.Index))
 	r.Get("/sales/new", middleware.RequireAuthFunc("/login", sales.New))

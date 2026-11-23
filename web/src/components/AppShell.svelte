@@ -9,7 +9,7 @@
   import ConfirmModal from '@/components/ConfirmModal.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
 
-  /** @type {'dashboard'|'lots'|'stock'|'products'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
+  /** @type {'dashboard'|'lots'|'stock'|'products'|'finds'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
   export let title = ''
   export let companyName = 'AuctionHQ'
@@ -40,6 +40,7 @@
     { href: '/lots', key: 'lots', label: 'Lotes', icon: 'gavel' },
     { href: '/stock', key: 'stock', label: 'Estoque', icon: 'inventory_2' },
     { href: '/products', key: 'products', label: 'Produtos', icon: 'category' },
+    { href: '/finds', key: 'finds', label: 'Achados', icon: 'travel_explore' },
     { href: '/sales', key: 'sales', label: 'Vendas', icon: 'sell' },
     { href: '/clients', key: 'clients', label: 'Clientes', icon: 'group' },
     { href: '/cash', key: 'cash', label: 'Finanças', icon: 'analytics' },
@@ -56,6 +57,7 @@
     lots: 'Lotes',
     stock: 'Estoque',
     products: 'Produtos',
+    finds: 'Achados',
     sales: 'Vendas',
     clients: 'Clientes',
     cash: 'Caixa',
@@ -228,14 +230,14 @@
   <!-- Mobile bottom nav -->
   {#if !hideBottomNav}
     <nav
-      class="fixed bottom-0 left-0 right-0 z-50 h-20 px-1 pb-2 flex justify-around items-center
+      class="fixed bottom-0 left-0 right-0 z-50 h-20 px-1 pb-2 flex justify-start items-center overflow-x-auto
         bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant shadow-float md:hidden"
     >
       {#each tabs as tab}
         <a
           href={tab.href}
           use:inertia
-          class="flex flex-col items-center justify-center min-w-[3.5rem] px-1.5 py-1.5 rounded-full transition-all
+          class="flex flex-col items-center justify-center min-w-[3.5rem] shrink-0 px-1.5 py-1.5 rounded-full transition-all
             {isActive(tab.key)
             ? 'bg-secondary text-on-secondary'
             : 'text-on-surface-variant hover:bg-surface-container-high active:scale-90'}"

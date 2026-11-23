@@ -96,3 +96,34 @@ func TestLotPathRedirectsToProductRoute(t *testing.T) {
 		t.Fatalf("Location=%q", loc)
 	}
 }
+
+func TestFindsRouteRequiresLogin(t *testing.T) {
+	s, err := store.NewSQLiteStore(":memory:", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	i, err := inertia.New(`<!DOCTYPE html><html><body>{{ .inertia }}</body></html>`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := New(cais.Config{Env: "test"}, Deps{
+		Renderer: cais.NewRendererStub(i18n.DefaultCatalog()),
+		Store:    s,
+		Site:     meta.Site{AppName: "leilao-erp", AppURL: "http://localhost"},
+		Catalog:  i18n.DefaultCatalog(),
+		Inertia:  i,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/finds", nil)
+	rr := httptest.NewRecorder()
+	a.Handler().ServeHTTP(rr, req)
+	if rr.Code != http.StatusSeeOther && rr.Code != http.StatusFound {
+		t.Fatalf("status=%d want redirect to login", rr.Code)
+	}
+	if loc := rr.Header().Get("Location"); loc != "/login" {
+		t.Fatalf("Location=%q want /login", loc)
+	}
+}
