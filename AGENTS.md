@@ -31,18 +31,19 @@ Admin (dev only): `admin@leilao.local` / `change-me-now`
 
 ## Architecture (predictable paths)
 
-| Path                | Role                                                                  |
-| ------------------- | --------------------------------------------------------------------- |
-| `cmd/server`        | entry                                                                 |
-| `internal/app`      | routes, bootstrap                                                     |
-| `internal/handlers` | HTTP + Inertia props                                                  |
-| `internal/store`    | SQLite, migrations in `store/migrations/`                             |
-| `internal/domain`   | pure money/margin/allocate/receipt PDF (no DB)                        |
-| `internal/models`   | structs only                                                          |
-| `internal/db`       | seeds (`RunSeeds` idempotent)                                         |
-| `web/src/pages`     | Inertia Svelte pages (`Sales/New` → `web/src/pages/Sales/New.svelte`) |
-| `web/src/lib`       | pure JS helpers (filter/sort)                                         |
-| `web/static/build`  | **gitignored** Vite output — rebuilt by `cais dev` watch (CLI ≥0.8.1) |
+| Path                      | Role                                                                  |
+| ------------------------- | --------------------------------------------------------------------- |
+| `cmd/server`              | entry                                                                 |
+| `cmd/save-supplier-chats` | one-shot WAHA dump → `suppliers` / `supplier_messages`                |
+| `internal/app`            | routes, bootstrap                                                     |
+| `internal/handlers`       | HTTP + Inertia props                                                  |
+| `internal/store`          | SQLite, migrations in `store/migrations/`                             |
+| `internal/domain`         | pure money/margin/allocate/receipt PDF (no DB)                        |
+| `internal/models`         | structs only                                                          |
+| `internal/db`             | seeds (`RunSeeds` idempotent)                                         |
+| `web/src/pages`           | Inertia Svelte pages (`Sales/New` → `web/src/pages/Sales/New.svelte`) |
+| `web/src/lib`             | pure JS helpers (filter/sort)                                         |
+| `web/static/build`        | **gitignored** Vite output — rebuilt by `cais dev` watch (CLI ≥0.8.1) |
 
 Money: integer **cents** BRL. Net = gross − fee − shipping. Margin = net − unit_cost_at_sale (sum of sale_lines).
 
@@ -53,6 +54,7 @@ Money: integer **cents** BRL. Net = gross − fee − shipping. Margin = net −
 - Sold items cannot be sold again; lot status open/partial/sold.
 - Multi-line JSON forms: `parseFormOrJSON` expands arrays; use `accessory_ids` as array or CSV.
 - Stock UI classifies accessories by title keywords (`cabo`, `vga`, `hdmi`, `força`) via `isAccessoryTitle`.
+- Fornecedores: `suppliers.chat_id` UNIQUE (`55…@c.us`); `supplier_messages.wa_message_id` UNIQUE (reimport is idempotent). Money in cents. Admin `/suppliers`. Import: `go run ./cmd/save-supplier-chats [dump.json] [data/app.db]`.
 
 ## Frontend / Cais gotchas
 
