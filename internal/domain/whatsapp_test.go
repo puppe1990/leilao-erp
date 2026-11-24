@@ -73,3 +73,23 @@ func TestWhatsAppLotURL(t *testing.T) {
 		t.Errorf("missing lote: %q", text)
 	}
 }
+
+func TestWhatsAppChatID(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"(11) 91130-4693", "5511911304693@c.us"},
+		{"5511911304693", "5511911304693@c.us"},
+		{"5511911304693@c.us", "5511911304693@c.us"},
+		{"11911304693", "5511911304693@c.us"},
+		{"", ""},
+		{"abc", ""},
+	}
+	for _, tc := range cases {
+		got := WhatsAppChatID(tc.in)
+		if got != tc.want {
+			t.Errorf("WhatsAppChatID(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}

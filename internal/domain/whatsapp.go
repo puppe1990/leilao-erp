@@ -9,6 +9,18 @@ import (
 
 var nonDigits = regexp.MustCompile(`\D+`)
 
+// WhatsAppChatID turns a BR number or chat id into 55…@c.us. Empty when invalid.
+func WhatsAppChatID(raw string) string {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimSuffix(raw, "@c.us")
+	raw = strings.TrimSuffix(raw, "@s.whatsapp.net")
+	d := NormalizeWhatsAppPhone(raw)
+	if d == "" {
+		return ""
+	}
+	return d + "@c.us"
+}
+
 // NormalizeWhatsAppPhone returns digits for wa.me (adds Brazil 55 when 10–11 digits).
 func NormalizeWhatsAppPhone(raw string) string {
 	d := nonDigits.ReplaceAllString(raw, "")

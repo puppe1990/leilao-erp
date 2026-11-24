@@ -95,6 +95,15 @@ type Store interface {
 	DeleteFind(id int64) error
 	GetFind(id int64) (models.Find, error)
 	ListFinds(source string) ([]models.Find, error)
+
+	CreateSupplier(in SupplierInput) (int64, error)
+	UpdateSupplier(id int64, in SupplierInput) error
+	DeleteSupplier(id int64) error
+	GetSupplier(id int64) (models.Supplier, error)
+	GetSupplierByChatID(chatID string) (models.Supplier, error)
+	ListSuppliers() ([]SupplierListItem, error)
+	SaveSupplierMessage(supplierID int64, in SupplierMessageInput) (int64, error)
+	ListSupplierMessages(supplierID int64) ([]models.SupplierMessage, error)
 	ListPayablesByLot(lotID int64) ([]models.Payable, error)
 	ListPurchaseCostsByLot(lotID int64) ([]models.PurchaseCost, error)
 	CreateSale(input CreateSaleInput) (saleID int64, err error)

@@ -9,7 +9,7 @@
   import ConfirmModal from '@/components/ConfirmModal.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
 
-  /** @type {'dashboard'|'lots'|'stock'|'products'|'finds'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
+  /** @type {'dashboard'|'lots'|'stock'|'products'|'finds'|'suppliers'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
   export let title = ''
   export let companyName = 'AuctionHQ'
@@ -41,6 +41,7 @@
     { href: '/stock', key: 'stock', label: 'Estoque', icon: 'inventory_2' },
     { href: '/products', key: 'products', label: 'Produtos', icon: 'category' },
     { href: '/finds', key: 'finds', label: 'Achados', icon: 'travel_explore' },
+    { href: '/suppliers', key: 'suppliers', label: 'Fornecedores', icon: 'local_shipping' },
     { href: '/sales', key: 'sales', label: 'Vendas', icon: 'sell' },
     { href: '/clients', key: 'clients', label: 'Clientes', icon: 'group' },
     { href: '/cash', key: 'cash', label: 'Finanças', icon: 'analytics' },
@@ -58,6 +59,7 @@
     stock: 'Estoque',
     products: 'Produtos',
     finds: 'Achados',
+    suppliers: 'Fornecedores',
     sales: 'Vendas',
     clients: 'Clientes',
     cash: 'Caixa',
