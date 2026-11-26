@@ -4,6 +4,8 @@
   import ShopCart from '@/components/ShopCart.svelte'
   import ShopLotBanner from '@/components/ShopLotBanner.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
+  import PixEletroMark from '@/components/PixEletroMark.svelte'
+  import { shopBadgeClass } from '@/lib/shopBadge.js'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -36,7 +38,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=12'
+      link.href = '/static/css/shop.css?v=16'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -56,30 +58,30 @@
   $: list = Array.isArray(products) ? products : []
 
   $: categories = [
-    { id: 'all', label: 'TODOS', count: list.length },
+    { id: 'all', label: 'Todos', count: list.length },
     {
       id: 'acessorio',
-      label: 'ACESSÓRIOS',
+      label: 'Acessórios',
       count: list.filter((p) => p.category === 'acessorio').length,
     },
     {
       id: 'lote',
-      label: 'LOTE',
+      label: 'Lote',
       count: list.filter((p) => p.isLot || p.category === 'lote').length,
     },
     {
       id: 'com-base',
-      label: 'COM BASE',
+      label: 'Com base',
       count: list.filter((p) => p.category === 'com-base').length,
     },
     {
       id: 'sem-base',
-      label: 'SEM BASE',
+      label: 'Sem base',
       count: list.filter((p) => p.category === 'sem-base').length,
     },
     {
       id: 'defeito',
-      label: 'DEFEITO / PEÇAS',
+      label: 'Defeito / peças',
       count: list.filter((p) => p.category === 'defeito').length,
     },
   ].filter((c) => c.id === 'all' || c.count > 0)
@@ -149,33 +151,27 @@
       'Monitores e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=12" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=16" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
-  <div class="shop-banner">
-    <span class="material-symbols-outlined" style="font-size:16px">bolt</span>
-    Monte o carrinho · 10% OFF no PIX · pedido no WhatsApp
-  </div>
+  <div class="shop-banner">Carrinho · 10% no PIX · pedido no WhatsApp</div>
 
   <header class="shop-header">
     <div class="shop-header-inner">
       <a href="/" use:inertia class="shop-logo">
         <div class="shop-logo-mark">
-          <MonitorIcon size={22} />
+          <PixEletroMark size={40} />
         </div>
         <div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="shop-logo-title">Pix Eletro<span>.</span></div>
-            <span class="shop-pill">Catálogo</span>
-          </div>
-          <p class="shop-sub">Monitores & Tech · WhatsApp · 10% PIX</p>
+          <div class="shop-logo-title">Pix Eletro<span>.</span></div>
+          <p class="shop-sub">Monitores e tech · WhatsApp · 10% PIX</p>
         </div>
       </a>
 
       <div class="shop-search shop-search-desktop">
         <span class="material-symbols-outlined shop-search-icon">search</span>
-        <input type="search" bind:value={searchQuery} placeholder="Buscar monitor Dell, Samsung, LG…" />
+        <input type="search" bind:value={searchQuery} placeholder="Buscar" />
       </div>
 
       <div style="display:flex;align-items:center;gap:8px">
@@ -207,7 +203,7 @@
 
       <div class="shop-search shop-search-mobile">
         <span class="material-symbols-outlined shop-search-icon">search</span>
-        <input type="search" bind:value={searchQuery} placeholder="Buscar no catálogo…" />
+        <input type="search" bind:value={searchQuery} placeholder="Buscar" />
       </div>
     </div>
   </header>
@@ -299,7 +295,7 @@
                 </span>
               {/if}
               {#if p.badge}
-                <span class="shop-badge {p.badge === 'DEFEITO' ? 'shop-badge-bad' : 'shop-badge-ok'}">
+                <span class="shop-badge {shopBadgeClass(p.badge)}">
                   {p.badge}
                 </span>
               {/if}
@@ -311,9 +307,9 @@
               {/if}
             </a>
             <div class="shop-card-body">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span class="shop-brand">{p.brand || 'MONITOR'}</span>
-                <span style="font-size:10px;color:#737373;font-weight:700"
+              <div class="shop-card-meta">
+                <span class="shop-brand">{p.brand || 'Monitor'}</span>
+                <span class="shop-card-qty"
                   >{p.isLot ? `${p.qty || 0} un.` : `${p.qtyInStock || 0} un.`}</span
                 >
               </div>
@@ -379,7 +375,7 @@
         </div>
       </div>
       <div class="shop-footer-prop">
-        <div class="ico" style="background:#262626;color:#25D366;border:1px solid #404040">
+        <div class="ico ico-quiet">
           <span class="material-symbols-outlined">verified_user</span>
         </div>
         <div>
@@ -389,12 +385,7 @@
       </div>
     </div>
     <div class="shop-footer-bottom">
-      <div>
-        <strong style="color:#fff;font-weight:900;letter-spacing:-0.03em">
-          PIX ELETRO<span style="color:#25D366">.</span>
-        </strong>
-        <span style="margin-left:8px">{companyName}</span>
-      </div>
+      <strong class="shop-wordmark">Pix Eletro<span>.</span></strong>
       <p>© {new Date().getFullYear()} · WhatsApp direto</p>
     </div>
   </footer>
@@ -422,7 +413,7 @@
               on:click={() =>
                 generalWhatsApp('Olá! Gostaria de falar com um atendente sobre os monitores.')}
             >
-              <span class="material-symbols-outlined" style="color:#25D366;font-size:18px">support_agent</span>
+              <span class="material-symbols-outlined">support_agent</span>
               Falar com atendente
             </button>
             <button
@@ -430,7 +421,7 @@
               on:click={() =>
                 generalWhatsApp('Olá! Quero combinar retirada ou entrega de um monitor do catálogo.')}
             >
-              <span class="material-symbols-outlined" style="color:#fbbf24;font-size:18px">location_on</span>
+              <span class="material-symbols-outlined">location_on</span>
               Retirada / entrega
             </button>
             {#if lotOffer}
@@ -441,7 +432,7 @@
                     `Olá! Quero o lote completo de ${lotOffer.qty} monitores por ${lotOffer.price}.`,
                   )}
               >
-                <span class="material-symbols-outlined" style="color:#fbbf24;font-size:18px">inventory_2</span>
+                <span class="material-symbols-outlined">inventory_2</span>
                 Lote por {lotOffer.price}
               </button>
             {/if}

@@ -3,6 +3,7 @@
   import { onMount } from 'svelte'
   import ShopCart from '@/components/ShopCart.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
+  import PixEletroMark from '@/components/PixEletroMark.svelte'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -66,7 +67,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=11'
+      link.href = '/static/css/shop.css?v=16'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -151,7 +152,7 @@
   {#if og.image}
     <meta property="og:image" content={og.image} />
   {/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=11" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=16" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -164,6 +165,7 @@
         Catálogo
       </a>
       <div style="display:flex;align-items:center;gap:10px">
+        <PixEletroMark size={28} />
         <span class="shop-logo-title" style="font-size:1.15rem">Pix Eletro<span>.</span></span>
         <button
           type="button"
@@ -211,7 +213,7 @@
               <MonitorIcon size={72} />
             </div>
           {/if}
-          <span class="shop-badge shop-badge-ok" style="top:1rem;left:1rem">LOTE</span>
+          <span class="shop-badge shop-badge-ok" style="top:1rem;left:1rem">Lote</span>
         </div>
         {#if mediaItems.length > 1}
           <div class="shop-thumbs shop-lot-thumbs" role="listbox" aria-label="Mídia do lote">
