@@ -28,5 +28,11 @@ describe('Catálogo da loja', () => {
     }
     expect(page).toMatch(/PIX ELETRO<span/)
   })
+
+  it('filtra carregadores e cabos em ACESSÓRIOS, fora de COM BASE', () => {
+    expect(page).toMatch(/id: 'acessorio'/)
+    expect(page).toMatch(/ACESSÓRIOS/)
+    expect(page).toMatch(/p\.category === 'acessorio'/)
+  })
 })
 
