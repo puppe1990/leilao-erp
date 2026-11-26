@@ -7,7 +7,7 @@
   export let olxOptions = {}
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let name = product.name || ''
   let sale = product.salePriceRaw || ''

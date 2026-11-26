@@ -11,7 +11,7 @@
 
   export let lots = []
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let query = ''
   /** @type {'all'|'open'|'partial'|'sold'|'closed'} */
@@ -82,8 +82,8 @@
 <AppShell {companyName} active="lots">
   <div class="flex items-start justify-between gap-3 mb-section-padding flex-wrap">
     <div>
-      <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Gestão de Lotes</h1>
-      <p class="text-on-surface-variant text-body-md mt-1">Compras de leilão e rateio de custos.</p>
+      <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Lotes</h1>
+      <p class="text-on-surface-variant text-body-md mt-1">Compras e rateio de custos.</p>
     </div>
     <a href="/lots/new" use:inertia class="ahq-btn-primary h-10 px-4 text-sm shrink-0 inline-flex items-center">
       <span class="material-symbols-outlined text-[18px] mr-1">add</span>
@@ -95,7 +95,7 @@
     <div class="ahq-card p-10 text-center border-dashed">
       <span class="material-symbols-outlined text-4xl text-on-surface-variant mb-3">inventory_2</span>
       <p class="text-on-surface-variant mb-4">Nenhum lote cadastrado.</p>
-      <a href="/lots/new" use:inertia class="ahq-btn-primary">Registrar primeira compra de leilão</a>
+      <a href="/lots/new" use:inertia class="ahq-btn-primary">Registrar primeiro lote</a>
     </div>
   {:else}
     <div class="ahq-card overflow-hidden">
@@ -168,7 +168,7 @@
                 <th class={col.thClass}>
                   <button
                     type="button"
-                    class="w-full px-2 py-1.5 flex {col.btnClass} gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                    class="w-full px-2 py-1.5 flex {col.btnClass} gap-0.5 font-medium text-[11px] hover:text-primary"
                     on:click={() => toggleSort(col.key)}
                   >
                     {col.label}
@@ -181,7 +181,7 @@
                   </button>
                 </th>
               {/each}
-              <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-24">
+              <th class="px-3 py-2.5 font-medium text-[11px] text-right w-24">
                 Ações
               </th>
             </tr>

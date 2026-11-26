@@ -8,7 +8,7 @@
   export let sources = []
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   const emptyFind = {
     name: '',

@@ -10,7 +10,7 @@
   export let channels = []
   export let clients = []
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   const stockItems = Array.isArray(items) ? items : []
   const mains = stockItems.filter((it) => !it.isAccessory)

@@ -7,16 +7,16 @@
     setShopTheme,
   } from '@/lib/shopTheme.js'
   import ConfirmModal from '@/components/ConfirmModal.svelte'
-  import MonitorIcon from '@/components/MonitorIcon.svelte'
+  import PixEletroMark from '@/components/PixEletroMark.svelte'
 
   /** @type {'dashboard'|'lots'|'stock'|'products'|'finds'|'suppliers'|'sales'|'clients'|'cash'|'payables'|'receivables'|'config'|''} */
   export let active = ''
   export let title = ''
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
   export let showLogout = true
   export let hideBottomNav = false
 
-  $: brand = title || companyName || 'AuctionHQ'
+  $: brand = title || companyName || 'Pix Eletro'
 
   /** @type {'dark'|'light'} */
   let theme = 'dark'
@@ -69,7 +69,6 @@
   }
 
   $: docTitle = pageTitles[active] ? `${pageTitles[active]} · ${brand}` : brand
-  $: brandMain = String(brand || 'Admin').split(/\s+/)[0] || 'Admin'
 </script>
 
 <svelte:head>
@@ -89,17 +88,13 @@
         class="h-16 px-4 flex items-center gap-3 border-b border-outline-variant min-w-0"
       >
         <div class="ahq-brand-mark">
-          <MonitorIcon size={20} />
+          <PixEletroMark size={28} />
         </div>
         <div class="min-w-0">
           <div class="flex items-center gap-2 min-w-0">
-            <span class="font-headline-md text-headline-md font-black text-on-surface truncate"
-              >{brandMain}<span class="text-secondary">.</span></span
-            >
+            <span class="ahq-wordmark truncate">{brand}<span class="text-secondary">.</span></span>
           </div>
-          <p class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant truncate">
-            Admin · ERP
-          </p>
+          <p class="text-[11px] text-on-surface-variant truncate">Admin</p>
         </div>
       </a>
 
@@ -108,13 +103,13 @@
           <a
             href={tab.href}
             use:inertia
-            class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
               {isActive(tab.key)
-              ? 'bg-secondary text-on-secondary font-bold'
+              ? 'bg-surface-container-high text-on-surface font-medium'
               : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}"
           >
             <span class="material-symbols-outlined {isActive(tab.key) ? 'fill' : ''}">{tab.icon}</span>
-            <span class="text-sm font-semibold">{tab.label}</span>
+            <span class="text-sm font-medium">{tab.label}</span>
           </a>
         {/each}
       </nav>
@@ -124,45 +119,45 @@
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
-            hover:bg-surface-container-high hover:text-secondary transition-all"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant
+            hover:bg-surface-container-high hover:text-secondary transition-colors"
           title="Abrir catálogo público"
         >
-          <MonitorIcon size={20} />
-          <span class="text-sm font-semibold">Catálogo</span>
+          <span class="material-symbols-outlined">storefront</span>
+          <span class="text-sm font-medium">Catálogo</span>
         </a>
         <a
           href="/config"
           use:inertia
-          class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
             {active === 'config'
-            ? 'bg-secondary text-on-secondary font-bold'
+            ? 'bg-surface-container-high text-on-surface font-medium'
             : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}"
         >
           <span class="material-symbols-outlined {active === 'config' ? 'fill' : ''}">settings</span>
-          <span class="text-sm font-semibold">Config</span>
+          <span class="text-sm font-medium">Config</span>
         </a>
         <button
           type="button"
           on:click={toggleTheme}
-          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
-            hover:bg-surface-container-high hover:text-on-surface text-left w-full transition-all"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant
+            hover:bg-surface-container-high hover:text-on-surface text-left w-full transition-colors"
           title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
         >
           <span class="material-symbols-outlined"
             >{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span
           >
-          <span class="text-sm font-semibold">{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
+          <span class="text-sm font-medium">{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
         </button>
         {#if showLogout}
           <button
             type="button"
             on:click={logout}
-            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
-              hover:bg-surface-container-high hover:text-error text-left w-full transition-all"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant
+              hover:bg-surface-container-high hover:text-error text-left w-full transition-colors"
           >
             <span class="material-symbols-outlined">logout</span>
-            <span class="text-sm font-semibold">Sair</span>
+            <span class="text-sm font-medium">Sair</span>
           </button>
         {/if}
       </div>
@@ -176,11 +171,9 @@
   >
     <a href="/dashboard" use:inertia class="flex items-center gap-2.5 min-w-0">
       <div class="ahq-brand-mark !w-8 !h-8">
-        <MonitorIcon size={18} />
+        <PixEletroMark size={24} />
       </div>
-      <span class="font-headline-md text-headline-md font-black text-on-surface truncate"
-        >{brandMain}<span class="text-secondary">.</span></span
-      >
+      <span class="ahq-wordmark truncate">{brand}<span class="text-secondary">.</span></span>
     </a>
     <div class="flex items-center gap-1">
       <button
@@ -197,10 +190,10 @@
       <a
         href="/config"
         use:inertia
-        class="w-10 h-10 flex items-center justify-center rounded-full transition-all
+        class="w-10 h-10 flex items-center justify-center rounded-lg transition-colors
           {active === 'config'
-          ? 'bg-secondary text-on-secondary'
-          : 'text-on-surface-variant hover:bg-surface-container-high active:scale-95'}"
+          ? 'bg-surface-container-high text-on-surface'
+          : 'text-on-surface-variant hover:bg-surface-container-high'}"
         title="Configurações"
         aria-label="Configurações"
       >
@@ -210,8 +203,8 @@
         <button
           type="button"
           on:click={logout}
-          class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant
-            hover:bg-surface-container-high active:scale-95 transition-all"
+          class="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant
+            hover:bg-surface-container-high transition-colors"
           title="Sair"
           aria-label="Sair"
         >
@@ -241,13 +234,13 @@
         <a
           href={tab.href}
           use:inertia
-          class="flex flex-col items-center justify-center min-w-[3.5rem] shrink-0 px-1.5 py-1.5 rounded-full transition-all
+          class="flex flex-col items-center justify-center min-w-[3.5rem] shrink-0 px-1.5 py-1.5 rounded-lg transition-colors
             {isActive(tab.key)
-            ? 'bg-secondary text-on-secondary'
-            : 'text-on-surface-variant hover:bg-surface-container-high active:scale-90'}"
+            ? 'bg-surface-container-high text-on-surface'
+            : 'text-on-surface-variant hover:bg-surface-container-high'}"
         >
           <span class="material-symbols-outlined {isActive(tab.key) ? 'fill' : ''}">{tab.icon}</span>
-          <span class="text-[9px] font-bold uppercase tracking-wide mt-0.5">{tab.label}</span>
+          <span class="text-[10px] font-medium mt-0.5">{tab.label}</span>
         </a>
       {/each}
     </nav>

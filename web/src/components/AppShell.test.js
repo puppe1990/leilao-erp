@@ -14,4 +14,16 @@ describe('AppShell', () => {
     expect(match[0]).toMatch(/rel="noopener noreferrer"/)
     expect(match[0]).not.toMatch(/use:inertia/)
   })
+
+  it('usa a marca pixel e PIX ELETRO. no casco', () => {
+    expect(shell).toMatch(/import PixEletroMark from '@\/components\/PixEletroMark\.svelte'/)
+    expect(shell).toMatch(/companyName = 'Pix Eletro'/)
+    expect(shell).not.toMatch(/AuctionHQ/)
+    expect(shell).toMatch(/<PixEletroMark /)
+    expect(shell).toMatch(/\{brand\}<span class="text-secondary">\.<\/span>/)
+    expect(shell).not.toMatch(/brandMain/)
+    expect(shell).not.toMatch(/font-black/)
+    expect(shell).not.toMatch(/Admin · ERP/)
+    expect(shell).not.toMatch(/uppercase tracking/)
+  })
 })

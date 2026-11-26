@@ -6,7 +6,7 @@
   export let errors = {}
   export let cashAccounts = []
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let form = useForm({
     name: '',
@@ -36,7 +36,7 @@
       Lotes
     </a>
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Novo lote</h1>
-    <p class="text-on-surface-variant text-body-md mt-1">Registre a compra no leilão e o rateio dos itens.</p>
+    <p class="text-on-surface-variant text-body-md mt-1">Registre a compra e o rateio dos itens.</p>
   </div>
 
   {#if errors.form}

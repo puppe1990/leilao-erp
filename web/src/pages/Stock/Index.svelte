@@ -13,7 +13,7 @@
   export let summary = {}
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let query = ''
   /** @type {'all'|'main'|'accessory'} */
@@ -376,7 +376,7 @@
               <th class="px-1 py-1">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('title')}
                 >
                   Produto <span class="material-symbols-outlined text-[14px]">{sortIcon('title')}</span>
@@ -385,7 +385,7 @@
               <th class="px-1 py-1 w-20">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('qty')}
                 >
                   Qtd <span class="material-symbols-outlined text-[14px]">{sortIcon('qty')}</span>
@@ -394,7 +394,7 @@
               <th class="px-1 py-1 w-28">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('type')}
                 >
                   Tipo <span class="material-symbols-outlined text-[14px]">{sortIcon('type')}</span>
@@ -403,7 +403,7 @@
               <th class="px-1 py-1 w-28">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('unitCost')}
                 >
                   Custo un. <span class="material-symbols-outlined text-[14px]">{sortIcon('unitCost')}</span>
@@ -412,7 +412,7 @@
               <th class="px-1 py-1 w-28">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('salePrice')}
                 >
                   Preço <span class="material-symbols-outlined text-[14px]">{sortIcon('salePrice')}</span>
@@ -421,13 +421,13 @@
               <th class="px-1 py-1 w-28">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('margin')}
                 >
                   Margem un. <span class="material-symbols-outlined text-[14px]">{sortIcon('margin')}</span>
                 </button>
               </th>
-              <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-36">
+              <th class="px-3 py-2.5 font-medium text-[11px] text-right w-36">
                 Ações
               </th>
             </tr>

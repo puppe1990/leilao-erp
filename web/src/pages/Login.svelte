@@ -2,7 +2,7 @@
   import { useForm, inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
   import PasswordInput from '@/components/PasswordInput.svelte'
-  import MonitorIcon from '@/components/MonitorIcon.svelte'
+  import PixEletroMark from '@/components/PixEletroMark.svelte'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -41,15 +41,11 @@
   >
     <div class="flex items-center gap-3">
       <div class="ahq-brand-mark">
-        <MonitorIcon size={20} />
+        <PixEletroMark size={28} />
       </div>
       <div>
-        <div class="font-headline-md text-headline-md font-black text-on-surface">
-          Admin<span class="text-secondary">.</span>
-        </div>
-        <p class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
-          ERP · leilões
-        </p>
+        <div class="ahq-wordmark">Pix Eletro<span class="text-secondary">.</span></div>
+        <p class="text-[11px] text-on-surface-variant">Admin</p>
       </div>
     </div>
     <button
@@ -67,15 +63,9 @@
 
   <main class="flex-1 flex items-center justify-center px-container-margin py-10">
     <div class="w-full max-w-sm">
-      <div
-        class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/15 text-secondary text-[11px] font-bold uppercase tracking-wider mb-4"
-      >
-        <span class="material-symbols-outlined text-[16px]">lock</span>
-        Acesso restrito
-      </div>
       <h1 class="font-headline-lg text-headline-lg text-on-surface mb-1">Entrar</h1>
       <p class="text-on-surface-variant text-body-md mb-6">
-        Acesse o ERP de gestão de leilões e estoque.
+        Acesse o estoque e as vendas.
       </p>
 
       <form on:submit|preventDefault={submit} class="ahq-card p-6 space-y-4 shadow-float">

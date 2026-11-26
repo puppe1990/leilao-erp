@@ -6,7 +6,7 @@
   export let suppliers = []
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   const emptySupplier = {
     name: '',

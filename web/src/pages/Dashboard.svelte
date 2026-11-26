@@ -13,20 +13,20 @@
   export let ctaLot = false
   export let env = ''
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 </script>
 
 <AppShell {companyName} active="dashboard">
   <section class="mb-section-padding">
     <h1 class="font-headline-lg text-headline-lg-mobile text-primary">Dashboard</h1>
-    <p class="text-on-surface-variant text-body-md mt-1">Visão financeira do seu negócio de leilão.</p>
+    <p class="text-on-surface-variant text-body-md mt-1">Caixa, lotes e o que está na bancada.</p>
   </section>
 
   {#if ctaLot}
     <div class="ahq-card p-6 mb-section-padding text-center border-dashed">
       <span class="material-symbols-outlined text-4xl text-secondary mb-2">gavel</span>
       <p class="text-on-surface mb-4">Nenhum lote cadastrado ainda.</p>
-      <a href="/lots/new" use:inertia class="ahq-btn-primary">Registrar primeira compra de leilão</a>
+      <a href="/lots/new" use:inertia class="ahq-btn-primary">Registrar primeiro lote</a>
     </div>
   {/if}
 
@@ -132,6 +132,6 @@
   </section>
 
   {#if env}
-    <p class="text-[10px] text-on-surface-variant mt-6 uppercase tracking-wider font-mono">{env}</p>
+    <p class="text-[10px] text-on-surface-variant mt-6 font-mono">{env}</p>
   {/if}
 </AppShell>

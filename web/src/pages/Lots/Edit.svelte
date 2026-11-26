@@ -4,7 +4,7 @@
 
   export let lot = {}
   export let errors = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
   export let site = {}
 
   let form = useForm({
