@@ -36,7 +36,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=11'
+      link.href = '/static/css/shop.css?v=12'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -57,6 +57,11 @@
 
   $: categories = [
     { id: 'all', label: 'TODOS', count: list.length },
+    {
+      id: 'acessorio',
+      label: 'ACESSÓRIOS',
+      count: list.filter((p) => p.category === 'acessorio').length,
+    },
     {
       id: 'lote',
       label: 'LOTE',
@@ -96,6 +101,9 @@
     .sort((a, b) => {
       if (a.isLot && !b.isLot) return -1
       if (b.isLot && !a.isLot) return 1
+      const accA = a.category === 'acessorio'
+      const accB = b.category === 'acessorio'
+      if (accA !== accB) return accA ? -1 : 1
       if (sortBy === 'price-asc') return (a.priceCents || 0) - (b.priceCents || 0)
       if (sortBy === 'price-desc') return (b.priceCents || 0) - (a.priceCents || 0)
       if (a.badge === 'DEFEITO' && b.badge !== 'DEFEITO') return 1
@@ -141,7 +149,7 @@
       'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=11" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=12" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>

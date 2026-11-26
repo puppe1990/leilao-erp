@@ -19,6 +19,10 @@ import (
 func shopBrandFromName(name string) string {
 	n := strings.ToLower(name)
 	switch {
+	case strings.Contains(n, "carregador") || strings.Contains(n, "fonte"):
+		return "CARREGADOR"
+	case strings.Contains(n, "cabo"):
+		return "CABO"
 	case strings.Contains(n, "dell"):
 		return "DELL"
 	case strings.Contains(n, "samsung"):
@@ -54,6 +58,9 @@ func shopBadge(p models.Product) string {
 
 func shopCategory(p models.Product) string {
 	n := strings.ToLower(p.Name + " " + p.ItemCondition)
+	if strings.Contains(n, "carregador") || strings.Contains(n, "fonte") || strings.Contains(n, "cabo") || strings.Contains(n, "acessório") || strings.Contains(n, "acessorio") {
+		return "acessorio"
+	}
 	if strings.Contains(n, "defeito") || strings.Contains(n, "amarelada") || strings.Contains(n, "piscando") || strings.Contains(n, "linha vertical") || strings.Contains(n, "para peças") {
 		return "defeito"
 	}
