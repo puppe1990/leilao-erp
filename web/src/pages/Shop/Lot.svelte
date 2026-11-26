@@ -66,7 +66,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=9'
+      link.href = '/static/css/shop.css?v=10'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -151,7 +151,7 @@
   {#if og.image}
     <meta property="og:image" content={og.image} />
   {/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=9" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=10" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
