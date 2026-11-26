@@ -17,15 +17,26 @@ func TestAbsoluteURL(t *testing.T) {
 	}
 }
 
+func TestOGHeadHTML_emptySiteNameFallsBackToPixEletro(t *testing.T) {
+	html := OGHeadHTML(OGMeta{Title: "Catálogo"})
+	if !strings.Contains(html, `property="og:site_name" content="Pix Eletro"`) {
+		t.Fatalf("missing Pix Eletro site_name in %s", html)
+	}
+	if strings.Contains(html, `content="Puppe"`) {
+		t.Fatal("legacy Puppe site_name still present")
+	}
+}
+
 func TestOGHeadHTML(t *testing.T) {
 	html := OGHeadHTML(OGMeta{
 		Title:       `Monitor "LG"`,
 		Description: "Usado · testado",
 		ImageURL:    "http://localhost:8080/static/og-shop.png",
 		PageURL:     "http://localhost:8080/",
-		SiteName:    "Puppe",
+		SiteName:    "Pix Eletro",
 		Type:        "website",
 	})
+
 	for _, want := range []string{
 		`property="og:title"`,
 		`Monitor &#34;LG&#34;`,

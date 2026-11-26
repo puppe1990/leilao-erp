@@ -1,7 +1,7 @@
 {
-  "name": "Puppe Eletrônicos",
-  "short_name": "Puppe",
-  "description": "Catálogo de monitores e ERP de leilões — pedido no WhatsApp",
+  "name": "Pix Eletro",
+  "short_name": "Pix Eletro",
+  "description": "Catálogo de monitores e eletrônicos — pedido no WhatsApp",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

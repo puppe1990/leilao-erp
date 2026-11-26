@@ -11,7 +11,7 @@
   } from '@/lib/shopTheme.js'
 
   export let product = {}
-  export let companyName = 'Puppe Eletrônicos'
+  export let companyName = 'Pix Eletro'
   export let whatsappSet = false
   export let whatsappDigits = ''
   export let site = {}
@@ -63,7 +63,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=10'
+      link.href = '/static/css/shop.css?v=11'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -176,7 +176,7 @@
   {#if og.image || product.thumbUrl || photos[0]?.url}
     <meta name="twitter:image" content={og.image || product.thumbUrl || photos[0]?.url} />
   {/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=10" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=11" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -189,7 +189,7 @@
         Catálogo
       </a>
       <div style="display:flex;align-items:center;gap:10px">
-        <span class="shop-logo-title" style="font-size:1.15rem">Puppe<span>.</span></span>
+        <span class="shop-logo-title" style="font-size:1.15rem">Pix Eletro<span>.</span></span>
         <button
           type="button"
           class="shop-theme-btn"

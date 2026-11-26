@@ -1,9 +1,10 @@
-const STORAGE_KEY = 'puppe-shop-theme'
+const STORAGE_KEY = 'pix-eletro-shop-theme'
+const LEGACY_STORAGE_KEY = 'puppe-shop-theme'
 
 /** @returns {'dark'|'light'} */
 export function getShopTheme() {
   try {
-    const v = localStorage.getItem(STORAGE_KEY)
+    const v = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY)
     if (v === 'light' || v === 'dark') return v
   } catch {
     // ignore

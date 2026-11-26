@@ -1,4 +1,4 @@
-/* Puppe catálogo — standalone theme (does not rely on Tailwind purge) */
+/* Pix Eletro catálogo — standalone theme (does not rely on Tailwind purge) */
 .shop {
   --shop-bg: #000000;
   --shop-panel: #171717;
@@ -1086,6 +1086,9 @@
   }
 }
 @media (max-width: 640px) {
+  .shop-logo-title {
+    font-size: 1.15rem;
+  }
   .shop-lightbox-stage {
     padding: 0.25rem 0.5rem 0.75rem;
   }

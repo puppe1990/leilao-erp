@@ -149,7 +149,7 @@ func (h *ShopHandler) baseURL(r *http.Request) string {
 }
 
 func (h *ShopHandler) shopOGImage(r *http.Request) string {
-	return domain.AbsoluteURL(h.baseURL(r), "/static/og-shop.png")
+	return domain.AbsoluteURL(h.baseURL(r), "/static/og-pixeletro.png")
 }
 
 // withShopOG injects Open Graph tags into the root HTML for link previews (WhatsApp, etc.).
