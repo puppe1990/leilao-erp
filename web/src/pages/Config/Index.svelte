@@ -87,7 +87,7 @@
           bind:value={company.company_name}
           class="ahq-input"
           maxlength="80"
-          placeholder="Ex: Puppe Leilões"
+          placeholder="Ex: Pix Eletro"
         />
         {#if errors.company_name}
           <p class="text-error text-sm mt-1">{errors.company_name}</p>

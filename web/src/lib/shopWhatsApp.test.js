@@ -39,9 +39,9 @@ describe('buildCartOrderMessage', () => {
         { name: 'Dell P2219H', qty: 2, priceCents: 30000 },
         { name: 'LG 19', qty: 1, priceCents: 20000 },
       ],
-      { companyName: 'Puppe Eletrônicos' },
+      { companyName: 'Pix Eletro' },
     )
-    expect(msg).toContain('Olá Puppe Eletrônicos!')
+    expect(msg).toContain('Olá Pix Eletro!')
     expect(msg).toContain('2x Dell P2219H')
     expect(msg).toContain('1x LG 19')
     expect(msg).toContain('Total PIX')
@@ -64,7 +64,7 @@ describe('lot order message', () => {
           isLot: true,
         },
       ],
-      { companyName: 'Puppe Eletrônicos' },
+      { companyName: 'Pix Eletro' },
     )
     expect(msg).toContain('lote')
     expect(msg).toContain('22 monitores')

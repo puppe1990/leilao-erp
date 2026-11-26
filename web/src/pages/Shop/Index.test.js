@@ -3,7 +3,10 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-const page = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'Index.svelte'), 'utf8')
+const dir = dirname(fileURLToPath(import.meta.url))
+const page = readFileSync(resolve(dir, 'Index.svelte'), 'utf8')
+const show = readFileSync(resolve(dir, 'Show.svelte'), 'utf8')
+const lot = readFileSync(resolve(dir, 'Lot.svelte'), 'utf8')
 
 describe('Catálogo da loja', () => {
   it('não anuncia o lote fechado de R$ 1.500', () => {
@@ -16,4 +19,14 @@ describe('Catálogo da loja', () => {
     expect(page).not.toMatch(/Monitores <em>testados<\/em>/)
     expect(page).not.toMatch(/Ver catálogo/)
   })
+
+  it('marca o catálogo como Pix Eletro', () => {
+    for (const src of [page, show, lot]) {
+      expect(src).toMatch(/companyName = 'Pix Eletro'/)
+      expect(src).toMatch(/Pix Eletro<span>\.<\/span>/)
+      expect(src).not.toMatch(/Puppe/)
+    }
+    expect(page).toMatch(/PIX ELETRO<span/)
+  })
 })
+

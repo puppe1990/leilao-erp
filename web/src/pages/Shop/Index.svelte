@@ -13,7 +13,7 @@
 
   export let products = []
   export let lotOffer = null
-  export let companyName = 'Puppe Eletrônicos'
+  export let companyName = 'Pix Eletro'
   export let whatsappSet = false
   export let whatsappDigits = ''
   export let whatsappHint = ''
@@ -36,7 +36,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=10'
+      link.href = '/static/css/shop.css?v=11'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -141,7 +141,7 @@
       'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=10" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=11" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -158,10 +158,10 @@
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:8px">
-            <div class="shop-logo-title">Puppe<span>.</span></div>
+            <div class="shop-logo-title">Pix Eletro<span>.</span></div>
             <span class="shop-pill">Catálogo</span>
           </div>
-          <p class="shop-sub">Monitores & Tech · WhatsApp Orders</p>
+          <p class="shop-sub">Monitores & Tech · WhatsApp · 10% PIX</p>
         </div>
       </a>
 
@@ -383,7 +383,7 @@
     <div class="shop-footer-bottom">
       <div>
         <strong style="color:#fff;font-weight:900;letter-spacing:-0.03em">
-          PUPPE<span style="color:#25D366">.</span>
+          PIX ELETRO<span style="color:#25D366">.</span>
         </strong>
         <span style="margin-left:8px">{companyName}</span>
       </div>

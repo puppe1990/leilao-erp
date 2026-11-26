@@ -78,6 +78,17 @@ func TestShopHandler_Index_PublicOK(t *testing.T) {
 	if !strings.Contains(rr.Body.String(), slug) {
 		t.Fatalf("expected slug %q in index payload", slug)
 	}
+	if got := assertInertiaProp(t, rr, "companyName"); got != "Pix Eletro" {
+		t.Fatalf("companyName=%v, want Pix Eletro", got)
+	}
+	og, ok := assertInertiaProp(t, rr, "og").(map[string]any)
+	if !ok {
+		t.Fatalf("og prop type %T", assertInertiaProp(t, rr, "og"))
+	}
+	img, _ := og["image"].(string)
+	if !strings.Contains(img, "og-pixeletro") {
+		t.Fatalf("og image %q should bust cache with og-pixeletro", img)
+	}
 }
 
 func TestShopHandler_Show_OK(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
-const defaultCompanyName = "AuctionHQ"
+const defaultCompanyName = "Pix Eletro"
 
 func companyName(s store.Store) string {
 	name, err := s.CompanyName()

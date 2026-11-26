@@ -55,7 +55,7 @@ func OGHeadHTML(m OGMeta) string {
 	}
 	site := m.SiteName
 	if site == "" {
-		site = "Puppe"
+		site = "Pix Eletro"
 	}
 	img := m.ImageURL
 	page := m.PageURL
