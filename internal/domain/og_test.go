@@ -29,8 +29,11 @@ func TestOGHeadHTML_emptySiteNameFallsBackToPixEletro(t *testing.T) {
 
 func TestOGHeadHTML_emptyDescriptionMentionsTechAndWhatsApp(t *testing.T) {
 	html := OGHeadHTML(OGMeta{Title: "Catálogo"})
-	if !strings.Contains(html, "Monitores e tech") {
-		t.Fatalf("fallback description should mention tech in %s", html)
+	if !strings.Contains(html, "Eletro e tech") {
+		t.Fatalf("fallback description should mention Eletro e tech in %s", html)
+	}
+	if strings.Contains(html, "Monitores e tech") {
+		t.Fatal("legacy Monitores e tech description still present")
 	}
 	if !strings.Contains(html, "WhatsApp") {
 		t.Fatalf("fallback description should mention WhatsApp in %s", html)

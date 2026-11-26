@@ -38,9 +38,12 @@ describe('Catálogo da loja', () => {
     expect(page).toMatch(/p\.category === 'acessorio'/)
   })
 
-  it('og do catálogo fala de monitores e tech, com fotos reais', () => {
-    expect(page).toMatch(/Monitores e tech/)
+  it('og do catálogo fala de eletro e tech, com fotos reais', () => {
+    expect(page).toMatch(/Eletro e tech/)
     expect(page).toMatch(/Fotos reais/)
+    expect(page).not.toMatch(/Eletro & Tech/)
+    expect(page).not.toMatch(/Monitores & Tech/)
+    expect(page).not.toMatch(/Monitores e tech/)
     expect(page).not.toMatch(/Monitores usados testados/)
   })
 

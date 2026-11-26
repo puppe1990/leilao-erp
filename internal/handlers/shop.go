@@ -206,7 +206,7 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, shopProductRow(p, phone))
 	}
 
-	title := company + " — Monitores e tech"
+	title := company + " — Eletro e tech"
 	desc := "Fotos reais. Pedido no WhatsApp. 10% OFF no PIX."
 	base := h.baseURL(r)
 	pageURL := domain.AbsoluteURL(base, "/")
