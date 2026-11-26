@@ -51,19 +51,19 @@ module.exports = {
         "body-md": ["Inter", "ui-sans-serif", "sans-serif"],
       },
       fontSize: {
-        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.06em", fontWeight: "700" }],
+        "label-md": ["12px", { lineHeight: "16px", fontWeight: "500" }],
         "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
         "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
         "headline-md": [
           "20px",
-          { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "700" },
+          { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" },
         ],
         "headline-lg": [
           "24px",
-          { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "800" },
+          { lineHeight: "32px", letterSpacing: "-0.02em", fontWeight: "600" },
         ],
-        "headline-lg-mobile": ["22px", { lineHeight: "28px", fontWeight: "800" }],
-        "data-display": ["18px", { lineHeight: "24px", fontWeight: "700" }],
+        "headline-lg-mobile": ["22px", { lineHeight: "28px", fontWeight: "600" }],
+        "data-display": ["18px", { lineHeight: "24px", fontWeight: "600" }],
       },
       spacing: {
         "container-margin": "1rem",

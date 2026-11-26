@@ -7,7 +7,7 @@
   export let query = ''
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let search = query || ''
 
@@ -234,7 +234,7 @@
         <input id="c_email" type="email" class="ahq-input h-10" bind:value={createForm.email} placeholder="email@exemplo.com" />
       </div>
       <div class="sm:col-span-2 ahq-card bg-surface-container-low/40 border border-outline-variant rounded-lg p-3">
-        <p class="text-[11px] font-medium uppercase tracking-wide text-on-surface-variant mb-2">Endereço</p>
+        <p class="text-[11px] font-medium text-on-surface-variant mb-2">Endereço</p>
         <div class="grid gap-2 sm:grid-cols-6">
           <div class="sm:col-span-2">
             <input class="ahq-input h-9 text-sm font-mono w-full" bind:value={createForm.cep} maxlength="9" inputmode="numeric" placeholder="CEP" on:input={(e) => (createForm.cep = formatCEPInput(e.currentTarget.value))} />

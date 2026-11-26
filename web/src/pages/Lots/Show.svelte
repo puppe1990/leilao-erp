@@ -18,7 +18,7 @@
   export let errors = {}
   export let site = {}
   export let canDelete = false
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let costForm = useForm({
     cost_label: 'Frete',
@@ -227,7 +227,7 @@
                   <th class={col.thClass}>
                     <button
                       type="button"
-                      class="w-full px-2 py-1.5 flex {col.btnClass} gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                      class="w-full px-2 py-1.5 flex {col.btnClass} gap-0.5 font-medium text-[11px] hover:text-primary"
                       on:click={() => toggleSort(col.key)}
                     >
                       {col.label}
@@ -238,7 +238,7 @@
                     </button>
                   </th>
                 {/each}
-                <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-20">
+                <th class="px-3 py-2.5 font-medium text-[11px] text-right w-20">
                   Ações
                 </th>
               </tr>

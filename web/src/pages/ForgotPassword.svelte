@@ -1,7 +1,7 @@
 <script>
   import { useForm, inertia } from '@inertiajs/svelte'
   import { onMount } from 'svelte'
-  import MonitorIcon from '@/components/MonitorIcon.svelte'
+  import PixEletroMark from '@/components/PixEletroMark.svelte'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -38,11 +38,9 @@
   >
     <a href="/login" use:inertia class="flex items-center gap-3">
       <div class="ahq-brand-mark">
-        <MonitorIcon size={20} />
+        <PixEletroMark size={28} />
       </div>
-      <span class="font-headline-md text-headline-md font-black text-on-surface"
-        >Admin<span class="text-secondary">.</span></span
-      >
+      <span class="ahq-wordmark">Pix Eletro<span class="text-secondary">.</span></span>
     </a>
     <button
       type="button"

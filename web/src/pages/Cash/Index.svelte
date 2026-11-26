@@ -14,7 +14,7 @@
   export let categories = []
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   const accountList = Array.isArray(balances) ? balances : []
   const rows = Array.isArray(statement) ? statement : []

@@ -5,7 +5,7 @@
 
   export let supplier = {}
   export let messages = []
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   $: rows = Array.isArray(messages) ? messages : []
   $: name = supplier?.name || 'Fornecedor'

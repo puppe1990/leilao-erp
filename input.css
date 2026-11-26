@@ -86,30 +86,33 @@ html[data-shop-theme="light"] {
   }
 
   .ahq-label {
-    @apply font-label-md text-label-md text-on-surface-variant uppercase tracking-wider;
+    @apply text-xs font-medium text-on-surface-variant;
   }
 
   .ahq-value {
     @apply font-data-display text-data-display text-primary tabular-nums;
   }
 
-  /* Green CTA like shop WhatsApp buttons */
+  .ahq-wordmark {
+    @apply font-medium text-on-surface uppercase;
+  }
+
   .ahq-btn-primary {
-    @apply inline-flex items-center justify-center h-12 px-5 bg-secondary text-on-secondary font-bold rounded-full
-      uppercase tracking-wide text-[11px] hover:opacity-90 active:scale-[0.98] transition-all
+    @apply inline-flex items-center justify-center h-10 px-4 bg-secondary text-on-secondary font-medium rounded-lg
+      text-sm hover:opacity-90 transition-colors
       disabled:opacity-60 disabled:pointer-events-none;
   }
 
   .ahq-btn-dark {
-    @apply inline-flex items-center justify-center h-12 px-5 bg-surface-container-high text-on-surface font-bold rounded-full
-      uppercase tracking-wide text-[11px] border border-outline-variant
-      hover:border-secondary hover:text-secondary active:scale-[0.98] transition-all
+    @apply inline-flex items-center justify-center h-10 px-4 bg-surface-container-high text-on-surface font-medium rounded-lg
+      text-sm border border-outline-variant
+      hover:border-secondary hover:text-secondary transition-colors
       disabled:opacity-60 disabled:pointer-events-none;
   }
 
   .ahq-btn-ghost {
-    @apply inline-flex items-center justify-center h-12 px-5 border border-outline-variant text-on-surface font-bold rounded-full
-      uppercase tracking-wide text-[11px] hover:border-secondary hover:text-secondary active:scale-[0.98] transition-all;
+    @apply inline-flex items-center justify-center h-10 px-4 border border-outline-variant text-on-surface font-medium rounded-lg
+      text-sm hover:border-secondary hover:text-secondary transition-colors;
   }
 
   .ahq-input {
@@ -122,7 +125,7 @@ html[data-shop-theme="light"] {
   }
 
   .ahq-badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-label-md text-[10px] uppercase tracking-wider;
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium;
   }
 
   .ahq-badge-live {
@@ -145,17 +148,14 @@ html[data-shop-theme="light"] {
     @apply ahq-badge bg-error-container text-on-error-container;
   }
 
-  /* Theme toggle (matches shop) */
   .ahq-theme-btn {
-    @apply inline-flex items-center justify-center w-10 h-10 rounded-full border border-outline-variant
-      bg-surface-container-lowest text-on-surface shrink-0 transition-all
-      hover:border-secondary hover:text-secondary active:scale-95;
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-lg border border-outline-variant
+      bg-surface-container-lowest text-on-surface shrink-0 transition-colors
+      hover:border-secondary hover:text-secondary;
   }
 
-  /* Brand mark like shop storefront circle */
   .ahq-brand-mark {
-    @apply w-9 h-9 rounded-full bg-surface-container-lowest border border-outline-variant
-      flex items-center justify-center shrink-0 text-secondary;
+    @apply w-9 h-9 flex items-center justify-center shrink-0 text-on-surface;
   }
 }
 
@@ -167,19 +167,5 @@ html[data-shop-theme="light"] {
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-
-  .pulse-live {
-    animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse-live {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
   }
 }

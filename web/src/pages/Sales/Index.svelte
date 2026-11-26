@@ -6,7 +6,7 @@
   export let sales = []
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   async function cancelSale(id) {
     const ok = await askConfirm({

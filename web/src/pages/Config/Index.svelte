@@ -4,7 +4,7 @@
   import PasswordInput from '@/components/PasswordInput.svelte'
 
   export let email = ''
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
   export let companyForm = ''
   export let companyCnpj = ''
   export let whatsappPhone = ''

@@ -13,7 +13,7 @@
   export let products = []
   export let errors = {}
   export let site = {}
-  export let companyName = 'AuctionHQ'
+  export let companyName = 'Pix Eletro'
 
   let query = ''
   /** @type {'all'|'main'|'accessory'} */
@@ -307,7 +307,7 @@
               <th class="px-1 py-1">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('name')}
                 >
                   Nome
@@ -318,7 +318,7 @@
               <th class="px-1 py-1 w-28">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('type')}
                 >
                   Tipo
@@ -329,7 +329,7 @@
               <th class="px-1 py-1 w-20">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('qty')}
                 >
                   Estoque
@@ -340,7 +340,7 @@
               <th class="px-1 py-1 w-24">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('media')}
                 >
                   Mídia
@@ -351,7 +351,7 @@
               <th class="px-1 py-1 w-32">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-end gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('salePrice')}
                 >
                   Preço
@@ -362,7 +362,7 @@
               <th class="px-1 py-1 w-24">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('catalog')}
                   title="Visível no catálogo"
                 >
@@ -374,7 +374,7 @@
               <th class="px-1 py-1 w-24">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('olx')}
                   title="Já publicado na OLX"
                 >
@@ -386,7 +386,7 @@
               <th class="px-1 py-1 w-24">
                 <button
                   type="button"
-                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] uppercase tracking-wide hover:text-primary"
+                  class="w-full px-2 py-1.5 flex items-center justify-center gap-0.5 font-medium text-[11px] hover:text-primary"
                   on:click={() => toggleSort('freteOlx')}
                   title="Entregar grátis pela OLX"
                 >
@@ -395,7 +395,7 @@
                   <span class="material-symbols-outlined text-[14px]">{sortIcon('freteOlx')}</span>
                 </button>
               </th>
-              <th class="px-3 py-2.5 font-medium text-[11px] uppercase tracking-wide text-right w-36">
+              <th class="px-3 py-2.5 font-medium text-[11px] text-right w-36">
                 Ações
               </th>
             </tr>
