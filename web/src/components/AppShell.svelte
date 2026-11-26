@@ -122,6 +122,8 @@
       <div class="p-3 border-t border-outline-variant flex flex-col gap-1">
         <a
           href="/"
+          target="_blank"
+          rel="noopener noreferrer"
           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-on-surface-variant
             hover:bg-surface-container-high hover:text-secondary transition-all"
           title="Abrir catálogo público"
