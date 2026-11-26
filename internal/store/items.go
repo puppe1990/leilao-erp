@@ -12,6 +12,7 @@ type UpdateItemInput struct {
 	Title              string
 	SKU                string
 	SalePriceHintCents *int64 // nil = clear hint
+	UnitCostCents      *int64 // nil = keep current unit cost
 }
 
 // UpdateItem updates mutable fields for an in-stock item and keeps product catalog in sync.
@@ -45,10 +46,20 @@ func (s *SQLiteStore) UpdateItem(id int64, in UpdateItemInput) error {
 		return err
 	}
 
-	_, err = s.db.Exec(
-		`UPDATE items SET title = ?, sku = ?, sale_price_hint_cents = ?, product_id = ? WHERE id = ?`,
-		title, skuVal, hint, productID, id,
-	)
+	if in.UnitCostCents != nil {
+		if *in.UnitCostCents < 0 {
+			return fmt.Errorf("%w: unit cost must be >= 0, got %d", ErrInvalidInput, *in.UnitCostCents)
+		}
+		_, err = s.db.Exec(
+			`UPDATE items SET title = ?, sku = ?, sale_price_hint_cents = ?, product_id = ?, unit_cost_cents = ? WHERE id = ?`,
+			title, skuVal, hint, productID, *in.UnitCostCents, id,
+		)
+	} else {
+		_, err = s.db.Exec(
+			`UPDATE items SET title = ?, sku = ?, sale_price_hint_cents = ?, product_id = ? WHERE id = ?`,
+			title, skuVal, hint, productID, id,
+		)
+	}
 	if err != nil {
 		return err
 	}

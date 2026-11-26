@@ -112,14 +112,17 @@
                       title: item._title ?? item.title,
                       sku: item._sku ?? item.sku ?? '',
                       sale_price_hint: item._sale ?? item.salePriceRaw ?? '',
+                      unit_cost: item._cost ?? item.unitCostRaw ?? '',
                     })
                   }}
                 >
                   <input class="ahq-input h-10 text-sm col-span-2" placeholder="Título" value={item.title}
                     on:input={(e) => (item._title = e.currentTarget.value)} />
+                  <input class="ahq-input h-10 text-sm font-mono" placeholder="Custo un." value={item.unitCostRaw || ''}
+                    on:input={(e) => (item._cost = e.currentTarget.value)} />
                   <input class="ahq-input h-10 text-sm font-mono" placeholder="Preço venda" value={item.salePriceRaw || ''}
                     on:input={(e) => (item._sale = e.currentTarget.value)} />
-                  <input class="ahq-input h-10 text-sm font-mono" placeholder="SKU" value={item.sku || ''}
+                  <input class="ahq-input h-10 text-sm font-mono col-span-2" placeholder="SKU" value={item.sku || ''}
                     on:input={(e) => (item._sku = e.currentTarget.value)} />
                   <button type="submit" class="col-span-2 ahq-btn-ghost h-10 text-sm">Salvar item</button>
                 </form>
