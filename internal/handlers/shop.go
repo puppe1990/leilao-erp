@@ -19,7 +19,9 @@ import (
 func shopBrandFromName(name string) string {
 	n := strings.ToLower(name)
 	switch {
-	case strings.Contains(n, "carregador") || strings.Contains(n, "fonte"):
+	case strings.Contains(n, "fonte"):
+		return "FONTE"
+	case strings.Contains(n, "carregador"):
 		return "CARREGADOR"
 	case strings.Contains(n, "cabo"):
 		return "CABO"
