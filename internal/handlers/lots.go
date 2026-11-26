@@ -193,6 +193,7 @@ func (h *LotsHandler) Show(w http.ResponseWriter, r *http.Request, id int64) {
 			"title":         it.Title,
 			"sku":           sku,
 			"unitCost":      domain.FormatBRL(it.UnitCostCents),
+			"unitCostRaw":   formatCentsInput(it.UnitCostCents),
 			"salePriceHint": saleHint,
 			"salePriceRaw":  salePriceRaw,
 			"marginHint":    margin,
@@ -455,6 +456,16 @@ func (h *LotsHandler) UpdateItem(w http.ResponseWriter, r *http.Request, lotID i
 			return
 		}
 		in.SalePriceHintCents = &cents
+	}
+	if raw := strings.TrimSpace(r.FormValue("unit_cost")); raw != "" {
+		cents, err := domain.ParseBRLToCents(raw)
+		if err != nil || cents < 0 {
+			ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": "Custo unitário inválido"})
+			r = r.WithContext(ctx)
+			h.Show(w, r, lotID)
+			return
+		}
+		in.UnitCostCents = &cents
 	}
 	if err := h.store.UpdateItem(itemID, in); err != nil {
 		ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": err.Error()})

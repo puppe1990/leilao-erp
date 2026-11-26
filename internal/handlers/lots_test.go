@@ -153,6 +153,98 @@ func TestLotsHandler_Show_Inertia(t *testing.T) {
 	}
 	assertInertiaComponent(t, rr, "Lots/Show")
 	assertInertiaProp(t, rr, "lot")
-	assertInertiaProp(t, rr, "items")
 	assertInertiaProp(t, rr, "costs")
+	itemRows, ok := assertInertiaProp(t, rr, "items").([]any)
+	if !ok || len(itemRows) == 0 {
+		t.Fatalf("items prop = %v", itemRows)
+	}
+	row, _ := itemRows[0].(map[string]any)
+	if row["unitCostRaw"] != "5,00" {
+		t.Fatalf("unitCostRaw=%v want 5,00", row["unitCostRaw"])
+	}
+}
+
+func TestLotsHandler_UpdateItem_UnitCost(t *testing.T) {
+	h, s := newLotsHandler(t)
+	lotID, err := s.CreateLotPurchase(store.CreateLotInput{
+		Name: "Kit PMCELL", PurchasedAt: "2026-11-26",
+		ItemTitle: "Cabo turbo USB para Tipo C 66W", ItemQty: 2,
+		Costs: []store.CostInput{{Label: "PMCELL", AmountCents: 10000, AlreadyPaid: false}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, err := s.ListItemsByLot(lotID)
+	if err != nil || len(items) != 2 {
+		t.Fatalf("items=%v err=%v", items, err)
+	}
+
+	form := url.Values{
+		"title":     {items[0].Title},
+		"sku":       {"CB-17-TC"},
+		"unit_cost": {"4,29"},
+	}
+	path := fmt.Sprintf("/lots/%d/items/%d", lotID, items[0].ID)
+	req := inertiaRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetPathValue("itemId", fmt.Sprintf("%d", items[0].ID))
+	rr := httptest.NewRecorder()
+	h.UpdateItem(rr, req, lotID)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	got, err := s.FindItemByID(items[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.UnitCostCents != 429 {
+		t.Fatalf("unit_cost=%d want 429", got.UnitCostCents)
+	}
+	other, err := s.FindItemByID(items[1].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if other.UnitCostCents != 5000 {
+		t.Fatalf("sibling unit_cost=%d want 5000", other.UnitCostCents)
+	}
+}
+
+func TestLotsHandler_UpdateItem_InvalidUnitCost(t *testing.T) {
+	h, s := newLotsHandler(t)
+	lotID, err := s.CreateLotPurchase(store.CreateLotInput{
+		Name: "Lote custo", PurchasedAt: "2026-11-26",
+		ItemTitle: "Cabo", ItemQty: 1,
+		Costs: []store.CostInput{{Label: "PMCELL", AmountCents: 429, AlreadyPaid: false}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, err := s.ListItemsByLot(lotID)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("items=%v err=%v", items, err)
+	}
+
+	form := url.Values{
+		"title":     {items[0].Title},
+		"unit_cost": {"xyz"},
+	}
+	req := inertiaRequest(http.MethodPost, fmt.Sprintf("/lots/%d/items/%d", lotID, items[0].ID), strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetPathValue("itemId", fmt.Sprintf("%d", items[0].ID))
+	rr := httptest.NewRecorder()
+	h.UpdateItem(rr, req, lotID)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200 inertia validation", rr.Code)
+	}
+	assertInertiaComponent(t, rr, "Lots/Show")
+	assertInertiaErrors(t, rr, "form")
+	got, err := s.FindItemByID(items[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.UnitCostCents != 429 {
+		t.Fatalf("unit_cost=%d want 429 (unchanged)", got.UnitCostCents)
+	}
 }

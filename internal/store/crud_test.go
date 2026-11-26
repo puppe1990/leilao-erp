@@ -273,4 +273,36 @@ func TestUpdateItem(t *testing.T) {
 	if it.SalePriceHintCents == nil || *it.SalePriceHintCents != 39900 {
 		t.Fatalf("sale hint=%v want 39900", it.SalePriceHintCents)
 	}
+	if it.UnitCostCents != 5000 {
+		t.Fatalf("unit_cost=%d want 5000 (omitted keeps seed)", it.UnitCostCents)
+	}
+}
+
+func TestUpdateItem_SetsUnitCost(t *testing.T) {
+	st := testStore(t)
+	lotID, _ := seedLot(t, st, true)
+	items, _ := st.ListItemsByLot(lotID)
+	if items[0].UnitCostCents != 5000 {
+		t.Fatalf("seed unit_cost=%d want 5000", items[0].UnitCostCents)
+	}
+	cost := int64(429)
+	if err := st.UpdateItem(items[0].ID, store.UpdateItemInput{
+		Title: items[0].Title, SKU: "CB-17-TC", UnitCostCents: &cost,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.FindItemByID(items[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.UnitCostCents != 429 {
+		t.Fatalf("unit_cost=%d want 429", got.UnitCostCents)
+	}
+	other, err := st.FindItemByID(items[1].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if other.UnitCostCents != 5000 {
+		t.Fatalf("sibling unit_cost=%d want 5000 (unchanged)", other.UnitCostCents)
+	}
 }
