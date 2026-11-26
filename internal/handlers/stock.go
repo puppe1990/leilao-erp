@@ -145,6 +145,51 @@ func (h *StockHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// Discard gives baixa on a stock unit (or every in-stock unit of a product).
+// The row is kept, so cost and sale history survive; it just leaves the stock list.
+func (h *StockHandler) Discard(w http.ResponseWriter, r *http.Request) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var targets []int64
+	if productID, err := strconv.ParseInt(r.FormValue("product_id"), 10, 64); err == nil && productID > 0 {
+		units, err := h.store.ListInStockUnitsByProduct(productID, "")
+		if err != nil {
+			h.discardError(w, r, err.Error())
+			return
+		}
+		for _, u := range units {
+			targets = append(targets, u.ID)
+		}
+		if len(targets) == 0 {
+			h.discardError(w, r, "Nenhuma unidade em estoque para dar baixa")
+			return
+		}
+	} else {
+		itemID, err := strconv.ParseInt(r.FormValue("item_id"), 10, 64)
+		if err != nil || itemID <= 0 {
+			h.discardError(w, r, "Informe item_id ou product_id para dar baixa")
+			return
+		}
+		targets = []int64{itemID}
+	}
+
+	for _, id := range targets {
+		if err := h.store.DiscardItem(id); err != nil {
+			h.discardError(w, r, err.Error())
+			return
+		}
+	}
+	h.inertia.Redirect(w, r, "/stock", http.StatusSeeOther)
+}
+
+func (h *StockHandler) discardError(w http.ResponseWriter, r *http.Request, msg string) {
+	ctx := inertia.SetValidationErrors(r.Context(), inertia.ValidationErrors{"form": msg})
+	h.Index(w, r.WithContext(ctx))
+}
+
 // ExportCSV downloads all in-stock units as UTF-8 CSV (Excel-friendly with BOM).
 func (h *StockHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	items, err := h.store.ListItemsInStock()

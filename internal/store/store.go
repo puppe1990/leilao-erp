@@ -61,6 +61,8 @@ type Store interface {
 	ListItemsInStock() ([]models.Item, error)
 	FindItemByID(id int64) (models.Item, error)
 	UpdateItem(id int64, in UpdateItemInput) error
+	DiscardItem(id int64) error
+	UndiscardItem(id int64) error
 	SetSalePriceHintByTitle(title string, hintCents int64) (int64, error)
 	RenameItemsByTitle(fromTitle, toTitle string) (int64, error)
 	EnsureProductByName(name, kind string, saleHint *int64) (int64, error)

@@ -69,6 +69,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/lots/{id}/items/{itemId}", middleware.RequireAuthFunc("/login", cais.IntParam("id", lots.UpdateItem)))
 
 	r.Get("/stock", middleware.RequireAuthFunc("/login", stock.Index))
+	r.Post("/stock/discard", middleware.RequireAuthFunc("/login", stock.Discard))
 	r.Get("/stock/export.csv", middleware.RequireAuthFunc("/login", stock.ExportCSV))
 
 	r.Get("/products", middleware.RequireAuthFunc("/login", products.Index))

@@ -70,6 +70,48 @@ func (s *SQLiteStore) UpdateItem(id int64, in UpdateItemInput) error {
 	return nil
 }
 
+// DiscardItem gives an in-stock unit a baixa: it leaves the stock list, catalog
+// and lot offer without deleting the row, so cost and sale history stay intact.
+func (s *SQLiteStore) DiscardItem(id int64) error {
+	var status string
+	var discardedAt sql.NullString
+	err := s.db.QueryRow(`SELECT status, discarded_at FROM items WHERE id = ?`, id).
+		Scan(&status, &discardedAt)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("load item %d: %w", id, err)
+	}
+	if status != "in_stock" {
+		return fmt.Errorf("%w: item %d is %s, only in-stock units can be discarded", ErrCannotUpdate, id, status)
+	}
+	if discardedAt.Valid && discardedAt.String != "" {
+		return fmt.Errorf("%w: item %d is already discarded", ErrCannotUpdate, id)
+	}
+	if _, err := s.db.Exec(
+		`UPDATE items SET discarded_at = CURRENT_TIMESTAMP WHERE id = ?`, id,
+	); err != nil {
+		return fmt.Errorf("discard item %d: %w", id, err)
+	}
+	return nil
+}
+
+// UndiscardItem reverts a baixa, returning the unit to the stock list.
+func (s *SQLiteStore) UndiscardItem(id int64) error {
+	res, err := s.db.Exec(
+		`UPDATE items SET discarded_at = NULL WHERE id = ? AND discarded_at IS NOT NULL`, id,
+	)
+	if err != nil {
+		return fmt.Errorf("undiscard item %d: %w", id, err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // SetSalePriceHintByTitle sets sale_price_hint_cents on all matching in-stock items and product.
 func (s *SQLiteStore) SetSalePriceHintByTitle(title string, hintCents int64) (int64, error) {
 	res, err := s.db.Exec(
@@ -148,7 +190,7 @@ func (s *SQLiteStore) ListItemsInStock() ([]models.Item, error) {
 	rows, err := s.db.Query(
 		`SELECT id, lot_id, product_id, sku, title, condition, unit_cost_cents, status,
 		        sale_price_hint_cents, created_at
-		 FROM items WHERE status = 'in_stock' ORDER BY id`,
+		 FROM items WHERE status = 'in_stock' AND discarded_at IS NULL ORDER BY id`,
 	)
 	if err != nil {
 		// Pre-migration fallback

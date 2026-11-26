@@ -122,7 +122,7 @@ func (s *SQLiteStore) ListProducts() ([]models.Product, error) {
 	rows, err := s.db.Query(
 		`SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
 		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
-		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock' AND i.discarded_at IS NULL), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0),
 		        COALESCE((
@@ -174,7 +174,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 		`SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
 		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
 		        COALESCE(p.item_condition, ''),
-		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock' AND i.discarded_at IS NULL), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0),
 		        COALESCE((
@@ -188,7 +188,7 @@ func (s *SQLiteStore) ListProductsWithPhotos() ([]models.Product, error) {
 		 FROM products p
 		 WHERE COALESCE(p.shop_visible, 0) = 1
 		 AND EXISTS (
-		   SELECT 1 FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'
+		   SELECT 1 FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock' AND i.discarded_at IS NULL
 		 )
 		 ORDER BY p.name`,
 	)
@@ -262,7 +262,7 @@ func (s *SQLiteStore) scanProductDetail(query string, arg any) (models.Product, 
 
 const productDetailSQL = `SELECT p.id, p.name, COALESCE(p.slug,''), p.sale_price_hint_cents, p.kind, p.created_at,
 		        COALESCE(p.description, ''), COALESCE(p.listing_text, ''),
-		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock'), 0),
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.product_id = p.id AND i.status = 'in_stock' AND i.discarded_at IS NULL), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'photo'), 0),
 		        COALESCE((SELECT COUNT(*) FROM product_media m WHERE m.product_id = p.id AND m.kind = 'video'), 0),
 		        COALESCE(p.screen_type, ''), COALESCE(p.max_resolution, ''),
@@ -412,7 +412,7 @@ func (s *SQLiteStore) ListStockProductGroups() ([]models.Product, error) {
 		    MIN(i.lot_id)
 		 FROM items i
 		 LEFT JOIN products p ON p.id = i.product_id
-		 WHERE i.status = 'in_stock'
+		 WHERE i.status = 'in_stock' AND i.discarded_at IS NULL
 		 GROUP BY COALESCE(p.id, 0), COALESCE(p.name, i.title)
 		 ORDER BY COALESCE(p.name, i.title)`,
 	)
@@ -453,7 +453,7 @@ func (s *SQLiteStore) listStockGroupsByTitle() ([]models.Product, error) {
 		        CAST(ROUND(AVG(unit_cost_cents)) AS INTEGER),
 		        MIN(id),
 		        MIN(lot_id)
-		 FROM items WHERE status = 'in_stock'
+		 FROM items WHERE status = 'in_stock' AND discarded_at IS NULL
 		 GROUP BY title ORDER BY title`,
 	)
 	if err != nil {
@@ -485,14 +485,14 @@ func (s *SQLiteStore) ListInStockUnitsByProduct(productID int64, title string) (
 		rows, err = s.db.Query(
 			`SELECT id, lot_id, product_id, sku, title, condition, unit_cost_cents, status,
 			        sale_price_hint_cents, created_at
-			 FROM items WHERE status = 'in_stock' AND product_id = ? ORDER BY id`,
+			 FROM items WHERE status = 'in_stock' AND discarded_at IS NULL AND product_id = ? ORDER BY id`,
 			productID,
 		)
 	} else {
 		rows, err = s.db.Query(
 			`SELECT id, lot_id, product_id, sku, title, condition, unit_cost_cents, status,
 			        sale_price_hint_cents, created_at
-			 FROM items WHERE status = 'in_stock' AND title = ? ORDER BY id`,
+			 FROM items WHERE status = 'in_stock' AND discarded_at IS NULL AND title = ? ORDER BY id`,
 			title,
 		)
 	}

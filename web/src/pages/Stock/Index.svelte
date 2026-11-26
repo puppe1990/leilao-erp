@@ -6,6 +6,7 @@
     brandsFromItems,
     filterAndSortStockItems,
   } from '@/lib/stockInventoryTable.js'
+  import { askConfirm } from '@/lib/confirmDialog.js'
 
   export let items = []
   export let groups = []
@@ -147,6 +148,26 @@
   function sellHref(item) {
     const unitId = item.sampleItemId || item.id
     return `/sales/new?item_id=${unitId}`
+  }
+
+  /** Baixa: tira do estoque sem apagar histórico (dá para desfazer no banco). */
+  async function discardItem(item) {
+    const qty = item.qty ?? 1
+    const ok = await askConfirm({
+      title: 'Dar baixa no estoque',
+      message:
+        qty > 1
+          ? `Dar baixa nas ${qty} unidades de “${item.title}”?`
+          : `Dar baixa em “${item.title}”?`,
+      detail: 'Some do estoque e do catálogo. O custo e o histórico continuam salvos.',
+      confirmLabel: 'Dar baixa',
+      tone: 'danger',
+    })
+    if (!ok) return
+    const payload = item.productId
+      ? { product_id: item.productId }
+      : { item_id: item.sampleItemId || item.id }
+    router.post('/stock/discard', payload)
   }
 
   /** Export currently filtered product rows as CSV (client-side). */
@@ -528,9 +549,17 @@
                     >
                       Editar
                     </button>
-                    <a href={sellHref(item)} use:inertia class="text-secondary font-medium text-sm">
+                    <a href={sellHref(item)} use:inertia class="text-secondary font-medium text-sm mr-2">
                       Vender
                     </a>
+                    <button
+                      type="button"
+                      class="text-on-surface-variant hover:text-error text-sm font-medium"
+                      on:click={() => discardItem(item)}
+                      title="Tirar do estoque mantendo o histórico"
+                    >
+                      Dar baixa
+                    </button>
                   </td>
                 </tr>
               {/if}

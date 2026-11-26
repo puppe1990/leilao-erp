@@ -93,6 +93,7 @@ func (s *SQLiteStore) shopLotItems() ([]ShopLotItem, error) {
 		JOIN lots l ON l.id = i.lot_id
 		JOIN products p ON p.id = i.product_id
 		WHERE i.status = 'in_stock'
+		  AND i.discarded_at IS NULL
 		  AND COALESCE(p.shop_visible, 0) = 1 -- hidden catalog units stay out of the lot
 		  AND ` + shopLotLotFilter + `
 		GROUP BY p.id
@@ -124,6 +125,7 @@ func (s *SQLiteStore) shopLotMedia() (photos, videos []ShopLotMedia, err error) 
 		  FROM items i
 		  JOIN lots l ON l.id = i.lot_id
 		  WHERE i.status = 'in_stock'
+		    AND i.discarded_at IS NULL
 		    AND i.product_id IS NOT NULL
 		    AND ` + shopLotLotFilter + `
 		)
