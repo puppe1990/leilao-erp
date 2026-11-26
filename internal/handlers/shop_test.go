@@ -90,8 +90,8 @@ func TestShopHandler_Index_PublicOK(t *testing.T) {
 		t.Fatalf("og image %q should bust cache with og-pixeletro-2", img)
 	}
 	title, _ := og["title"].(string)
-	if !strings.Contains(title, "Monitores e tech") {
-		t.Fatalf("og title %q should say Monitores e tech", title)
+	if !strings.Contains(title, "Eletro e tech") {
+		t.Fatalf("og title %q should say Eletro e tech", title)
 	}
 	if strings.Contains(title, "Catálogo de monitores") {
 		t.Fatalf("og title still monitor-only: %q", title)

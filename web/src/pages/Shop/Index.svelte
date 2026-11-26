@@ -113,19 +113,19 @@
 </script>
 
 <svelte:head>
-  <title>{og.title || `${companyName} — Monitores e tech`}</title>
+  <title>{og.title || `${companyName} — Eletro e tech`}</title>
   <meta
     name="description"
     content={og.description ||
-      'Monitores e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
+      'Eletro e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content={companyName} />
-  <meta property="og:title" content={og.title || `${companyName} — Monitores e tech`} />
+  <meta property="og:title" content={og.title || `${companyName} — Eletro e tech`} />
   <meta
     property="og:description"
     content={og.description ||
-      'Monitores e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
+      'Eletro e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.url}<meta property="og:url" content={og.url} />{/if}
   {#if og.image}
@@ -134,11 +134,11 @@
     <meta property="og:image:height" content="630" />
   {/if}
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content={og.title || `${companyName} — Monitores e tech`} />
+  <meta name="twitter:title" content={og.title || `${companyName} — Eletro e tech`} />
   <meta
     name="twitter:description"
     content={og.description ||
-      'Monitores e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
+      'Eletro e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
   <link rel="stylesheet" href="/static/css/shop.css?v=16" data-shop-css="1" />
@@ -155,7 +155,7 @@
         </div>
         <div>
           <div class="shop-logo-title">Pix Eletro<span>.</span></div>
-          <p class="shop-sub">Monitores e tech · WhatsApp · 10% PIX</p>
+          <p class="shop-sub">Eletro e tech · WhatsApp · 10% PIX</p>
         </div>
       </a>
 

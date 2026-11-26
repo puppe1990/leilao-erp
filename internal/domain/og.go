@@ -47,7 +47,7 @@ func OGHeadHTML(m OGMeta) string {
 	}
 	desc := strings.TrimSpace(m.Description)
 	if desc == "" {
-		desc = "Monitores e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX."
+		desc = "Eletro e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX."
 	}
 	typ := m.Type
 	if typ == "" {
