@@ -36,7 +36,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=9'
+      link.href = '/static/css/shop.css?v=10'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -110,10 +110,6 @@
       `Olá ${companyName}! Gostaria de tirar dúvidas sobre os monitores do catálogo.`
     window.open(`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(t)}`, '_blank')
   }
-
-  function scrollCatalog() {
-    document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-  }
 </script>
 
 <svelte:head>
@@ -145,13 +141,13 @@
       'Monitores usados testados. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=9" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=10" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
   <div class="shop-banner">
     <span class="material-symbols-outlined" style="font-size:16px">bolt</span>
-    Monte o carrinho · lote fechado por R$ 1.500 · 10% OFF no PIX nas unidades
+    Monte o carrinho · 10% OFF no PIX · pedido no WhatsApp
   </div>
 
   <header class="shop-header">
@@ -207,53 +203,6 @@
       </div>
     </div>
   </header>
-
-  <section class="shop-hero">
-    <div class="shop-hero-badge">
-      <span class="material-symbols-outlined" style="font-size:16px">chat</span>
-      Fechamento direto no WhatsApp
-    </div>
-    <h1>Monitores <em>testados</em> com preço de catálogo</h1>
-    <p>
-      Monte o carrinho com os monitores que quiser, veja fotos e vídeos reais e envie o pedido no
-      WhatsApp. Ou leve o lote inteiro por R$ 1.500.
-    </p>
-    <div class="shop-hero-actions">
-      <button type="button" class="shop-btn-wa" on:click={scrollCatalog}>
-        <span class="material-symbols-outlined" style="font-size:18px">shopping_bag</span>
-        Ver catálogo
-      </button>
-      {#if whatsappSet}
-        <button type="button" class="shop-btn-ghost" on:click={() => generalWhatsApp()}>
-          <span class="material-symbols-outlined" style="font-size:18px;color:#25D366">chat</span>
-          Falar no WhatsApp
-        </button>
-      {/if}
-    </div>
-    <div class="shop-props">
-      <div class="shop-prop">
-        <div class="shop-prop-icon"><span class="material-symbols-outlined">bolt</span></div>
-        <div>
-          <strong>10% OFF PIX</strong>
-          <span>Desconto direto</span>
-        </div>
-      </div>
-      <div class="shop-prop">
-        <div class="shop-prop-icon"><span class="material-symbols-outlined">local_shipping</span></div>
-        <div>
-          <strong>Entrega / retirada</strong>
-          <span>A combinar</span>
-        </div>
-      </div>
-      <div class="shop-prop">
-        <div class="shop-prop-icon"><span class="material-symbols-outlined">verified</span></div>
-        <div>
-          <strong>Fotos reais</strong>
-          <span>Com vídeo de teste</span>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <ShopLotBanner {lotOffer} onAdd={addToCart} />
 
