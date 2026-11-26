@@ -27,6 +27,19 @@ func TestOGHeadHTML_emptySiteNameFallsBackToPixEletro(t *testing.T) {
 	}
 }
 
+func TestOGHeadHTML_emptyDescriptionMentionsTechAndWhatsApp(t *testing.T) {
+	html := OGHeadHTML(OGMeta{Title: "Catálogo"})
+	if !strings.Contains(html, "Monitores e tech") {
+		t.Fatalf("fallback description should mention tech in %s", html)
+	}
+	if !strings.Contains(html, "WhatsApp") {
+		t.Fatalf("fallback description should mention WhatsApp in %s", html)
+	}
+	if strings.Contains(html, "Monitores usados testados") {
+		t.Fatal("legacy monitor-only description still present")
+	}
+}
+
 func TestOGHeadHTML(t *testing.T) {
 	html := OGHeadHTML(OGMeta{
 		Title:       `Monitor "LG"`,

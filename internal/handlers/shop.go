@@ -156,7 +156,7 @@ func (h *ShopHandler) baseURL(r *http.Request) string {
 }
 
 func (h *ShopHandler) shopOGImage(r *http.Request) string {
-	return domain.AbsoluteURL(h.baseURL(r), "/static/og-pixeletro.png")
+	return domain.AbsoluteURL(h.baseURL(r), "/static/og-pixeletro-2.png")
 }
 
 // withShopOG injects Open Graph tags into the root HTML for link previews (WhatsApp, etc.).
@@ -204,8 +204,8 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, shopProductRow(p, phone))
 	}
 
-	title := company + " — Catálogo de monitores"
-	desc := "Monitores usados testados. Monte o carrinho e peça no WhatsApp. 10% OFF no PIX."
+	title := company + " — Monitores e tech"
+	desc := "Fotos reais. Pedido no WhatsApp. 10% OFF no PIX."
 	base := h.baseURL(r)
 	pageURL := domain.AbsoluteURL(base, "/")
 	imgURL := h.shopOGImage(r)
@@ -299,7 +299,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, slug string) 
 		if p.SalePriceHintCents != nil && *p.SalePriceHintCents > 0 {
 			price = domain.FormatBRL(*p.SalePriceHintCents*90/100) + " no PIX"
 		}
-		desc = fmt.Sprintf("%s · %s · monitores testados · pedido no WhatsApp", p.Name, price)
+		desc = fmt.Sprintf("%s · %s · testado · pedido no WhatsApp", p.Name, price)
 	}
 	if len(desc) > 200 {
 		desc = desc[:197] + "…"
