@@ -38,6 +38,67 @@ func TestLotsHandler_Index_Inertia(t *testing.T) {
 	assertInertiaProp(t, rr, "lots")
 }
 
+func TestLotStatusLabel(t *testing.T) {
+	cases := map[string]string{
+		"open":    "Aberto",
+		"partial": "Parcial",
+		"sold":    "Vendido",
+		"closed":  "Fechado",
+		"weird":   "weird",
+	}
+	for in, want := range cases {
+		if got := lotStatusLabel(in); got != want {
+			t.Errorf("lotStatusLabel(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestLotsHandler_Index_IncludesCostCents(t *testing.T) {
+	h, s := newLotsHandler(t)
+	_, err := s.CreateLotPurchase(store.CreateLotInput{
+		Name:        "PMCELL Kit Turbo",
+		PurchasedAt: "2026-11-26",
+		ItemTitle:   "Cabo",
+		ItemQty:     43,
+		Costs: []store.CostInput{
+			{Label: "Arremate", AmountCents: 30000},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := inertiaRequest(http.MethodGet, "/lots", nil)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	raw := assertInertiaProp(t, rr, "lots")
+	list, ok := raw.([]any)
+	if !ok || len(list) != 1 {
+		t.Fatalf("lots = %#v, want 1 row", raw)
+	}
+	row, ok := list[0].(map[string]any)
+	if !ok {
+		t.Fatalf("row type %T", list[0])
+	}
+	cents, ok := row["totalCostCents"].(float64)
+	if !ok {
+		t.Fatalf("totalCostCents missing or %T=%v", row["totalCostCents"], row["totalCostCents"])
+	}
+	if int64(cents) != 30000 {
+		t.Errorf("totalCostCents = %v, want 30000", cents)
+	}
+	if row["statusLabel"] != "Aberto" {
+		t.Errorf("statusLabel = %v, want Aberto", row["statusLabel"])
+	}
+	if row["itemCount"] != float64(43) {
+		t.Errorf("itemCount = %v, want 43", row["itemCount"])
+	}
+}
+
 func TestLotsHandler_Create_Valid_Redirects(t *testing.T) {
 	h, s := newLotsHandler(t)
 

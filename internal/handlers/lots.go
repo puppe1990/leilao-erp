@@ -37,13 +37,14 @@ func (h *LotsHandler) Index(w http.ResponseWriter, r *http.Request) {
 	rows := make([]map[string]any, 0, len(lots))
 	for _, lot := range lots {
 		rows = append(rows, map[string]any{
-			"id":          lot.ID,
-			"name":        lot.Name,
-			"purchasedAt": lot.PurchasedAt,
-			"status":      lot.Status,
-			"statusLabel": lotStatusLabel(lot.Status),
-			"totalCost":   domain.FormatBRL(lot.TotalCostCents),
-			"itemCount":   lot.ItemCount,
+			"id":             lot.ID,
+			"name":           lot.Name,
+			"purchasedAt":    lot.PurchasedAt,
+			"status":         lot.Status,
+			"statusLabel":    lotStatusLabel(lot.Status),
+			"totalCost":      domain.FormatBRL(lot.TotalCostCents),
+			"totalCostCents": lot.TotalCostCents,
+			"itemCount":      lot.ItemCount,
 		})
 	}
 
@@ -347,6 +348,10 @@ func lotStatusLabel(status string) string {
 	switch status {
 	case "open":
 		return "Aberto"
+	case "partial":
+		return "Parcial"
+	case "sold":
+		return "Vendido"
 	case "closed":
 		return "Fechado"
 	default:
