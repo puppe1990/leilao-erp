@@ -79,6 +79,12 @@ describe('Catálogo da loja', () => {
     expect(show).toMatch(/<PixEletroMark /)
     expect(lot).toMatch(/<PixEletroMark /)
   })
+
+  it('ordena menor e maior preço pelo helper, sem prender acessório na frente', () => {
+    expect(page).toMatch(/import \{ sortShopCatalog \} from '@\/lib\/shopCatalog\.js'/)
+    expect(page).toMatch(/sortShopCatalog\(/)
+    expect(page).not.toMatch(/if \(accA !== accB\) return accA \? -1 : 1/)
+  })
 })
 
 

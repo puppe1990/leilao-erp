@@ -6,6 +6,7 @@
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import PixEletroMark from '@/components/PixEletroMark.svelte'
   import { shopBadgeClass } from '@/lib/shopBadge.js'
+  import { sortShopCatalog } from '@/lib/shopCatalog.js'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -86,8 +87,8 @@
     },
   ].filter((c) => c.id === 'all' || c.count > 0)
 
-  $: filtered = list
-    .filter((p) => {
+  $: filtered = sortShopCatalog(
+    list.filter((p) => {
       if (category !== 'all' && p.category !== category) return false
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase()
@@ -98,20 +99,9 @@
         )
       }
       return true
-    })
-    .slice()
-    .sort((a, b) => {
-      if (a.isLot && !b.isLot) return -1
-      if (b.isLot && !a.isLot) return 1
-      const accA = a.category === 'acessorio'
-      const accB = b.category === 'acessorio'
-      if (accA !== accB) return accA ? -1 : 1
-      if (sortBy === 'price-asc') return (a.priceCents || 0) - (b.priceCents || 0)
-      if (sortBy === 'price-desc') return (b.priceCents || 0) - (a.priceCents || 0)
-      if (a.badge === 'DEFEITO' && b.badge !== 'DEFEITO') return 1
-      if (b.badge === 'DEFEITO' && a.badge !== 'DEFEITO') return -1
-      return (b.priceCents || 0) - (a.priceCents || 0)
-    })
+    }),
+    sortBy,
+  )
 
   function generalWhatsApp(text) {
     if (!whatsappDigits) return
