@@ -86,8 +86,19 @@ func TestShopHandler_Index_PublicOK(t *testing.T) {
 		t.Fatalf("og prop type %T", assertInertiaProp(t, rr, "og"))
 	}
 	img, _ := og["image"].(string)
-	if !strings.Contains(img, "og-pixeletro") {
-		t.Fatalf("og image %q should bust cache with og-pixeletro", img)
+	if !strings.Contains(img, "og-pixeletro-2") {
+		t.Fatalf("og image %q should bust cache with og-pixeletro-2", img)
+	}
+	title, _ := og["title"].(string)
+	if !strings.Contains(title, "Monitores e tech") {
+		t.Fatalf("og title %q should say Monitores e tech", title)
+	}
+	if strings.Contains(title, "Catálogo de monitores") {
+		t.Fatalf("og title still monitor-only: %q", title)
+	}
+	desc, _ := og["description"].(string)
+	if !strings.Contains(desc, "Fotos reais") {
+		t.Fatalf("og description %q should mention real photos", desc)
 	}
 }
 
