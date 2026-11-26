@@ -3,6 +3,8 @@
   import { onMount } from 'svelte'
   import ShopCart from '@/components/ShopCart.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
+  import PixEletroMark from '@/components/PixEletroMark.svelte'
+  import { shopBadgeClass } from '@/lib/shopBadge.js'
   import {
     applyShopThemeToDocument,
     getShopTheme,
@@ -63,7 +65,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=11'
+      link.href = '/static/css/shop.css?v=16'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -176,11 +178,11 @@
   {#if og.image || product.thumbUrl || photos[0]?.url}
     <meta name="twitter:image" content={og.image || product.thumbUrl || photos[0]?.url} />
   {/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=11" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=16" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
-  <div class="shop-banner">Monte o carrinho · 10% OFF no PIX · pedido no WhatsApp</div>
+  <div class="shop-banner">Carrinho · 10% no PIX · pedido no WhatsApp</div>
 
   <header class="shop-header">
     <div class="shop-header-inner" style="min-height:3.5rem">
@@ -189,6 +191,7 @@
         Catálogo
       </a>
       <div style="display:flex;align-items:center;gap:10px">
+        <PixEletroMark size={28} />
         <span class="shop-logo-title" style="font-size:1.15rem">Pix Eletro<span>.</span></span>
         <button
           type="button"
@@ -257,7 +260,7 @@
           {/if}
           {#if product.badge}
             <span
-              class="shop-badge {product.badge === 'DEFEITO' ? 'shop-badge-bad' : 'shop-badge-ok'}"
+              class="shop-badge {shopBadgeClass(product.badge)}"
               style="top:1rem;left:1rem"
             >
               {product.badge}
@@ -306,7 +309,7 @@
       </div>
 
       <div>
-        <p class="shop-brand">{product.brand || 'MONITOR'}</p>
+        <p class="shop-brand">{product.brand || 'Monitor'}</p>
         <h1 class="shop-detail-title">{product.name}</h1>
         <p class="shop-detail-meta">
           {product.condition || 'Usado'} · {product.qtyInStock || 0} em estoque
@@ -316,7 +319,7 @@
           {#if product.pixPrice}
             <div>
               <span class="shop-pix">{product.pixPrice}</span>
-              <span class="shop-pix-tag">PIX · 10% OFF</span>
+              <span class="shop-pix-tag">PIX · 10%</span>
             </div>
             <p class="shop-card-price" style="margin-top:6px">{product.price} no cartão</p>
           {:else}

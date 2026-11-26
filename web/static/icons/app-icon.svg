@@ -1,9 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!--
-    Pix Eletro app icon
-    Monitor glyph adapted from Lucide Icons (ISC): https://lucide.dev/license
-    Brand: black + WhatsApp green #25d366
-  -->
+  <!-- Pix Eletro mark C: 3×3 pixel grid, PIX period bottom-right -->
   <defs>
     <clipPath id="round">
       <rect x="0" y="0" width="512" height="512" rx="112" ry="112"/>
@@ -11,14 +7,16 @@
   </defs>
   <g clip-path="url(#round)">
     <rect width="512" height="512" fill="#000000"/>
-    <!-- green soft ring -->
-    <circle cx="256" cy="256" r="188" fill="#0a0a0a" stroke="#25d366" stroke-width="10"/>
-    <!-- Lucide monitor scaled into center -->
-    <g transform="translate(256 248) scale(14.5) translate(-12 -12)"
-       fill="none" stroke="#25d366" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <rect width="20" height="14" x="2" y="3" rx="2"/>
-      <line x1="8" x2="16" y1="21" y2="21"/>
-      <line x1="12" x2="12" y1="17" y2="21"/>
+    <g fill="none" stroke="#ffffff" stroke-width="10">
+      <rect x="112" y="112" width="80" height="80" rx="16"/>
+      <rect x="216" y="112" width="80" height="80" rx="16"/>
+      <rect x="320" y="112" width="80" height="80" rx="16"/>
+      <rect x="112" y="216" width="80" height="80" rx="16"/>
+      <rect x="216" y="216" width="80" height="80" rx="16"/>
+      <rect x="320" y="216" width="80" height="80" rx="16"/>
+      <rect x="112" y="320" width="80" height="80" rx="16"/>
+      <rect x="216" y="320" width="80" height="80" rx="16"/>
     </g>
+    <rect x="320" y="320" width="80" height="80" rx="16" fill="#25d366"/>
   </g>
 </svg>

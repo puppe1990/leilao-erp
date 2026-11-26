@@ -18,8 +18,6 @@
   --shop-btn-secondary-border: #404040;
   --shop-btn-secondary-hover: #404040;
   --shop-float-body: #000;
-  --shop-float-head-from: #059669;
-  --shop-float-head-to: #0d9488;
   --shop-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
   min-height: 100vh;
   background: var(--shop-bg) !important;
@@ -52,8 +50,6 @@
   --shop-btn-secondary-border: #e5e7eb;
   --shop-btn-secondary-hover: #e5e7eb;
   --shop-float-body: #ffffff;
-  --shop-float-head-from: #16a34a;
-  --shop-float-head-to: #0d9488;
   --shop-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
 }
 .shop.shop-light .shop-banner {
@@ -66,6 +62,7 @@
   color: #9ca3af;
 }
 .shop.shop-light .shop-logo-title,
+.shop.shop-light .shop-wordmark,
 .shop.shop-light .shop-card-title,
 .shop.shop-light .shop-main-head h2,
 .shop.shop-light .shop-hero h1,
@@ -129,12 +126,11 @@
   transition:
     background 0.15s,
     border-color 0.15s,
-    transform 0.15s;
+    color 0.15s;
 }
 .shop-theme-btn:hover {
   border-color: var(--shop-green);
   color: var(--shop-green);
-  transform: scale(1.04);
 }
 .shop-theme-btn .material-symbols-outlined {
   font-size: 20px;
@@ -151,10 +147,8 @@
   color: #000;
   text-align: center;
   font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 6px 16px;
+  font-weight: 500;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,23 +179,27 @@
   flex-shrink: 0;
 }
 .shop-logo-mark {
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  background: var(--shop-panel);
-  border: 1px solid var(--shop-border);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--shop-green);
+  color: var(--shop-text);
 }
-.shop-logo-title {
-  font-weight: 900;
+.shop-logo-title,
+.shop-wordmark {
+  font-weight: 600;
   font-size: 1.5rem;
-  letter-spacing: -0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--shop-text);
   line-height: 1;
+}
+.shop-wordmark {
+  font-size: inherit;
 }
 .shop-logo-title span {
   color: var(--shop-green);
@@ -209,19 +207,15 @@
 .shop-pill {
   font-size: 10px;
   padding: 2px 10px;
-  border-radius: 9999px;
+  border-radius: 8px;
   background: var(--shop-green);
   color: #000;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 500;
 }
 .shop-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--shop-dim);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 400;
   margin-top: 4px;
 }
 .shop-search {
@@ -234,12 +228,10 @@
   background: var(--shop-input-bg);
   border: 1px solid var(--shop-border);
   color: var(--shop-text);
-  border-radius: 9999px;
+  border-radius: 10px;
   padding: 0.65rem 1rem 0.65rem 2.5rem;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 14px;
+  font-weight: 400;
   outline: none;
 }
 .shop-search input:focus {
@@ -263,18 +255,13 @@
   gap: 0.5rem;
   background: var(--shop-green);
   color: #000 !important;
-  font-weight: 900;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  font-size: 13px;
   padding: 0.65rem 1.1rem;
-  border-radius: 9999px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.25);
-  transition:
-    background 0.15s,
-    transform 0.15s;
+  transition: background 0.15s;
 }
 .shop-btn-wa:hover {
   background: var(--shop-green-hover);
@@ -285,12 +272,10 @@
   gap: 0.5rem;
   background: var(--shop-panel);
   color: var(--shop-text) !important;
-  font-weight: 900;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  font-size: 13px;
   padding: 0.65rem 1.1rem;
-  border-radius: 9999px;
+  border-radius: 10px;
   border: 1px solid var(--shop-border);
   cursor: pointer;
 }
@@ -305,21 +290,17 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 0.9rem;
-  border-radius: 9999px;
+  border-radius: 8px;
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
   color: var(--shop-green);
   font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-weight: 500;
   margin-bottom: 1.25rem;
 }
 .shop-hero h1 {
   font-size: clamp(1.75rem, 5vw, 3.5rem);
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.04em;
+  font-weight: 500;
   line-height: 0.95;
   color: var(--shop-text);
   margin: 0 0 1rem;
@@ -333,8 +314,6 @@
   color: var(--shop-muted);
   font-size: 0.9rem;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   line-height: 1.5;
   max-width: 36rem;
   margin: 0 0 1.5rem;
@@ -372,15 +351,12 @@
 .shop-prop strong {
   display: block;
   font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
   color: var(--shop-text);
 }
 .shop-prop span {
   font-size: 10px;
   color: var(--shop-dim);
-  text-transform: uppercase;
 }
 .shop-cats {
   position: sticky;
@@ -403,11 +379,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 1.1rem;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
   border: 1px solid var(--shop-border);
   background: var(--shop-panel);
@@ -418,14 +392,13 @@
   background: var(--shop-green);
   color: #000;
   border-color: var(--shop-green);
-  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.2);
 }
 .shop-cat-count {
-  font-size: 9px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 400;
   font-family: ui-monospace, monospace;
-  padding: 2px 7px;
-  border-radius: 9999px;
+  padding: 2px 6px;
+  border-radius: 6px;
   background: var(--shop-btn-secondary);
   color: var(--shop-muted);
 }
@@ -449,10 +422,8 @@
   border-bottom: 1px solid var(--shop-border);
 }
 .shop-main-head h2 {
-  font-size: clamp(1.4rem, 3vw, 1.9rem);
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: 500;
   color: var(--shop-text);
   display: flex;
   flex-wrap: wrap;
@@ -461,14 +432,13 @@
   margin: 0;
 }
 .shop-count {
-  font-size: 11px;
-  background: var(--shop-green);
-  color: #000;
-  font-weight: 900;
+  font-size: 12px;
+  background: transparent;
+  color: var(--shop-dim);
+  font-weight: 400;
   font-family: ui-monospace, monospace;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  letter-spacing: 0.06em;
+  padding: 0;
+  border-radius: 0;
 }
 .shop-sort {
   display: flex;
@@ -476,19 +446,17 @@
   gap: 0.5rem;
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 9999px;
+  border-radius: 10px;
   padding: 0.45rem 1rem;
   color: var(--shop-muted);
-  font-size: 11px;
+  font-size: 13px;
 }
 .shop-sort select {
   background: transparent;
   color: var(--shop-text);
   border: none;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 11px;
+  font-weight: 500;
+  font-size: 13px;
   outline: none;
   cursor: pointer;
 }
@@ -519,7 +487,7 @@
 .shop-card {
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -544,16 +512,13 @@
   object-fit: contain; /* full product, no weird crop while loading */
   object-position: center;
   opacity: 0;
-  transition:
-    transform 0.35s ease,
-    opacity 0.3s ease;
+  transition: opacity 0.3s ease;
   background: var(--shop-panel-2);
 }
 .shop-card-media img.is-loaded {
   opacity: 1;
 }
 .shop-card:hover .shop-card-media img.is-loaded {
-  transform: scale(1.03);
 }
 .shop.shop-light .shop-card-media img {
   background: #f3f4f6;
@@ -562,17 +527,22 @@
   position: absolute;
   top: 0.75rem;
   left: 0.75rem;
-  font-size: 9px;
-  font-weight: 900;
-  padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
   z-index: 2;
+  text-transform: capitalize;
 }
 .shop-badge-ok {
-  background: var(--shop-green);
-  color: #000;
+  background: var(--shop-panel);
+  color: var(--shop-muted);
+  border: 1px solid var(--shop-border);
+}
+.shop-badge-ready {
+  background: #e4c15a;
+  color: #1a1408;
+  border: 1px solid transparent;
 }
 .shop-badge-bad {
   background: var(--shop-rose);
@@ -588,9 +558,9 @@
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 500;
   padding: 0.25rem 0.5rem;
-  border-radius: 9999px;
+  border-radius: 6px;
   border: 1px solid #404040;
 }
 .shop-card-body {
@@ -601,20 +571,17 @@
   flex: 1;
 }
 .shop-brand {
-  font-size: 9px;
-  font-weight: 900;
-  color: var(--shop-green);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--shop-dim);
   font-family: ui-monospace, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .shop-card-title {
-  font-size: 0.8rem;
-  font-weight: 900;
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--shop-text);
-  text-transform: uppercase;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -627,24 +594,24 @@
   margin-top: auto;
   background: var(--shop-price-bg);
   border: 1px solid var(--shop-border);
-  border-radius: 1rem;
+  border-radius: 8px;
   padding: 0.75rem;
 }
 .shop-pix {
   font-size: 1.25rem;
-  font-weight: 900;
+  font-weight: 600;
   color: var(--shop-green);
   font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
 .shop-pix-tag {
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 500;
   color: var(--shop-green);
   background: rgba(37, 211, 102, 0.12);
   border: 1px solid rgba(37, 211, 102, 0.25);
   padding: 2px 6px;
-  border-radius: 9999px;
-  text-transform: uppercase;
+  border-radius: 6px;
   margin-left: 0.35rem;
   vertical-align: middle;
 }
@@ -676,7 +643,7 @@
 .shop-empty {
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   padding: 3rem 1.5rem;
   text-align: center;
   max-width: 24rem;
@@ -685,8 +652,7 @@
 }
 .shop-empty h3 {
   color: var(--shop-text);
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 500;
   margin: 0.75rem 0;
 }
 .shop-footer {
@@ -717,25 +683,27 @@
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 9999px;
-  background: var(--shop-green);
-  color: #000;
+  background: var(--shop-panel);
+  color: var(--shop-muted);
+  border: 1px solid var(--shop-border);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
+.shop-footer-prop .ico-quiet {
+  background: var(--shop-panel);
+  color: var(--shop-muted);
+}
 .shop-footer-prop h4 {
   margin: 0;
   color: var(--shop-text);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 500;
 }
 .shop-footer-prop p {
   margin: 0.35rem 0 0;
   font-size: 11px;
-  text-transform: uppercase;
   line-height: 1.45;
   color: var(--shop-muted);
 }
@@ -751,7 +719,6 @@
   color: var(--shop-dim);
   font-size: 11px;
   font-family: ui-monospace, monospace;
-  text-transform: uppercase;
 }
 .shop-float {
   position: fixed;
@@ -767,12 +734,12 @@
   width: 20rem;
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: var(--shop-shadow);
 }
 .shop-float-head {
-  background: linear-gradient(90deg, var(--shop-float-head-from), var(--shop-float-head-to));
+  background: var(--shop-green);
   padding: 1rem;
   display: flex;
   justify-content: space-between;
@@ -781,7 +748,7 @@
 .shop-float-head h3 {
   margin: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   color: #fff;
 }
 .shop-float-head p {
@@ -819,14 +786,12 @@
   color: #000;
   border: none;
   cursor: pointer;
-  box-shadow: 0 12px 32px rgba(37, 211, 102, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .shop-float-btn:hover {
   background: var(--shop-green-hover);
-  transform: scale(1.06);
 }
 .shop-warn {
   margin-bottom: 1.25rem;
@@ -836,9 +801,7 @@
   border-radius: 1rem;
   padding: 0.75rem 1rem;
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 500;
 }
 /* Detail page */
 .shop-detail {
@@ -867,7 +830,7 @@
   max-width: 100%;
   background: var(--shop-panel-2);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   overflow: hidden;
   position: relative;
 }
@@ -965,8 +928,7 @@
 }
 .shop-lightbox-count {
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 500;
   color: rgba(255, 255, 255, 0.75);
 }
 .shop-lightbox-close {
@@ -1128,7 +1090,6 @@
 .shop-thumbs button.is-on {
   border-color: var(--shop-green);
   opacity: 1;
-  transform: scale(1.05);
 }
 .shop-thumbs button.is-video {
   border-style: dashed;
@@ -1174,11 +1135,9 @@
 }
 .shop-detail-title {
   font-size: 1.35rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: -0.02em;
+  font-weight: 500;
   color: var(--shop-text);
-  line-height: 1.2;
+  line-height: 1.25;
   margin: 0.35rem 0 0.5rem;
 }
 .shop-detail-meta {
@@ -1189,7 +1148,7 @@
 .shop-detail-price {
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
 }
@@ -1211,28 +1170,24 @@
 .shop-spec dt {
   font-size: 10px;
   color: var(--shop-dim);
-  text-transform: uppercase;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-weight: 500;
 }
 .shop-spec dd {
   margin: 0.25rem 0 0;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--shop-text);
 }
 .shop-desc {
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   padding: 1.25rem;
   margin-bottom: 1.25rem;
 }
 .shop-desc h2 {
   margin: 0 0 0.5rem;
   font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-weight: 500;
   color: var(--shop-text);
 }
 .shop-desc p {
@@ -1248,13 +1203,10 @@
   text-align: center;
   background: var(--shop-green);
   color: #000 !important;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.8rem;
+  font-weight: 500;
+  font-size: 0.875rem;
   padding: 1rem;
-  border-radius: 9999px;
-  box-shadow: 0 12px 28px rgba(37, 211, 102, 0.3);
+  border-radius: 10px;
 }
 .shop-cta:hover {
   background: var(--shop-green-hover);
@@ -1316,7 +1268,7 @@
   background: var(--shop-green);
   color: #000;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1386,9 +1338,7 @@
 .shop-cart-head h2 {
   margin: 0;
   font-size: 1rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
   color: var(--shop-text);
 }
 .shop-cart-head p {
@@ -1424,7 +1374,7 @@
 }
 .shop-cart-empty p {
   margin: 0.75rem 0 0;
-  font-weight: 700;
+  font-weight: 500;
 }
 .shop-cart-empty-hint {
   font-size: 12px !important;
@@ -1475,7 +1425,7 @@
 }
 .shop-cart-line-name {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
   color: var(--shop-text);
   line-height: 1.3;
   display: -webkit-box;
@@ -1491,15 +1441,14 @@
   gap: 0.35rem;
 }
 .shop-cart-pix {
-  font-weight: 900;
+  font-weight: 600;
   color: var(--shop-green);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 .shop-cart-pix-tag {
   font-size: 9px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
   color: var(--shop-dim);
 }
 .shop-cart-qty {
@@ -1515,7 +1464,7 @@
   border: 1px solid var(--shop-border);
   background: var(--shop-panel);
   color: var(--shop-text);
-  font-weight: 900;
+  font-weight: 500;
   cursor: pointer;
   line-height: 1;
 }
@@ -1526,7 +1475,7 @@
 .shop-cart-qty span {
   min-width: 1.25rem;
   text-align: center;
-  font-weight: 800;
+  font-weight: 500;
   font-size: 13px;
   color: var(--shop-text);
 }
@@ -1538,8 +1487,6 @@
   color: var(--shop-dim) !important;
   font-size: 11px !important;
   font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   padding: 0 0.25rem !important;
 }
 .shop-cart-remove:hover {
@@ -1568,8 +1515,9 @@
 }
 .shop-cart-totals strong {
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 600;
   color: var(--shop-green);
+  font-variant-numeric: tabular-nums;
 }
 .shop-cart-totals-muted {
   color: var(--shop-muted) !important;
@@ -1579,17 +1527,15 @@
   width: 100%;
   justify-content: center;
   padding: 0.9rem 1rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
 }
 .shop-cart-clear {
   background: transparent;
   border: 0;
   color: var(--shop-dim);
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
   cursor: pointer;
   padding: 0.35rem;
 }
@@ -1612,9 +1558,9 @@
   border: 1px solid #25d366;
   color: #fff;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
   padding: 0.65rem 1.1rem;
-  border-radius: 9999px;
+  border-radius: 10px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
   pointer-events: none;
   font-family:
@@ -1629,9 +1575,7 @@
   gap: 0.35rem;
   color: #d4d4d4 !important;
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
 }
 .shop-back:hover {
   color: #fff !important;
@@ -1643,9 +1587,7 @@
   padding: 1rem;
   margin-top: 0.75rem;
   font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 500;
   color: var(--shop-muted);
   display: flex;
   flex-direction: column;
@@ -1657,7 +1599,7 @@
   gap: 0.6rem;
 }
 .shop-assurances .material-symbols-outlined {
-  color: var(--shop-green);
+  color: var(--shop-muted);
   font-size: 18px;
 }
 @media (max-width: 767px) {
@@ -1701,7 +1643,7 @@
   gap: 1.25rem;
   background: var(--shop-panel);
   border: 1px solid var(--shop-border);
-  border-radius: 1.5rem;
+  border-radius: 16px;
   overflow: hidden;
   padding: 1rem;
 }
@@ -1735,8 +1677,7 @@
 }
 .shop-lot-copy h2 {
   font-size: 1.35rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
+  font-weight: 500;
   margin: 0.35rem 0 0.5rem;
   color: var(--shop-text);
 }
@@ -1774,9 +1715,7 @@
   margin-top: 0.75rem !important;
   font-size: 11px !important;
   color: var(--shop-dim) !important;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
 }
 .shop-lot-thumbs {
   display: grid;
@@ -1797,7 +1736,7 @@
 }
 .shop-lot-units h2 {
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 500;
   margin: 0 0 0.75rem;
   color: var(--shop-text);
 }
@@ -1846,11 +1785,28 @@
 .shop-lot-unit strong {
   display: block;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 500;
   color: var(--shop-text);
 }
 .shop-lot-unit span {
   font-size: 11px;
   color: var(--shop-dim);
   font-family: ui-monospace, monospace;
+}
+
+.shop-card-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shop-card-qty {
+  font-size: 11px;
+  font-weight: 400;
+  font-family: ui-monospace, monospace;
+  color: var(--shop-dim);
+  font-variant-numeric: tabular-nums;
+}
+.shop-wordmark span {
+  color: var(--shop-green);
 }

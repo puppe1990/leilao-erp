@@ -129,7 +129,7 @@
         {#if items.length === 0}
           <div class="shop-cart-empty">
             <span class="material-symbols-outlined">shopping_bag</span>
-            <p>Seu carrinho está vazio.</p>
+            <p>Carrinho vazio</p>
             <p class="shop-cart-empty-hint">Toque em “Adicionar” nos monitores do catálogo.</p>
           </div>
         {:else}
