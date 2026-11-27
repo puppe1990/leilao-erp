@@ -401,13 +401,23 @@ type LotListItem struct {
 	Status         string
 	TotalCostCents int64
 	ItemCount      int
+	// FirstPhotoURL is the first photo among the lot's item products (sort_order, id).
+	FirstPhotoURL string
 }
 
 func (s *SQLiteStore) ListLots() ([]LotListItem, error) {
 	rows, err := s.db.Query(
 		`SELECT l.id, l.name, l.purchased_at, l.status,
 		        COALESCE((SELECT SUM(pc.amount_cents) FROM purchase_costs pc WHERE pc.lot_id = l.id), 0),
-		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.lot_id = l.id), 0)
+		        COALESCE((SELECT COUNT(*) FROM items i WHERE i.lot_id = l.id), 0),
+		        COALESCE((
+		          SELECT m.url
+		          FROM items i
+		          JOIN product_media m ON m.product_id = i.product_id AND m.kind = 'photo'
+		          WHERE i.lot_id = l.id
+		          ORDER BY i.id, m.sort_order, m.id
+		          LIMIT 1
+		        ), '')
 		 FROM lots l
 		 ORDER BY l.id DESC`,
 	)
@@ -421,7 +431,7 @@ func (s *SQLiteStore) ListLots() ([]LotListItem, error) {
 		var row LotListItem
 		if err := rows.Scan(
 			&row.ID, &row.Name, &row.PurchasedAt, &row.Status,
-			&row.TotalCostCents, &row.ItemCount,
+			&row.TotalCostCents, &row.ItemCount, &row.FirstPhotoURL,
 		); err != nil {
 			return nil, fmt.Errorf("scan lot: %w", err)
 		}

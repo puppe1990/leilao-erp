@@ -16,4 +16,10 @@ describe('Lots Index table', () => {
     expect(page).toMatch(/Limpar filtros/)
     expect(page).not.toMatch(/lot-card/)
   })
+
+  it('mostra a miniatura da primeira foto do lote quando existir', () => {
+    expect(page).toMatch(/lot\.thumbUrl/)
+    expect(page).toMatch(/<img/)
+    expect(page).toMatch(/loading="lazy"/)
+  })
 })

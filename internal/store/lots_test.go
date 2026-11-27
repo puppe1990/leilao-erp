@@ -372,3 +372,54 @@ func TestAddPurchaseCost_Unpaid(t *testing.T) {
 		t.Fatalf("balance=%d want 0 (no cash movement)", bal)
 	}
 }
+
+func TestListLots_FirstPhotoURL(t *testing.T) {
+	st := newTestStore(t)
+
+	lotID, err := st.CreateLotPurchase(CreateLotInput{
+		Name:        "Monitores — leilão Jul/2026",
+		PurchasedAt: "2026-07-20",
+		ItemTitle:   "Monitor",
+		ItemQty:     2,
+		Costs:       []CostInput{{Label: "Arremate", AmountCents: 1200}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	productID, err := st.EnsureProductByName("Monitor", "principal", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AddProductMedia(productID, ProductMediaInput{
+		Kind: "photo", URL: "/static/uploads/products/9/front.jpg", SortOrder: 1,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.AddProductMedia(productID, ProductMediaInput{
+		Kind: "photo", URL: "/static/uploads/products/9/label.jpg", SortOrder: 0,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	lots, err := st.ListLots()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lots) != 1 || lots[0].ID != lotID {
+		t.Fatalf("lots = %+v", lots)
+	}
+	if lots[0].FirstPhotoURL != "/static/uploads/products/9/label.jpg" {
+		t.Fatalf("FirstPhotoURL = %q, want first by sort_order", lots[0].FirstPhotoURL)
+	}
+
+	if _, err := st.db.Exec(`DELETE FROM product_media WHERE product_id = ?`, productID); err != nil {
+		t.Fatal(err)
+	}
+	lots, err = st.ListLots()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lots[0].FirstPhotoURL != "" {
+		t.Fatalf("FirstPhotoURL = %q, want empty without photos", lots[0].FirstPhotoURL)
+	}
+}

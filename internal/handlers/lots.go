@@ -45,6 +45,7 @@ func (h *LotsHandler) Index(w http.ResponseWriter, r *http.Request) {
 			"totalCost":      domain.FormatBRL(lot.TotalCostCents),
 			"totalCostCents": lot.TotalCostCents,
 			"itemCount":      lot.ItemCount,
+			"thumbUrl":       domain.CatalogThumbURL(lot.FirstPhotoURL),
 		})
 	}
 
