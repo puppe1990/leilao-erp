@@ -193,6 +193,11 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}
 	company := companyName(h.store)
 
+	showQty, err := h.store.ShopShowQty()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	lotOffer, err := h.loadLotOffer(phone)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -225,6 +230,7 @@ func (h *ShopHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"companyName":    company,
 		"products":       rows,
 		"lotOffer":       lotOffer,
+		"shopShowQty":    showQty,
 		"whatsappSet":    domain.NormalizeWhatsAppPhone(phone) != "",
 		"whatsappHint":   phone,
 		"whatsappDigits": domain.NormalizeWhatsAppPhone(phone),
@@ -282,6 +288,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, slug string) 
 	}
 
 	phone, _ := h.store.WhatsAppPhone()
+	showQty, _ := h.store.ShopShowQty()
 	company := companyName(h.store)
 	row := shopProductRow(p, phone)
 	row["photos"] = photos
@@ -333,6 +340,7 @@ func (h *ShopHandler) Show(w http.ResponseWriter, r *http.Request, slug string) 
 		"site":           meta.ForRequest(h.site, r),
 		"companyName":    company,
 		"product":        row,
+		"shopShowQty":    showQty,
 		"whatsappSet":    domain.NormalizeWhatsAppPhone(phone) != "",
 		"whatsappDigits": domain.NormalizeWhatsAppPhone(phone),
 		"og": map[string]any{

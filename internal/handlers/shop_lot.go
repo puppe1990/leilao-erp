@@ -135,6 +135,7 @@ func (h *ShopHandler) Lot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	company := companyName(h.store)
+	showQty, _ := h.store.ShopShowQty()
 	title := fmt.Sprintf("%s — %s", row["name"], company)
 	desc, _ := row["description"].(string)
 	base := h.baseURL(r)
@@ -155,6 +156,7 @@ func (h *ShopHandler) Lot(w http.ResponseWriter, r *http.Request) {
 		"site":           meta.ForRequest(h.site, r),
 		"companyName":    company,
 		"lotOffer":       row,
+		"shopShowQty":    showQty,
 		"whatsappSet":    domain.NormalizeWhatsAppPhone(phone) != "",
 		"whatsappDigits": domain.NormalizeWhatsAppPhone(phone),
 		"og": map[string]any{

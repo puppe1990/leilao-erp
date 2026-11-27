@@ -16,6 +16,7 @@
 
   export let products = []
   export let lotOffer = null
+  export let shopShowQty = true
   export let companyName = 'Pix Eletro'
   export let whatsappSet = false
   export let whatsappDigits = ''
@@ -198,7 +199,7 @@
     </div>
   </header>
 
-  <ShopLotBanner {lotOffer} onAdd={addToCart} />
+  <ShopLotBanner {lotOffer} showQty={shopShowQty} onAdd={addToCart} />
 
   <div class="shop-cats">
     <div class="shop-cats-inner">
@@ -299,9 +300,11 @@
             <div class="shop-card-body">
               <div class="shop-card-meta">
                 <span class="shop-brand">{p.brand || 'Monitor'}</span>
-                <span class="shop-card-qty"
-                  >{p.isLot ? `${p.qty || 0} un.` : `${p.qtyInStock || 0} un.`}</span
-                >
+                {#if shopShowQty}
+                  <span class="shop-card-qty"
+                    >{p.isLot ? `${p.qty || 0} un.` : `${p.qtyInStock || 0} un.`}</span
+                  >
+                {/if}
               </div>
               <a href={p.href || `/produto/${p.slug || p.id}`} use:inertia class="shop-card-title"
                 >{p.name}</a

@@ -134,5 +134,6 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Post("/config/company", middleware.RequireAuthFunc("/login", configH.UpdateCompany))
 	r.Post("/config/whatsapp", middleware.RequireAuthFunc("/login", configH.UpdateWhatsApp))
 	r.Post("/config/shop-lot", middleware.RequireAuthFunc("/login", configH.UpdateShopLot))
+	r.Post("/config/shop-qty", middleware.RequireAuthFunc("/login", configH.UpdateShopShowQty))
 	r.Post("/config/password", middleware.RequireAuthFunc("/login", configH.UpdatePassword))
 }

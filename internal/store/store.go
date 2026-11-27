@@ -43,6 +43,8 @@ type Store interface {
 	SetWhatsAppPhone(phone string) error
 	ShopLotEnabled() (bool, error)
 	SetShopLotEnabled(enabled bool) error
+	ShopShowQty() (bool, error)
+	SetShopShowQty(enabled bool) error
 
 	// Finance / lots
 	InsertCashAccount(name, kind string, openingBalanceCents int64) (int64, error)

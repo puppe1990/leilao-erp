@@ -9,6 +9,7 @@
   export let companyCnpj = ''
   export let whatsappPhone = ''
   export let shopLotEnabled = true
+  export let shopShowQty = true
   export let shopURL = '/'
   export let errors = {}
   export let flash = ''
@@ -28,6 +29,11 @@
   })
   let lotOn = !!shopLotEnabled
 
+  let shopQty = useForm({
+    shop_show_qty: shopShowQty ? '1' : '0',
+  })
+  let qtyOn = !!shopShowQty
+
   let password = useForm({
     current_password: '',
     new_password: '',
@@ -46,6 +52,12 @@
     shopLot
       .transform(() => ({ shop_lot_enabled: lotOn ? '1' : '0' }))
       .post('/config/shop-lot')
+  }
+
+  function saveShopQty() {
+    shopQty
+      .transform(() => ({ shop_show_qty: qtyOn ? '1' : '0' }))
+      .post('/config/shop-qty')
   }
 
   function savePassword() {
@@ -138,6 +150,27 @@
       </div>
       <button type="submit" class="ahq-btn-primary" disabled={whatsapp.processing}>
         Salvar WhatsApp
+      </button>
+    </form>
+  </section>
+
+  <section class="ahq-card p-5 mb-section-padding">
+    <h2 class="font-headline-md text-headline-md text-primary mb-1">Quantidade no catálogo</h2>
+    <p class="text-on-surface-variant text-sm mb-4">
+      Cada card e a ficha podem mostrar quantas unidades restam (ex.: 12 un.).
+    </p>
+    <form on:submit|preventDefault={saveShopQty} class="space-y-4">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" class="mt-1 h-4 w-4 accent-primary" bind:checked={qtyOn} />
+        <span>
+          <span class="block text-sm font-medium text-primary">Mostrar quantidade no catálogo</span>
+          <span class="block text-[11px] text-on-surface-variant mt-0.5">
+            Desmarque para não expor o estoque no card nem na ficha do produto.
+          </span>
+        </span>
+      </label>
+      <button type="submit" class="ahq-btn-primary" disabled={shopQty.processing}>
+        Salvar quantidade
       </button>
     </form>
   </section>

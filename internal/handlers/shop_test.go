@@ -75,6 +75,9 @@ func TestShopHandler_Index_PublicOK(t *testing.T) {
 	assertInertiaComponent(t, rr, "Shop/Index")
 	assertInertiaProp(t, rr, "products")
 	assertInertiaProp(t, rr, "whatsappSet")
+	if got := fmt.Sprint(assertInertiaProp(t, rr, "shopShowQty")); got != "true" {
+		t.Fatalf("shopShowQty=%s want true", got)
+	}
 	if !strings.Contains(rr.Body.String(), slug) {
 		t.Fatalf("expected slug %q in index payload", slug)
 	}
@@ -115,6 +118,9 @@ func TestShopHandler_Show_OK(t *testing.T) {
 	}
 	assertInertiaComponent(t, rr, "Shop/Show")
 	assertInertiaProp(t, rr, "product")
+	if got := fmt.Sprint(assertInertiaProp(t, rr, "shopShowQty")); got != "true" {
+		t.Fatalf("shopShowQty=%s want true", got)
+	}
 }
 
 func TestShopHandler_Show_IDRedirectsToSlug(t *testing.T) {
@@ -320,6 +326,9 @@ func TestShopHandler_Show_LotSlug_OK(t *testing.T) {
 		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
 	}
 	assertInertiaComponent(t, rr, "Shop/Lot")
+	if got := fmt.Sprint(assertInertiaProp(t, rr, "shopShowQty")); got != "true" {
+		t.Fatalf("shopShowQty=%s want true", got)
+	}
 	offer := assertInertiaProp(t, rr, "lotOffer")
 	m, ok := offer.(map[string]any)
 	if !ok {
@@ -335,6 +344,23 @@ func TestShopHandler_Show_LotSlug_OK(t *testing.T) {
 	}
 	if len(videos) < 1 {
 		t.Fatalf("want videos, got %v", m["videos"])
+	}
+}
+
+func TestShopHandler_Index_shopShowQtyOff(t *testing.T) {
+	h, s := newShopHandler(t)
+	seedShopProduct(t, s)
+	if err := s.SetShopShowQty(false); err != nil {
+		t.Fatal(err)
+	}
+	req := inertiaRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	if got := fmt.Sprint(assertInertiaProp(t, rr, "shopShowQty")); got != "false" {
+		t.Fatalf("shopShowQty=%s want false", got)
 	}
 }
 
