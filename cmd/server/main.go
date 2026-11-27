@@ -12,6 +12,7 @@ import (
 	inertia "github.com/romsar/gonertia/v3"
 
 	"github.com/puppe1990/leilao-erp/internal/app"
+	"github.com/puppe1990/leilao-erp/internal/b2"
 	appi18n "github.com/puppe1990/leilao-erp/internal/i18n"
 	"github.com/puppe1990/leilao-erp/internal/store"
 	"github.com/puppe1990/leilao-erp/web"
@@ -77,6 +78,12 @@ func bootstrapWithConfig(cfg cais.Config) (*app.App, error) {
 	}
 	uploadsDir := app.ResolveUploadsDir(os.Getenv("UPLOADS_DIR"), cfg.DBPath, staticDir)
 
+	objectStore, err := b2.FromEnv()
+	if err != nil {
+		_ = s.Close()
+		return nil, fmt.Errorf("b2: %w", err)
+	}
+
 	inertiaI, err := inertia.NewFromFileFS(tmplFS, "app.html")
 	if err != nil {
 		_ = s.Close()
@@ -84,12 +91,13 @@ func bootstrapWithConfig(cfg cais.Config) (*app.App, error) {
 	}
 
 	return app.New(cfg, app.Deps{
-		Renderer:   renderer,
-		Store:      s,
-		StaticDir:  staticDir,
-		UploadsDir: uploadsDir,
-		Site:       meta.SiteFrom("leilao-erp", cfg.AppURL),
-		Catalog:    catalog,
-		Inertia:    inertiaI,
+		Renderer:    renderer,
+		Store:       s,
+		StaticDir:   staticDir,
+		UploadsDir:  uploadsDir,
+		ObjectStore: objectStore,
+		Site:        meta.SiteFrom("leilao-erp", cfg.AppURL),
+		Catalog:     catalog,
+		Inertia:     inertiaI,
 	})
 }
