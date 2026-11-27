@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -144,9 +145,13 @@ func TestClient_PutRejectsBadAuth(t *testing.T) {
 
 type fakeB2Server struct {
 	*httptest.Server
-	files         map[string]storedFile
-	lastUpload    storedFile
-	deletedFileID string
+	files          map[string]storedFile
+	lastUpload     storedFile
+	deletedFileID  string
+	failUploads    int // 503 "no tomes available" responses before succeeding
+	rejectStatus   int // when > 0, every upload fails with this HTTP status
+	uploadURLCalls int
+	uploadCalls    int
 }
 
 type storedFile struct {
@@ -176,6 +181,7 @@ func fakeB2(t *testing.T) *fakeB2Server {
 		})
 	})
 	mux.HandleFunc("/b2api/v2/b2_get_upload_url", func(w http.ResponseWriter, r *http.Request) {
+		s.uploadURLCalls++
 		if r.Header.Get("Authorization") != "token-1" {
 			http.Error(w, `{"code":"unauthorized"}`, http.StatusUnauthorized)
 			return
@@ -186,6 +192,18 @@ func fakeB2(t *testing.T) *fakeB2Server {
 		})
 	})
 	mux.HandleFunc("/b2upload", func(w http.ResponseWriter, r *http.Request) {
+		s.uploadCalls++
+		if s.rejectStatus > 0 {
+			w.WriteHeader(s.rejectStatus)
+			_, _ = w.Write([]byte(`{"code":"bad_request","message":"nope"}`))
+			return
+		}
+		if s.failUploads > 0 {
+			s.failUploads--
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"code":"service_unavailable","message":"no tomes available","status":503}`))
+			return
+		}
 		if r.Header.Get("Authorization") != "upload-token" {
 			http.Error(w, `{"code":"unauthorized"}`, http.StatusUnauthorized)
 			return
@@ -232,4 +250,61 @@ func fakeB2(t *testing.T) *fakeB2Server {
 	s.Server = httptest.NewServer(mux)
 	t.Cleanup(s.Close)
 	return s
+}
+
+func TestClient_PutRetriesServiceUnavailableWithFreshUploadURL(t *testing.T) {
+	srv := fakeB2(t)
+	srv.failUploads = 1
+	client := New(Config{
+		KeyID: "key-id", AppKey: "key-secret", Bucket: "eletronicos-phoenix",
+		Endpoint: srv.URL, PublicBase: srv.URL + "/file/eletronicos-phoenix",
+		HTTP: srv.Client(),
+	})
+
+	url, err := client.Put(context.Background(), "products/1/a.jpg", []byte{0xff, 0xd8}, "image/jpeg")
+	if err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+	if want := srv.URL + "/file/eletronicos-phoenix/products/1/a.jpg"; url != want {
+		t.Errorf("URL = %q, want %q", url, want)
+	}
+	if srv.uploadCalls != 2 {
+		t.Errorf("upload calls = %d, want 2 (one 503 then success)", srv.uploadCalls)
+	}
+	if srv.uploadURLCalls != 2 {
+		t.Errorf("upload URL calls = %d, want 2 (fresh URL per attempt)", srv.uploadURLCalls)
+	}
+}
+
+func TestClient_PutDoesNotRetryClientError(t *testing.T) {
+	srv := fakeB2(t)
+	srv.rejectStatus = http.StatusBadRequest
+	client := New(Config{
+		KeyID: "key-id", AppKey: "key-secret", Bucket: "eletronicos-phoenix",
+		Endpoint: srv.URL, HTTP: srv.Client(),
+	})
+
+	if _, err := client.Put(context.Background(), "products/1/a.jpg", []byte{0xff}, "image/jpeg"); err == nil {
+		t.Fatal("Put must fail on 400")
+	}
+	if srv.uploadCalls != 1 {
+		t.Errorf("upload calls = %d, want 1 (400 is not retryable)", srv.uploadCalls)
+	}
+}
+
+func TestIsRetryableB2Error(t *testing.T) {
+	retryable := []int{http.StatusRequestTimeout, http.StatusTooManyRequests, 500, 502, 503, 504}
+	for _, code := range retryable {
+		if !isRetryableB2Error(&statusError{code: code}) {
+			t.Errorf("status %d should retry", code)
+		}
+	}
+	for _, code := range []int{400, 401, 404, 409} {
+		if isRetryableB2Error(&statusError{code: code}) {
+			t.Errorf("status %d must not retry", code)
+		}
+	}
+	if isRetryableB2Error(errors.New("network down")) {
+		t.Error("plain errors must not retry")
+	}
 }
