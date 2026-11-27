@@ -13,4 +13,14 @@ describe('Finds Ações', () => {
     expect(page).not.toMatch(/>\s*Excluir\s*</)
     expect(page).toMatch(/confirmLabel: 'Descartar'/)
   })
+
+  it('ordena a tabela por margem e colunas empilhadas', () => {
+    expect(page).toMatch(/stackFindSort/)
+    expect(page).toMatch(/sortFinds/)
+    expect(page).toMatch(/loadFindSorts/)
+    expect(page).toMatch(/toggleSort/)
+    expect(page).toMatch(/iconForDir/)
+    expect(page).toMatch(/Limpar ordem/)
+    expect(page).toMatch(/\{#each sorted as row/)
+  })
 })
