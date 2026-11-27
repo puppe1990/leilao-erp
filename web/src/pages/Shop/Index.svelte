@@ -39,7 +39,7 @@
     if (!document.querySelector('link[data-shop-css]')) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
-      link.href = '/static/css/shop.css?v=17'
+      link.href = '/static/css/shop.css?v=18'
       link.setAttribute('data-shop-css', '1')
       document.head.appendChild(link)
     }
@@ -141,7 +141,7 @@
       'Eletro e tech. Fotos reais. Pedido no WhatsApp. 10% OFF no PIX.'}
   />
   {#if og.image}<meta name="twitter:image" content={og.image} />{/if}
-  <link rel="stylesheet" href="/static/css/shop.css?v=17" data-shop-css="1" />
+  <link rel="stylesheet" href="/static/css/shop.css?v=18" data-shop-css="1" />
 </svelte:head>
 
 <div class={rootClass}>
@@ -164,7 +164,7 @@
         <input type="search" bind:value={searchQuery} placeholder="Buscar" />
       </div>
 
-      <div style="display:flex;align-items:center;gap:8px">
+      <div class="shop-header-actions">
         <button
           type="button"
           class="shop-theme-btn"

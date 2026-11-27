@@ -47,6 +47,14 @@ describe('Catálogo da loja', () => {
     expect(page).not.toMatch(/Monitores usados testados/)
   })
 
+  it('no mobile a busca ocupa a linha inteira', () => {
+    expect(page).toMatch(/class="shop-header-actions"/)
+    expect(css).toMatch(/\.shop-search-mobile \{[^}]*flex:\s*1 0 100%/s)
+    expect(css).toMatch(/\.shop-search-mobile \{[^}]*max-width:\s*none/)
+    expect(css).toMatch(/\.shop-header-actions \{[^}]*flex-shrink:\s*0/)
+    expect(css).toMatch(/\.shop-sub \{[^}]*display:\s*none/)
+  })
+
   it('chrome quieto: sentence case, sem pílula Catálogo nem raio no banner', () => {
     expect(page).toMatch(/label: 'Todos'/)
     expect(page).toMatch(/placeholder="Buscar"/)
