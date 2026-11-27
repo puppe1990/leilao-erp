@@ -47,6 +47,12 @@ describe('Admin chrome', () => {
     expect(tailwind).not.toMatch(/fontWeight:\s*["']?(700|800|900)/)
   })
 
+  it('pinta a scrollbar no verde do sistema', () => {
+    expect(css).toMatch(/scrollbar-color:\s*rgb\(var\(--c-green\)\)/)
+    expect(css).toMatch(/::-webkit-scrollbar-thumb/)
+    expect(css).toMatch(/background:\s*rgb\(var\(--c-green\)\)/)
+  })
+
   it('páginas Svelte do admin não caem em AuctionHQ', () => {
     const pages = walkSvelte(resolve(srcRoot, 'pages')).filter((p) => !p.includes('/Shop/'))
     const shell = resolve(srcRoot, 'components/AppShell.svelte')
