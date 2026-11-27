@@ -65,6 +65,34 @@ func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, produ
 	h.inertia.Redirect(w, r, fmt.Sprintf("/products/%d", productID), http.StatusSeeOther)
 }
 
+// ReorderMedia sets the gallery order. First photo is the shop cover.
+func (h *ProductsHandler) ReorderMedia(w http.ResponseWriter, r *http.Request, productID int64) {
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	ids := parseMediaIDList(r)
+	if err := h.store.ReorderProductMedia(productID, ids); err != nil {
+		h.mediaError(w, r, productID, "Não deu para reordenar: "+err.Error())
+		return
+	}
+	h.inertia.Redirect(w, r, fmt.Sprintf("/products/%d", productID), http.StatusSeeOther)
+}
+
+func parseMediaIDList(r *http.Request) []int64 {
+	var out []int64
+	for _, raw := range r.Form["media_ids"] {
+		for _, part := range strings.Split(raw, ",") {
+			id, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+			if err != nil || id <= 0 {
+				continue
+			}
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 // DestroyMedia removes a media row (and local file if under uploads).
 func (h *ProductsHandler) DestroyMedia(w http.ResponseWriter, r *http.Request, productID int64) {
 	mediaID, _ := strconv.ParseInt(r.PathValue("mediaId"), 10, 64)

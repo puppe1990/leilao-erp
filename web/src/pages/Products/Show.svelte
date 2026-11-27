@@ -4,6 +4,7 @@
   import AppShell from '@/components/AppShell.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
+  import { firstPhotoIndex, mediaIds, moveMediaAt, moveMediaItem } from '@/lib/productMediaOrder.js'
 
   export let product = {}
   export let errors = {}
@@ -14,9 +15,12 @@
   let mediaBusy = false
   let lightboxOpen = false
   let lightboxIndex = 0
+  let dragFrom = -1
+  let dropOver = -1
 
   $: mediaList = Array.isArray(product.media) ? product.media : []
   $: lightboxItem = mediaList[lightboxIndex] || null
+  $: coverIndex = firstPhotoIndex(mediaList)
 
   function isVideo(m) {
     return m?.kind === 'video'
@@ -122,6 +126,57 @@
         },
       },
     )
+  }
+
+  function persistMediaOrder(next) {
+    if (mediaBusy) return
+    const ids = mediaIds(next)
+    if (ids.join() === mediaIds(mediaList).join()) return
+    mediaBusy = true
+    router.post(
+      `/products/${product.id}/media/reorder`,
+      { media_ids: ids },
+      {
+        preserveScroll: true,
+        onFinish: () => {
+          mediaBusy = false
+        },
+      },
+    )
+  }
+
+  function moveMedia(index, delta) {
+    persistMediaOrder(moveMediaItem(mediaList, index, delta))
+  }
+
+  function onMediaDragStart(e, i) {
+    if (mediaBusy || e.target.closest('button')) {
+      e.preventDefault()
+      return
+    }
+    dragFrom = i
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(i))
+  }
+
+  function onMediaDragOver(e, i) {
+    if (dragFrom < 0 || dragFrom === i) return
+    e.preventDefault()
+    dropOver = i
+  }
+
+  function onMediaDrop(e, i) {
+    e.preventDefault()
+    const from = dragFrom
+    dragFrom = -1
+    dropOver = -1
+    if (from < 0 || from === i) return
+    persistMediaOrder(moveMediaAt(mediaList, from, i))
+  }
+
+  function onMediaDragEnd() {
+    dragFrom = -1
+    dropOver = -1
   }
 
   async function deleteMedia(m) {
@@ -340,14 +395,32 @@
   </div>
 
   <section class="ahq-card p-4 mt-4 space-y-4">
-    <h2 class="font-semibold text-primary">Fotos e vídeos</h2>
+    <div>
+      <h2 class="font-semibold text-primary">Fotos e vídeos</h2>
+      <p class="text-sm text-on-surface-variant mt-1">
+        A primeira foto vira a capa da loja. Arraste para reordenar.
+      </p>
+    </div>
 
     {#if !mediaList.length}
       <p class="text-sm text-on-surface-variant">Nenhuma mídia ainda.</p>
     {:else}
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {#each mediaList as m, i (m.id)}
-          <li class="flex gap-3 items-start border border-outline-variant rounded-lg p-3">
+          <li
+            class="flex gap-3 items-start border border-outline-variant rounded-lg p-3
+              {dragFrom === i ? 'opacity-50' : ''}
+              {dropOver === i ? 'ring-2 ring-secondary' : ''}"
+            draggable={true}
+            on:dragstart={(e) => onMediaDragStart(e, i)}
+            on:dragover={(e) => onMediaDragOver(e, i)}
+            on:drop={(e) => onMediaDrop(e, i)}
+            on:dragend={onMediaDragEnd}
+          >
+            <span
+              class="material-symbols-outlined text-[20px] text-on-surface-variant shrink-0 mt-6 cursor-grab"
+              aria-hidden="true">drag_indicator</span
+            >
             <button
               type="button"
               class="w-24 h-20 shrink-0 rounded bg-surface-container flex items-center justify-center overflow-hidden
@@ -363,9 +436,37 @@
               {/if}
             </button>
             <div class="min-w-0 flex-1 flex flex-col justify-between gap-2 self-stretch">
-              <p class="text-xs uppercase text-on-surface-variant font-medium tracking-wide">
-                {isVideo(m) ? 'Vídeo' : 'Foto'}
-              </p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-xs uppercase text-on-surface-variant font-medium tracking-wide">
+                  {isVideo(m) ? 'Vídeo' : 'Foto'}
+                </p>
+                {#if i === coverIndex}
+                  <span
+                    class="text-xs font-semibold px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container"
+                    >Capa</span
+                  >
+                {/if}
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none"
+                  disabled={mediaBusy || i === 0}
+                  aria-label="Subir"
+                  on:click={() => moveMedia(i, -1)}
+                >
+                  <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
+                </button>
+                <button
+                  type="button"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none"
+                  disabled={mediaBusy || i === mediaList.length - 1}
+                  aria-label="Descer"
+                  on:click={() => moveMedia(i, 1)}
+                >
+                  <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+                </button>
+              </div>
               <button
                 type="button"
                 class="self-start text-error text-sm font-medium"

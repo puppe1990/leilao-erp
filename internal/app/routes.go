@@ -78,6 +78,7 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	r.Get("/products/{id}/edit", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.Edit)))
 	r.Post("/products/{id}", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.Update)))
 	r.Post("/products/{id}/media", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.AddMedia)))
+	r.Post("/products/{id}/media/reorder", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.ReorderMedia)))
 	r.Post("/products/{id}/media/{mediaId}/delete", middleware.RequireAuthFunc("/login", cais.IntParam("id", products.DestroyMedia)))
 
 	r.Get("/clients", middleware.RequireAuthFunc("/login", clients.Index))
