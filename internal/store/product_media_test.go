@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -138,5 +139,74 @@ func TestListProducts_IncludesMediaCounts(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("product not listed")
+	}
+}
+
+func TestReorderProductMedia_SetsSortOrderAndCover(t *testing.T) {
+	st := newTestStore(t)
+	productID := seedProduct(t, st)
+	a, err := st.AddProductMedia(productID, ProductMediaInput{Kind: "photo", URL: "/a.jpg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := st.AddProductMedia(productID, ProductMediaInput{Kind: "photo", URL: "/b.jpg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := st.AddProductMedia(productID, ProductMediaInput{Kind: "photo", URL: "/c.jpg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := st.ReorderProductMedia(productID, []int64{c, a, b}); err != nil {
+		t.Fatal(err)
+	}
+	list, err := st.ListProductMedia(productID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 3 {
+		t.Fatalf("len=%d", len(list))
+	}
+	if list[0].ID != c || list[1].ID != a || list[2].ID != b {
+		t.Fatalf("order=%d,%d,%d want %d,%d,%d", list[0].ID, list[1].ID, list[2].ID, c, a, b)
+	}
+	if list[0].SortOrder != 0 || list[1].SortOrder != 1 || list[2].SortOrder != 2 {
+		t.Fatalf("sort_order=%d,%d,%d", list[0].SortOrder, list[1].SortOrder, list[2].SortOrder)
+	}
+	products, err := st.ListProducts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cover string
+	for _, p := range products {
+		if p.ID == productID {
+			cover = p.FirstPhotoURL
+			break
+		}
+	}
+	if cover != "/c.jpg" {
+		t.Fatalf("cover=%q want /c.jpg", cover)
+	}
+}
+
+func TestReorderProductMedia_RejectsIncompleteOrForeign(t *testing.T) {
+	st := newTestStore(t)
+	productID := seedProduct(t, st)
+	a, _ := st.AddProductMedia(productID, ProductMediaInput{Kind: "photo", URL: "/a.jpg"})
+	b, _ := st.AddProductMedia(productID, ProductMediaInput{Kind: "photo", URL: "/b.jpg"})
+
+	if err := st.ReorderProductMedia(productID, []int64{b}); err == nil || !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("incomplete: %v", err)
+	}
+	if err := st.ReorderProductMedia(productID, []int64{a, a}); err == nil || !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("dupes: %v", err)
+	}
+	if err := st.ReorderProductMedia(productID, []int64{a, 999}); err == nil || !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("foreign: %v", err)
+	}
+	list, _ := st.ListProductMedia(productID)
+	if list[0].ID != a || list[1].ID != b {
+		t.Fatalf("order changed on reject: %+v", list)
 	}
 }

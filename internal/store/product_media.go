@@ -80,6 +80,61 @@ func (s *SQLiteStore) DeleteProductMedia(mediaID int64) error {
 	return nil
 }
 
+// ReorderProductMedia sets sort_order 0..n-1 from orderedIDs.
+// orderedIDs must be a permutation of this product's media.
+func (s *SQLiteStore) ReorderProductMedia(productID int64, orderedIDs []int64) error {
+	current, err := s.ListProductMedia(productID)
+	if err != nil {
+		return err
+	}
+	if err := validateMediaPermutation(current, orderedIDs); err != nil {
+		return err
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin media reorder: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	for i, id := range orderedIDs {
+		res, err := tx.Exec(
+			`UPDATE product_media SET sort_order = ? WHERE id = ? AND product_id = ?`,
+			i, id, productID,
+		)
+		if err != nil {
+			return fmt.Errorf("update media %d sort_order: %w", id, err)
+		}
+		n, _ := res.RowsAffected()
+		if n != 1 {
+			return fmt.Errorf("%w: media %d not updated", ErrInvalidInput, id)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit media reorder: %w", err)
+	}
+	return nil
+}
+
+func validateMediaPermutation(current []models.ProductMedia, orderedIDs []int64) error {
+	if len(orderedIDs) != len(current) {
+		return fmt.Errorf("%w: expected %d media ids, got %d", ErrInvalidInput, len(current), len(orderedIDs))
+	}
+	have := make(map[int64]struct{}, len(current))
+	for _, m := range current {
+		have[m.ID] = struct{}{}
+	}
+	seen := make(map[int64]struct{}, len(orderedIDs))
+	for _, id := range orderedIDs {
+		if _, ok := have[id]; !ok {
+			return fmt.Errorf("%w: media %d does not belong to this product", ErrInvalidInput, id)
+		}
+		if _, dup := seen[id]; dup {
+			return fmt.Errorf("%w: media %d repeated", ErrInvalidInput, id)
+		}
+		seen[id] = struct{}{}
+	}
+	return nil
+}
+
 // FindProductMedia returns one media row.
 func (s *SQLiteStore) FindProductMedia(mediaID int64) (models.ProductMedia, error) {
 	var m models.ProductMedia

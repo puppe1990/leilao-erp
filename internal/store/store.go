@@ -82,6 +82,7 @@ type Store interface {
 	RenameProduct(productID int64, newName string) error
 	AddProductMedia(productID int64, in ProductMediaInput) (int64, error)
 	ListProductMedia(productID int64) ([]models.ProductMedia, error)
+	ReorderProductMedia(productID int64, orderedIDs []int64) error
 	DeleteProductMedia(mediaID int64) error
 	FindProductMedia(mediaID int64) (models.ProductMedia, error)
 

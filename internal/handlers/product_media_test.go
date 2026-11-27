@@ -304,3 +304,53 @@ func TestProducts_DestroyMedia_RemovesObjectStoreKey(t *testing.T) {
 		t.Fatalf("removed=%v want [%s]", store.removed, key)
 	}
 }
+
+func TestProducts_ReorderMedia_MovesCover(t *testing.T) {
+	h, st, _ := setupProductsHandler(t)
+	pid := seedProductID(t, st)
+	a, _ := st.AddProductMedia(pid, store.ProductMediaInput{Kind: "photo", URL: "/a.jpg"})
+	b, _ := st.AddProductMedia(pid, store.ProductMediaInput{Kind: "photo", URL: "/b.jpg"})
+	c, _ := st.AddProductMedia(pid, store.ProductMediaInput{Kind: "photo", URL: "/c.jpg"})
+
+	form := url.Values{}
+	form.Add("media_ids", strconv.FormatInt(c, 10))
+	form.Add("media_ids", strconv.FormatInt(a, 10))
+	form.Add("media_ids", strconv.FormatInt(b, 10))
+	req := inertiaRequest(http.MethodPost, "/products/"+strconv.FormatInt(pid, 10)+"/media/reorder", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.ReorderMedia(rr, req, pid)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	list, err := st.ListProductMedia(pid)
+	if err != nil || len(list) != 3 {
+		t.Fatalf("list=%+v err=%v", list, err)
+	}
+	if list[0].ID != c || list[1].ID != a || list[2].ID != b {
+		t.Fatalf("order=%d,%d,%d want %d,%d,%d", list[0].ID, list[1].ID, list[2].ID, c, a, b)
+	}
+}
+
+func TestProducts_ReorderMedia_RejectsIncomplete(t *testing.T) {
+	h, st, _ := setupProductsHandler(t)
+	pid := seedProductID(t, st)
+	a, _ := st.AddProductMedia(pid, store.ProductMediaInput{Kind: "photo", URL: "/a.jpg"})
+	_, _ = st.AddProductMedia(pid, store.ProductMediaInput{Kind: "photo", URL: "/b.jpg"})
+
+	form := url.Values{}
+	form.Add("media_ids", strconv.FormatInt(a, 10))
+	req := inertiaRequest(http.MethodPost, "/products/"+strconv.FormatInt(pid, 10)+"/media/reorder", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.ReorderMedia(rr, req, pid)
+	if rr.Code == http.StatusSeeOther {
+		t.Fatal("incomplete reorder must not redirect")
+	}
+	list, _ := st.ListProductMedia(pid)
+	if list[0].ID != a {
+		t.Fatalf("order changed on reject: %+v", list)
+	}
+}

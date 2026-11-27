@@ -4,6 +4,7 @@
   import AppShell from '@/components/AppShell.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
+  import { firstPhotoIndex, mediaIds, moveMediaItem } from '@/lib/productMediaOrder.js'
 
   export let product = {}
   export let errors = {}
@@ -17,6 +18,7 @@
 
   $: mediaList = Array.isArray(product.media) ? product.media : []
   $: lightboxItem = mediaList[lightboxIndex] || null
+  $: coverIndex = firstPhotoIndex(mediaList)
 
   function isVideo(m) {
     return m?.kind === 'video'
@@ -119,6 +121,23 @@
         onFinish: () => {
           mediaBusy = false
           if (e?.target) e.target.value = ''
+        },
+      },
+    )
+  }
+
+  function moveMedia(index, delta) {
+    if (mediaBusy) return
+    const next = moveMediaItem(mediaList, index, delta)
+    const ids = mediaIds(next)
+    if (ids.join() === mediaIds(mediaList).join()) return
+    mediaBusy = true
+    router.post(
+      `/products/${product.id}/media/reorder`,
+      { media_ids: ids },
+      {
+        onFinish: () => {
+          mediaBusy = false
         },
       },
     )
@@ -340,7 +359,10 @@
   </div>
 
   <section class="ahq-card p-4 mt-4 space-y-4">
-    <h2 class="font-semibold text-primary">Fotos e vídeos</h2>
+    <div>
+      <h2 class="font-semibold text-primary">Fotos e vídeos</h2>
+      <p class="text-sm text-on-surface-variant mt-1">A primeira foto vira a capa da loja.</p>
+    </div>
 
     {#if !mediaList.length}
       <p class="text-sm text-on-surface-variant">Nenhuma mídia ainda.</p>
@@ -363,9 +385,37 @@
               {/if}
             </button>
             <div class="min-w-0 flex-1 flex flex-col justify-between gap-2 self-stretch">
-              <p class="text-xs uppercase text-on-surface-variant font-medium tracking-wide">
-                {isVideo(m) ? 'Vídeo' : 'Foto'}
-              </p>
+              <div class="flex items-center gap-2 flex-wrap">
+                <p class="text-xs uppercase text-on-surface-variant font-medium tracking-wide">
+                  {isVideo(m) ? 'Vídeo' : 'Foto'}
+                </p>
+                {#if i === coverIndex}
+                  <span
+                    class="text-xs font-semibold px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container"
+                    >Capa</span
+                  >
+                {/if}
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none"
+                  disabled={mediaBusy || i === 0}
+                  aria-label="Subir"
+                  on:click={() => moveMedia(i, -1)}
+                >
+                  <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
+                </button>
+                <button
+                  type="button"
+                  class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high disabled:opacity-30 disabled:pointer-events-none"
+                  disabled={mediaBusy || i === mediaList.length - 1}
+                  aria-label="Descer"
+                  on:click={() => moveMedia(i, 1)}
+                >
+                  <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+                </button>
+              </div>
               <button
                 type="button"
                 class="self-start text-error text-sm font-medium"
