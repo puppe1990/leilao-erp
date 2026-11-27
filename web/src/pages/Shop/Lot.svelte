@@ -12,6 +12,7 @@
   } from '@/lib/shopTheme.js'
 
   export let lotOffer = {}
+  export let shopShowQty = true
   export let companyName = 'Pix Eletro'
   export let whatsappSet = false
   export let whatsappDigits = ''
@@ -248,7 +249,7 @@
         <p class="shop-brand">Lote fechado</p>
         <h1 class="shop-detail-title">{lotOffer.name || 'Lote de monitores'}</h1>
         <p class="shop-detail-meta">
-          {lotOffer.qty || 0} unidades · {lotOffer.photoCount || 0} fotos · {lotOffer.videoCount || 0} vídeos
+          {#if shopShowQty}{lotOffer.qty || 0} unidades · {/if}{lotOffer.photoCount || 0} fotos · {lotOffer.videoCount || 0} vídeos
         </p>
         <div class="shop-detail-price">
           <div>

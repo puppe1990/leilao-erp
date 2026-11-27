@@ -13,6 +13,7 @@
   } from '@/lib/shopTheme.js'
 
   export let product = {}
+  export let shopShowQty = true
   export let companyName = 'Pix Eletro'
   export let whatsappSet = false
   export let whatsappDigits = ''
@@ -312,7 +313,8 @@
         <p class="shop-brand">{product.brand || 'Monitor'}</p>
         <h1 class="shop-detail-title">{product.name}</h1>
         <p class="shop-detail-meta">
-          {product.condition || 'Usado'} · {product.qtyInStock || 0} em estoque
+          {product.condition || 'Usado'}{#if shopShowQty}
+            · {product.qtyInStock || 0} em estoque{/if}
         </p>
 
         <div class="shop-detail-price">

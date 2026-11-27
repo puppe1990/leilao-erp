@@ -13,6 +13,7 @@ const (
 	settingCompanyCNPJ    = "company_cnpj"
 	settingWhatsAppPhone  = "whatsapp_phone"
 	settingShopLotEnabled = "shop_lot_enabled"
+	settingShopShowQty    = "shop_show_qty"
 )
 
 // GetSetting returns a setting value (empty string if missing).
@@ -76,21 +77,44 @@ func (s *SQLiteStore) ShopLotEnabled() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	switch strings.ToLower(strings.TrimSpace(v)) {
-	case "0", "false", "off", "no":
-		return false, nil
-	default:
-		return true, nil
-	}
+	return settingBool(v, true), nil
 }
 
 // SetShopLotEnabled stores "1" or "0" for the public lot bundle.
 func (s *SQLiteStore) SetShopLotEnabled(enabled bool) error {
-	v := "0"
-	if enabled {
-		v = "1"
+	return s.SetSetting(settingShopLotEnabled, settingBoolValue(enabled))
+}
+
+func settingBool(v string, missingDefault bool) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "":
+		return missingDefault
+	case "0", "false", "off", "no":
+		return false
+	default:
+		return true
 	}
-	return s.SetSetting(settingShopLotEnabled, v)
+}
+
+func settingBoolValue(on bool) string {
+	if on {
+		return "1"
+	}
+	return "0"
+}
+
+// ShopShowQty is whether catalog cards/PDP show remaining units. Missing setting means on.
+func (s *SQLiteStore) ShopShowQty() (bool, error) {
+	v, err := s.GetSetting(settingShopShowQty)
+	if err != nil {
+		return true, err
+	}
+	return settingBool(v, true), nil
+}
+
+// SetShopShowQty stores "1" or "0" for catalog quantity.
+func (s *SQLiteStore) SetShopShowQty(enabled bool) error {
+	return s.SetSetting(settingShopShowQty, settingBoolValue(enabled))
 }
 
 // FindUserByID loads a user by primary key.

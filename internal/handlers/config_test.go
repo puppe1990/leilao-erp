@@ -154,6 +154,61 @@ func TestConfig_UpdateShopLot_Off(t *testing.T) {
 	}
 }
 
+func TestConfig_Index_shopShowQtyDefault(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	req := inertiaRequest(http.MethodGet, "/config", nil)
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	v := assertInertiaProp(t, rr, "shopShowQty")
+	if fmt.Sprint(v) != "true" {
+		t.Fatalf("shopShowQty=%v want true", v)
+	}
+}
+
+func TestConfig_UpdateShopShowQty_Off(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	form := url.Values{}
+	req := inertiaRequest(http.MethodPost, "/config/shop-qty", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+
+	rr := httptest.NewRecorder()
+	h.UpdateShopShowQty(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	on, err := st.ShopShowQty()
+	if err != nil || on {
+		t.Fatalf("enabled=%v err=%v want false", on, err)
+	}
+}
+
+func TestConfig_UpdateShopShowQty_On(t *testing.T) {
+	h, st := setupConfigHandler(t)
+	if err := st.SetShopShowQty(false); err != nil {
+		t.Fatal(err)
+	}
+	form := url.Values{}
+	form.Set("shop_show_qty", "1")
+	req := inertiaRequest(http.MethodPost, "/config/shop-qty", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req = withUserSession(t, st, req)
+
+	rr := httptest.NewRecorder()
+	h.UpdateShopShowQty(rr, req)
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	on, err := st.ShopShowQty()
+	if err != nil || !on {
+		t.Fatalf("enabled=%v err=%v want true", on, err)
+	}
+}
+
 func TestConfig_UpdateShopLot_On(t *testing.T) {
 	h, st := setupConfigHandler(t)
 	if err := st.SetShopLotEnabled(false); err != nil {

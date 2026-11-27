@@ -220,6 +220,31 @@ func TestShopLotEnabled_DefaultTrue(t *testing.T) {
 	}
 }
 
+func TestShopShowQty_DefaultTrueAndToggle(t *testing.T) {
+	st := newTestStore(t)
+	on, err := st.ShopShowQty()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !on {
+		t.Fatal("want catalog qty visible when setting is missing")
+	}
+	if err := st.SetShopShowQty(false); err != nil {
+		t.Fatal(err)
+	}
+	on, err = st.ShopShowQty()
+	if err != nil || on {
+		t.Fatalf("enabled=%v err=%v want false", on, err)
+	}
+	if err := st.SetShopShowQty(true); err != nil {
+		t.Fatal(err)
+	}
+	on, err = st.ShopShowQty()
+	if err != nil || !on {
+		t.Fatalf("enabled=%v err=%v want true", on, err)
+	}
+}
+
 func TestShopLotOffer_NilWhenDisabled(t *testing.T) {
 	st := newTestStore(t)
 	seedLeilaoAndPessoalLots(t, st)

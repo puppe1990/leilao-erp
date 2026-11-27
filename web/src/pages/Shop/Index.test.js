@@ -7,6 +7,7 @@ const dir = dirname(fileURLToPath(import.meta.url))
 const page = readFileSync(resolve(dir, 'Index.svelte'), 'utf8')
 const show = readFileSync(resolve(dir, 'Show.svelte'), 'utf8')
 const lot = readFileSync(resolve(dir, 'Lot.svelte'), 'utf8')
+const banner = readFileSync(resolve(dir, '../../components/ShopLotBanner.svelte'), 'utf8')
 const css = readFileSync(resolve(dir, '../../../static/css/shop.css'), 'utf8')
 
 describe('Catálogo da loja', () => {
@@ -95,6 +96,19 @@ describe('Catálogo da loja', () => {
     expect(page).toMatch(/<div class="shop-logo-mark">\s*<PixEletroMark /)
     expect(show).toMatch(/<PixEletroMark /)
     expect(lot).toMatch(/<PixEletroMark /)
+  })
+
+  it('pode esconder a quantidade no catálogo', () => {
+    expect(page).toMatch(/export let shopShowQty = true/)
+    expect(page).toMatch(/\{#if shopShowQty\}/)
+    expect(page).toMatch(/shop-card-qty/)
+    expect(page).toMatch(/showQty=\{shopShowQty\}/)
+    expect(show).toMatch(/export let shopShowQty = true/)
+    expect(show).toMatch(/em estoque/)
+    expect(lot).toMatch(/export let shopShowQty = true/)
+    expect(lot).toMatch(/\{#if shopShowQty\}/)
+    expect(banner).toMatch(/export let showQty = true/)
+    expect(banner).toMatch(/\{#if showQty\}/)
   })
 
   it('ordena menor e maior preço pelo helper, sem prender acessório na frente', () => {

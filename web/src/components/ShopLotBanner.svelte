@@ -2,6 +2,7 @@
   import { inertia } from '@inertiajs/svelte'
 
   export let lotOffer = null
+  export let showQty = true
   /** @type {(offer: Record<string, any>) => void} */
   export let onAdd = () => {}
 
@@ -50,7 +51,8 @@
           </button>
         </div>
         <p class="shop-lot-meta">
-          {lotOffer.photoCount || 0} fotos · {lotOffer.videoCount || 0} vídeos · {lotOffer.qty} unidades
+          {lotOffer.photoCount || 0} fotos · {lotOffer.videoCount || 0} vídeos{#if showQty}
+            · {lotOffer.qty} unidades{/if}
         </p>
       </div>
     </div>

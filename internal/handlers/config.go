@@ -54,6 +54,11 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	shopShowQty, err := h.store.ShopShowQty()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	cnpj, err := h.store.CompanyCNPJ()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -70,6 +75,8 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		flash = "WhatsApp da loja atualizado."
 	case "shop-lot":
 		flash = "Lote da loja atualizado."
+	case "shop-qty":
+		flash = "Quantidade no catálogo atualizada."
 	}
 
 	_ = h.inertia.Render(w, r, "Config/Index", withCompany(h.store, inertia.Props{
@@ -80,6 +87,7 @@ func (h *ConfigHandler) Index(w http.ResponseWriter, r *http.Request) {
 		"companyCnpj":    cnpj,
 		"whatsappPhone":  waPhone,
 		"shopLotEnabled": shopLotOn,
+		"shopShowQty":    shopShowQty,
 		"shopURL":        "/",
 		"flash":          flash,
 	}))
@@ -166,6 +174,23 @@ func (h *ConfigHandler) UpdateShopLot(w http.ResponseWriter, r *http.Request) {
 	h.inertia.Redirect(w, r, "/config?saved=shop-lot", http.StatusSeeOther)
 }
 
+func (h *ConfigHandler) UpdateShopShowQty(w http.ResponseWriter, r *http.Request) {
+	if _, ok := session.UserID(r); !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := parseFormOrJSON(r); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	on := strings.TrimSpace(r.FormValue("shop_show_qty")) == "1"
+	if err := h.store.SetShopShowQty(on); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.inertia.Redirect(w, r, "/config?saved=shop-qty", http.StatusSeeOther)
+}
+
 func (h *ConfigHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	userID, ok := session.UserID(r)
 	if !ok {
@@ -237,6 +262,7 @@ func (h *ConfigHandler) renderConfigErrors(w http.ResponseWriter, r *http.Reques
 	}
 	waPhone, _ := h.store.WhatsAppPhone()
 	shopLotOn, _ := h.store.ShopLotEnabled()
+	shopShowQty, _ := h.store.ShopShowQty()
 
 	ctx := inertia.SetValidationErrors(r.Context(), errs)
 	_ = h.inertia.Render(w, r.WithContext(ctx), "Config/Index", withCompany(h.store, inertia.Props{
@@ -247,6 +273,7 @@ func (h *ConfigHandler) renderConfigErrors(w http.ResponseWriter, r *http.Reques
 		"companyCnpj":    cnpj,
 		"whatsappPhone":  waPhone,
 		"shopLotEnabled": shopLotOn,
+		"shopShowQty":    shopShowQty,
 		"flash":          flash,
 	}))
 }
