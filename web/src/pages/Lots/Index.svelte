@@ -164,6 +164,7 @@
         <table class="w-full text-sm text-left min-w-[640px]">
           <thead>
             <tr class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant">
+              <th class="px-2 py-2.5 w-12" aria-label="Foto"></th>
               {#each lotColumns as col (col.key)}
                 <th class={col.thClass}>
                   <button
@@ -189,6 +190,23 @@
           <tbody class="divide-y divide-outline-variant">
             {#each filtered as lot (lot.id)}
               <tr class="hover:bg-surface-container-low/80">
+                <td class="px-2 py-1.5 w-12">
+                  {#if lot.thumbUrl}
+                    <a
+                      href={`/lots/${lot.id}`}
+                      use:inertia
+                      class="block w-10 h-10 rounded-md overflow-hidden bg-surface-container-high border border-outline-variant shrink-0"
+                      title="Ver lote"
+                    >
+                      <img
+                        src={lot.thumbUrl}
+                        alt=""
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </a>
+                  {/if}
+                </td>
                 <td class="px-3 py-2.5">
                   <a
                     href={`/lots/${lot.id}`}
@@ -219,7 +237,7 @@
               </tr>
             {:else}
               <tr>
-                <td colspan="6" class="px-3 py-10 text-center text-on-surface-variant">
+                <td colspan="7" class="px-3 py-10 text-center text-on-surface-variant">
                   Nenhum lote com esses filtros.
                   {#if hasActiveFilters}
                     <button

@@ -309,3 +309,46 @@ func TestLotsHandler_UpdateItem_InvalidUnitCost(t *testing.T) {
 		t.Fatalf("unit_cost=%d want 429 (unchanged)", got.UnitCostCents)
 	}
 }
+
+func TestLotsHandler_Index_IncludesThumbURL(t *testing.T) {
+	h, s := newLotsHandler(t)
+
+	if _, err := s.CreateLotPurchase(store.CreateLotInput{
+		Name:        "Monitores — leilão Jul/2026",
+		PurchasedAt: "2026-07-20",
+		ItemTitle:   "Monitor",
+		ItemQty:     2,
+		Costs:       []store.CostInput{{Label: "Arremate", AmountCents: 1200}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	productID, err := s.EnsureProductByName("Monitor", "principal", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddProductMedia(productID, store.ProductMediaInput{
+		Kind: "photo", URL: "/static/uploads/products/9/front.jpg",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := inertiaRequest(http.MethodGet, "/lots", nil)
+	rr := httptest.NewRecorder()
+	h.Index(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rr.Code, rr.Body.String())
+	}
+
+	raw := assertInertiaProp(t, rr, "lots")
+	list, ok := raw.([]any)
+	if !ok || len(list) != 1 {
+		t.Fatalf("lots = %#v, want 1 row", raw)
+	}
+	row, ok := list[0].(map[string]any)
+	if !ok {
+		t.Fatalf("row type %T", list[0])
+	}
+	if row["thumbUrl"] != "/static/uploads/products/9/front.thumb.jpg" {
+		t.Errorf("thumbUrl = %v, want .thumb.jpg sibling", row["thumbUrl"])
+	}
+}
