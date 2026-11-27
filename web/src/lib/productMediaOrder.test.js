@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { firstPhotoIndex, mediaIds, moveMediaAt, moveMediaItem } from './productMediaOrder.js'
+import {
+  applyVisibleMedia,
+  firstPhotoIndex,
+  mediaIds,
+  mediaLeaveUnsavedMessage,
+  mediaSaveFailedMessage,
+  moveMediaAt,
+  moveMediaItem,
+  planMediaSave,
+  shouldClearMediaDraft,
+  shouldWarnMediaLeave,
+} from './productMediaOrder.js'
 
 describe('productMediaOrder', () => {
   const list = [
@@ -32,5 +43,35 @@ describe('productMediaOrder', () => {
   it('marca a primeira foto como capa', () => {
     expect(firstPhotoIndex(list)).toBe(0)
     expect(firstPhotoIndex([{ id: 9, kind: 'video' }, { id: 8, kind: 'photo' }])).toBe(1)
+  })
+
+  it('mostra o rascunho na tela antes do servidor confirmar', () => {
+    const saved = list
+    const draft = moveMediaAt(list, 0, 2)
+    expect(mediaIds(applyVisibleMedia(saved, draft))).toEqual([2, 3, 1])
+    expect(mediaIds(applyVisibleMedia(saved, null))).toEqual([1, 2, 3])
+    expect(applyVisibleMedia(null, null)).toEqual([])
+  })
+
+  it('avisa se o save falhar ou se sair com rascunho pendente', () => {
+    expect(mediaSaveFailedMessage()).toMatch(/Não deu pra salvar a ordem das fotos/)
+    expect(mediaLeaveUnsavedMessage()).toMatch(/ainda não salvou/)
+    expect(shouldWarnMediaLeave([{ id: 1 }], '/products/1/edit')).toBe(true)
+    expect(shouldWarnMediaLeave([{ id: 1 }], '/products/1/media/reorder')).toBe(false)
+    expect(shouldWarnMediaLeave(null, '/products')).toBe(false)
+  })
+
+  it('só limpa o rascunho quando o servidor bate com a tela ou quando falha', () => {
+    const draft = moveMediaAt(list, 0, 2)
+    expect(shouldClearMediaDraft(draft, draft, '')).toBe(true)
+    expect(shouldClearMediaDraft(draft, list, '')).toBe(false)
+    expect(shouldClearMediaDraft(draft, list, 'erro')).toBe(true)
+    expect(shouldClearMediaDraft(null, list, '')).toBe(true)
+  })
+
+  it('enfileira o save se outro ainda está no ar', () => {
+    expect(planMediaSave(false, [2, 1, 3])).toEqual({ send: [2, 1, 3], queue: false })
+    expect(planMediaSave(true, [3, 2, 1])).toEqual({ send: null, queue: true })
+    expect(planMediaSave(false, [])).toEqual({ send: null, queue: false })
   })
 })
