@@ -26,4 +26,24 @@ describe('Products Show media order', () => {
     expect(page).toMatch(/drag_indicator/)
     expect(page).toMatch(/Arraste para reordenar/)
   })
+
+  it('troca a ordem na tela antes de salvar e avisa se falhar', () => {
+    expect(page).toMatch(/applyVisibleMedia/)
+    expect(page).toMatch(/mediaSaveFailedMessage/)
+    expect(page).toMatch(/shouldWarnMediaLeave/)
+    expect(page).toMatch(/mediaDraft = next/)
+    expect(page).toMatch(/onError/)
+    expect(page).toMatch(/onHttpException/)
+    expect(page).toMatch(/onNetworkError/)
+    expect(page).toMatch(/router\.on\('before'/)
+    const persistFn = page.slice(
+      page.indexOf('function persistMediaOrder'),
+      page.indexOf('function moveMedia'),
+    )
+    expect(persistFn.indexOf('mediaDraft = next')).toBeGreaterThan(-1)
+    expect(persistFn.indexOf('mediaDraft = next')).toBeLessThan(persistFn.indexOf('router.post'))
+    expect(persistFn).not.toMatch(/if \(mediaBusy\) return/)
+    const failFn = page.slice(page.indexOf('function failMediaSave'), page.indexOf('function postMediaOrder'))
+    expect(failFn).toMatch(/return false/)
+  })
 })

@@ -4,7 +4,18 @@
   import AppShell from '@/components/AppShell.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
-  import { firstPhotoIndex, mediaIds, moveMediaAt, moveMediaItem } from '@/lib/productMediaOrder.js'
+  import {
+    applyVisibleMedia,
+    firstPhotoIndex,
+    mediaIds,
+    mediaLeaveUnsavedMessage,
+    mediaSaveFailedMessage,
+    moveMediaAt,
+    moveMediaItem,
+    planMediaSave,
+    shouldClearMediaDraft,
+    shouldWarnMediaLeave,
+  } from '@/lib/productMediaOrder.js'
 
   export let product = {}
   export let errors = {}
@@ -17,8 +28,13 @@
   let lightboxIndex = 0
   let dragFrom = -1
   let dropOver = -1
+  let mediaDraft = null
+  let mediaSaveError = ''
+  let mediaSaveInFlight = false
+  let mediaSaveQueued = null
 
-  $: mediaList = Array.isArray(product.media) ? product.media : []
+  $: savedMedia = Array.isArray(product.media) ? product.media : []
+  $: mediaList = applyVisibleMedia(savedMedia, mediaDraft)
   $: lightboxItem = mediaList[lightboxIndex] || null
   $: coverIndex = firstPhotoIndex(mediaList)
 
@@ -59,9 +75,25 @@
       if (e.key === 'ArrowRight') slide(1)
       if (e.key === 'ArrowLeft') slide(-1)
     }
+    const onLeave = (e) => {
+      if (!mediaDraft) return
+      e.preventDefault()
+      e.returnValue = ''
+    }
     window.addEventListener('keydown', onKey)
+    window.addEventListener('beforeunload', onLeave)
+    const offBefore = router.on('before', (event) => {
+      const url = event.detail?.visit?.url
+      const href = typeof url === 'string' ? url : url?.href || url?.pathname || ''
+      if (!shouldWarnMediaLeave(mediaDraft, href)) return
+      if (!window.confirm(mediaLeaveUnsavedMessage())) {
+        event.preventDefault()
+      }
+    })
     return () => {
       window.removeEventListener('keydown', onKey)
+      window.removeEventListener('beforeunload', onLeave)
+      offBefore()
       document.body.style.overflow = ''
     }
   })
@@ -79,6 +111,8 @@
   function addVideo() {
     const url = videoURL.trim()
     if (!url) return
+    mediaDraft = null
+    mediaSaveError = ''
     mediaBusy = true
     router.post(
       `/products/${product.id}/media`,
@@ -98,6 +132,8 @@
   function addPhotoURL(url) {
     const u = String(url || '').trim()
     if (!u) return
+    mediaDraft = null
+    mediaSaveError = ''
     mediaBusy = true
     router.post(
       `/products/${product.id}/media`,
@@ -114,6 +150,8 @@
   function onPhotoFile(e) {
     const file = e?.target?.files?.[0]
     if (!file) return
+    mediaDraft = null
+    mediaSaveError = ''
     mediaBusy = true
     router.post(
       `/products/${product.id}/media`,
@@ -129,17 +167,53 @@
   }
 
   function persistMediaOrder(next) {
-    if (mediaBusy) return
     const ids = mediaIds(next)
     if (ids.join() === mediaIds(mediaList).join()) return
-    mediaBusy = true
+    mediaDraft = next
+    mediaSaveError = ''
+    const plan = planMediaSave(mediaSaveInFlight, ids)
+    if (plan.queue) {
+      mediaSaveQueued = ids
+      return
+    }
+    if (plan.send) postMediaOrder(plan.send)
+  }
+
+  function failMediaSave() {
+    if (!mediaSaveQueued) {
+      mediaDraft = null
+      mediaSaveError = mediaSaveFailedMessage()
+    }
+    return false
+  }
+
+  function postMediaOrder(ids) {
+    mediaSaveInFlight = true
     router.post(
       `/products/${product.id}/media/reorder`,
       { media_ids: ids },
       {
         preserveScroll: true,
+        onSuccess: (page) => {
+          const formError = page?.props?.errors?.form || ''
+          if (formError && mediaSaveQueued) return
+          if (formError) {
+            mediaSaveError = mediaSaveFailedMessage()
+          }
+          if (shouldClearMediaDraft(mediaDraft, page?.props?.product?.media, formError)) {
+            mediaDraft = null
+          }
+        },
+        onError: () => failMediaSave(),
+        onHttpException: () => failMediaSave(),
+        onNetworkError: () => failMediaSave(),
         onFinish: () => {
-          mediaBusy = false
+          mediaSaveInFlight = false
+          if (mediaSaveQueued) {
+            const queued = mediaSaveQueued
+            mediaSaveQueued = null
+            postMediaOrder(queued)
+          }
         },
       },
     )
@@ -190,6 +264,8 @@
       icon: 'delete',
     })
     if (!ok) return
+    mediaDraft = null
+    mediaSaveError = ''
     mediaBusy = true
     router.post(`/products/${product.id}/media/${m.id}/delete`, {}, {
       onFinish: () => {
@@ -400,6 +476,11 @@
       <p class="text-sm text-on-surface-variant mt-1">
         A primeira foto vira a capa da loja. Arraste para reordenar.
       </p>
+      {#if mediaSaveError}
+        <p class="text-error text-sm mt-2 ahq-card p-3 bg-error-container/30" role="alert">
+          {mediaSaveError}
+        </p>
+      {/if}
     </div>
 
     {#if !mediaList.length}
