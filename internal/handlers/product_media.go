@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 	inertia "github.com/romsar/gonertia/v3"
 
+	"github.com/puppe1990/leilao-erp/internal/b2"
 	"github.com/puppe1990/leilao-erp/internal/domain"
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
@@ -20,7 +22,7 @@ import (
 // Form fields:
 //   - kind: photo | video
 //   - url: optional https:// or /static/... (used when no file)
-//   - file: optional multipart upload (saved under /static/uploads/products/{id}/)
+//   - file: optional multipart upload (B2 when configured, else /static/uploads/products/{id}/)
 func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, productID int64) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		// fall back to urlencoded
@@ -39,7 +41,7 @@ func (h *ProductsHandler) AddMedia(w http.ResponseWriter, r *http.Request, produ
 	url := strings.TrimSpace(r.FormValue("url"))
 	if file, hdr, err := r.FormFile("file"); err == nil {
 		defer func() { _ = file.Close() }()
-		saved, err := h.saveProductUpload(productID, kind, hdr.Filename, file)
+		saved, err := h.saveProductUpload(r.Context(), productID, kind, hdr.Filename, file)
 		if err != nil {
 			h.mediaError(w, r, productID, err.Error())
 			return
@@ -83,6 +85,7 @@ func (h *ProductsHandler) DestroyMedia(w http.ResponseWriter, r *http.Request, p
 		h.mediaError(w, r, productID, err.Error())
 		return
 	}
+	h.tryRemoveObjectStore(r.Context(), m.URL)
 	h.tryRemoveLocalUpload(m.URL)
 	h.inertia.Redirect(w, r, fmt.Sprintf("/products/%d", productID), http.StatusSeeOther)
 }
@@ -103,11 +106,7 @@ func (h *ProductsHandler) mediaRoot() string {
 	return ""
 }
 
-func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName string, src io.Reader) (string, error) {
-	root := h.mediaRoot()
-	if root == "" {
-		return "", fmt.Errorf("upload indisponível (static dir vazio)")
-	}
+func (h *ProductsHandler) saveProductUpload(ctx context.Context, productID int64, kind, originalName string, src io.Reader) (string, error) {
 	ext := strings.ToLower(filepath.Ext(originalName))
 	if kind == "photo" {
 		switch ext {
@@ -125,13 +124,28 @@ func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName 
 			}
 		}
 	}
+	name := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), kind, ext)
+	name = strings.ReplaceAll(name, "..", "")
+	if h.objectStore != nil {
+		body, err := io.ReadAll(src)
+		if err != nil {
+			return "", fmt.Errorf("ler upload: %w", err)
+		}
+		key := "products/" + strconv.FormatInt(productID, 10) + "/" + name
+		url, err := h.objectStore.Put(ctx, key, body, mediaContentType(ext))
+		if err != nil {
+			return "", fmt.Errorf("enviar para o Backblaze: %w", err)
+		}
+		return url, nil
+	}
+	root := h.mediaRoot()
+	if root == "" {
+		return "", fmt.Errorf("upload indisponível (static dir vazio)")
+	}
 	dir := filepath.Join(root, "products", strconv.FormatInt(productID, 10))
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("criar pasta upload: %w", err)
 	}
-	name := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), kind, ext)
-	// sanitize name further
-	name = strings.ReplaceAll(name, "..", "")
 	destPath := filepath.Join(dir, name)
 	dst, err := os.Create(destPath)
 	if err != nil {
@@ -142,6 +156,38 @@ func (h *ProductsHandler) saveProductUpload(productID int64, kind, originalName 
 		return "", err
 	}
 	return "/static/uploads/products/" + strconv.FormatInt(productID, 10) + "/" + name, nil
+}
+
+func mediaContentType(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	case ".gif":
+		return "image/gif"
+	case ".mp4":
+		return "video/mp4"
+	case ".webm":
+		return "video/webm"
+	case ".mov":
+		return "video/quicktime"
+	default:
+		return "application/octet-stream"
+	}
+}
+
+func (h *ProductsHandler) tryRemoveObjectStore(ctx context.Context, mediaURL string) {
+	if h.objectStore == nil {
+		return
+	}
+	key, ok := b2.ObjectKeyFromURL(mediaURL, "")
+	if !ok {
+		return
+	}
+	_ = h.objectStore.Remove(ctx, key)
 }
 
 func (h *ProductsHandler) tryRemoveLocalUpload(mediaURL string) {

@@ -17,7 +17,8 @@ func registerRoutes(r *cais.Router, deps Deps, cfg cais.Config) {
 	stock := handlers.NewStockHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	products := handlers.NewProductsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia).
 		WithStaticDir(deps.StaticDir).
-		WithUploadsDir(deps.UploadsDir)
+		WithUploadsDir(deps.UploadsDir).
+		WithObjectStore(deps.ObjectStore)
 	clients := handlers.NewClientsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	finds := handlers.NewFindsHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)
 	suppliers := handlers.NewSuppliersHandler(deps.Renderer, deps.Store, deps.Site, cfg, deps.Inertia)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,14 +15,21 @@ import (
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
+// ProductObjectStore is the public bucket used for product photos (Backblaze B2).
+type ProductObjectStore interface {
+	Put(ctx context.Context, key string, body []byte, contentType string) (string, error)
+	Remove(ctx context.Context, key string) error
+}
+
 type ProductsHandler struct {
-	renderer   *cais.Renderer
-	store      store.Store
-	site       meta.Site
-	cfg        cais.Config
-	inertia    *inertia.Inertia
-	staticDir  string // web/static absolute path (dev fallback for uploads)
-	uploadsDir string // persistent dir served at /static/uploads
+	renderer    *cais.Renderer
+	store       store.Store
+	site        meta.Site
+	cfg         cais.Config
+	inertia     *inertia.Inertia
+	staticDir   string // web/static absolute path (dev fallback for uploads)
+	uploadsDir  string // persistent dir served at /static/uploads
+	objectStore ProductObjectStore
 }
 
 func NewProductsHandler(renderer *cais.Renderer, s store.Store, site meta.Site, cfg cais.Config, i *inertia.Inertia) *ProductsHandler {
@@ -37,6 +45,12 @@ func (h *ProductsHandler) WithStaticDir(dir string) *ProductsHandler {
 // WithUploadsDir sets the persistent product-media directory (/static/uploads).
 func (h *ProductsHandler) WithUploadsDir(dir string) *ProductsHandler {
 	h.uploadsDir = dir
+	return h
+}
+
+// WithObjectStore sends new product uploads to B2 instead of the local disk.
+func (h *ProductsHandler) WithObjectStore(s ProductObjectStore) *ProductsHandler {
+	h.objectStore = s
 	return h
 }
 

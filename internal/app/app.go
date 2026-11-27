@@ -18,17 +18,19 @@ import (
 	"github.com/puppe1990/cais/pkg/cais/netutil"
 	inertia "github.com/romsar/gonertia/v3"
 
+	"github.com/puppe1990/leilao-erp/internal/handlers"
 	"github.com/puppe1990/leilao-erp/internal/store"
 )
 
 type Deps struct {
-	Renderer   *cais.Renderer
-	Store      store.Store
-	StaticDir  string
-	UploadsDir string
-	Site       meta.Site
-	Catalog    *i18n.Catalog
-	Inertia    *inertia.Inertia
+	Renderer    *cais.Renderer
+	Store       store.Store
+	StaticDir   string
+	UploadsDir  string
+	ObjectStore handlers.ProductObjectStore
+	Site        meta.Site
+	Catalog     *i18n.Catalog
+	Inertia     *inertia.Inertia
 }
 
 type App struct {

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -174,5 +176,131 @@ func TestProducts_AddMedia_WritesToUploadsDirNotStatic(t *testing.T) {
 	}
 	if _, err := os.Stat(uploadHits[0]); err != nil {
 		t.Fatal(err)
+	}
+}
+
+type fakeObjectStore struct {
+	puts    map[string][]byte
+	removed []string
+}
+
+func (f *fakeObjectStore) Put(_ context.Context, key string, body []byte, contentType string) (string, error) {
+	if f.puts == nil {
+		f.puts = map[string][]byte{}
+	}
+	f.puts[key] = append([]byte(nil), body...)
+	if contentType == "" {
+		return "", fmt.Errorf("content type required")
+	}
+	return "https://f005.backblazeb2.com/file/eletronicos-phoenix/" + key, nil
+}
+
+func (f *fakeObjectStore) Remove(_ context.Context, key string) error {
+	f.removed = append(f.removed, key)
+	return nil
+}
+
+func postPhotoUpload(t *testing.T, h *ProductsHandler, st *store.SQLiteStore, pid int64, filename, payload string) *httptest.ResponseRecorder {
+	t.Helper()
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	if err := mw.WriteField("kind", "photo"); err != nil {
+		t.Fatal(err)
+	}
+	fw, err := mw.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.WriteString(fw, payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	req := inertiaRequest(http.MethodPost, "/products/"+strconv.FormatInt(pid, 10)+"/media", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req = withUserSession(t, st, req)
+	rr := httptest.NewRecorder()
+	h.AddMedia(rr, req, pid)
+	return rr
+}
+
+func TestProducts_AddMedia_UploadsToObjectStore(t *testing.T) {
+	h, st, staticDir := setupProductsHandler(t)
+	uploadsDir := t.TempDir()
+	h.WithUploadsDir(uploadsDir)
+	store := &fakeObjectStore{}
+	h.WithObjectStore(store)
+	pid := seedProductID(t, st)
+
+	rr := postPhotoUpload(t, h, st, pid, "cam.jpg", "fake-jpeg")
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("status=%d body=%s", rr.Code, rr.Body.String())
+	}
+	list, err := st.ListProductMedia(pid)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("media=%+v err=%v", list, err)
+	}
+	wantPrefix := "https://f005.backblazeb2.com/file/eletronicos-phoenix/products/" + strconv.FormatInt(pid, 10) + "/"
+	if !strings.HasPrefix(list[0].URL, wantPrefix) || !strings.HasSuffix(list[0].URL, "_photo.jpg") {
+		t.Fatalf("url=%q want B2 products/%d/*_photo.jpg", list[0].URL, pid)
+	}
+	if len(store.puts) != 1 {
+		t.Fatalf("puts=%d want 1", len(store.puts))
+	}
+	for key, body := range store.puts {
+		if !strings.HasPrefix(key, "products/"+strconv.FormatInt(pid, 10)+"/") {
+			t.Fatalf("key=%q", key)
+		}
+		if string(body) != "fake-jpeg" {
+			t.Fatalf("body=%q", body)
+		}
+	}
+	localHits, err := filepath.Glob(filepath.Join(uploadsDir, "products", strconv.FormatInt(pid, 10), "*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(localHits) != 0 {
+		t.Fatalf("wrote local file while B2 configured: %v", localHits)
+	}
+	staticHits, err := filepath.Glob(filepath.Join(staticDir, "uploads", "products", "*", "*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(staticHits) != 0 {
+		t.Fatalf("wrote static file: %v", staticHits)
+	}
+}
+
+func TestProducts_DestroyMedia_RemovesObjectStoreKey(t *testing.T) {
+	h, st, _ := setupProductsHandler(t)
+	store := &fakeObjectStore{}
+	h.WithObjectStore(store)
+	pid := seedProductID(t, st)
+
+	rr := postPhotoUpload(t, h, st, pid, "cam.jpg", "fake-jpeg")
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("add status=%d", rr.Code)
+	}
+	list, _ := st.ListProductMedia(pid)
+	if len(list) != 1 {
+		t.Fatal(list)
+	}
+	mid := list[0].ID
+	key, ok := strings.CutPrefix(list[0].URL, "https://f005.backblazeb2.com/file/eletronicos-phoenix/")
+	if !ok {
+		t.Fatalf("url=%q", list[0].URL)
+	}
+
+	req := inertiaRequest(http.MethodPost, "/products/"+strconv.FormatInt(pid, 10)+"/media/"+strconv.FormatInt(mid, 10)+"/delete", nil)
+	req.SetPathValue("mediaId", strconv.FormatInt(mid, 10))
+	req = withUserSession(t, st, req)
+	rr2 := httptest.NewRecorder()
+	h.DestroyMedia(rr2, req, pid)
+	if rr2.Code != http.StatusSeeOther {
+		t.Fatalf("del status=%d body=%s", rr2.Code, rr2.Body.String())
+	}
+	if len(store.removed) != 1 || store.removed[0] != key {
+		t.Fatalf("removed=%v want [%s]", store.removed, key)
 	}
 }
