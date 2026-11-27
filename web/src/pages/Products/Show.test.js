@@ -17,4 +17,13 @@ describe('Products Show media order', () => {
     expect(page).toMatch(/>Capa</)
     expect(page).toMatch(/A primeira foto vira a capa da loja/)
   })
+
+  it('arrasta o card para reordenar a mídia', () => {
+    expect(page).toMatch(/moveMediaAt/)
+    expect(page).toMatch(/draggable=\{true\}/)
+    expect(page).toMatch(/on:drop/)
+    expect(page).toMatch(/on:dragstart/)
+    expect(page).toMatch(/drag_indicator/)
+    expect(page).toMatch(/Arraste para reordenar/)
+  })
 })

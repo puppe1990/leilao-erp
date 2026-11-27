@@ -1,12 +1,15 @@
 export function moveMediaItem(list, index, delta) {
+  return moveMediaAt(list, index, index + delta)
+}
+
+export function moveMediaAt(list, from, to) {
   const next = Array.isArray(list) ? list.slice() : []
-  const j = index + delta
-  if (index < 0 || j < 0 || index >= next.length || j >= next.length) {
+  if (from === to) return next
+  if (from < 0 || to < 0 || from >= next.length || to >= next.length) {
     return next
   }
-  const tmp = next[index]
-  next[index] = next[j]
-  next[j] = tmp
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
   return next
 }
 

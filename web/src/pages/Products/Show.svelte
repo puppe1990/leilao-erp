@@ -4,7 +4,7 @@
   import AppShell from '@/components/AppShell.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
-  import { firstPhotoIndex, mediaIds, moveMediaItem } from '@/lib/productMediaOrder.js'
+  import { firstPhotoIndex, mediaIds, moveMediaAt, moveMediaItem } from '@/lib/productMediaOrder.js'
 
   export let product = {}
   export let errors = {}
@@ -15,6 +15,8 @@
   let mediaBusy = false
   let lightboxOpen = false
   let lightboxIndex = 0
+  let dragFrom = -1
+  let dropOver = -1
 
   $: mediaList = Array.isArray(product.media) ? product.media : []
   $: lightboxItem = mediaList[lightboxIndex] || null
@@ -126,9 +128,8 @@
     )
   }
 
-  function moveMedia(index, delta) {
+  function persistMediaOrder(next) {
     if (mediaBusy) return
-    const next = moveMediaItem(mediaList, index, delta)
     const ids = mediaIds(next)
     if (ids.join() === mediaIds(mediaList).join()) return
     mediaBusy = true
@@ -136,11 +137,46 @@
       `/products/${product.id}/media/reorder`,
       { media_ids: ids },
       {
+        preserveScroll: true,
         onFinish: () => {
           mediaBusy = false
         },
       },
     )
+  }
+
+  function moveMedia(index, delta) {
+    persistMediaOrder(moveMediaItem(mediaList, index, delta))
+  }
+
+  function onMediaDragStart(e, i) {
+    if (mediaBusy || e.target.closest('button')) {
+      e.preventDefault()
+      return
+    }
+    dragFrom = i
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(i))
+  }
+
+  function onMediaDragOver(e, i) {
+    if (dragFrom < 0 || dragFrom === i) return
+    e.preventDefault()
+    dropOver = i
+  }
+
+  function onMediaDrop(e, i) {
+    e.preventDefault()
+    const from = dragFrom
+    dragFrom = -1
+    dropOver = -1
+    if (from < 0 || from === i) return
+    persistMediaOrder(moveMediaAt(mediaList, from, i))
+  }
+
+  function onMediaDragEnd() {
+    dragFrom = -1
+    dropOver = -1
   }
 
   async function deleteMedia(m) {
@@ -361,7 +397,9 @@
   <section class="ahq-card p-4 mt-4 space-y-4">
     <div>
       <h2 class="font-semibold text-primary">Fotos e vídeos</h2>
-      <p class="text-sm text-on-surface-variant mt-1">A primeira foto vira a capa da loja.</p>
+      <p class="text-sm text-on-surface-variant mt-1">
+        A primeira foto vira a capa da loja. Arraste para reordenar.
+      </p>
     </div>
 
     {#if !mediaList.length}
@@ -369,7 +407,20 @@
     {:else}
       <ul class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {#each mediaList as m, i (m.id)}
-          <li class="flex gap-3 items-start border border-outline-variant rounded-lg p-3">
+          <li
+            class="flex gap-3 items-start border border-outline-variant rounded-lg p-3
+              {dragFrom === i ? 'opacity-50' : ''}
+              {dropOver === i ? 'ring-2 ring-secondary' : ''}"
+            draggable={true}
+            on:dragstart={(e) => onMediaDragStart(e, i)}
+            on:dragover={(e) => onMediaDragOver(e, i)}
+            on:drop={(e) => onMediaDrop(e, i)}
+            on:dragend={onMediaDragEnd}
+          >
+            <span
+              class="material-symbols-outlined text-[20px] text-on-surface-variant shrink-0 mt-6 cursor-grab"
+              aria-hidden="true">drag_indicator</span
+            >
             <button
               type="button"
               class="w-24 h-20 shrink-0 rounded bg-surface-container flex items-center justify-center overflow-hidden
