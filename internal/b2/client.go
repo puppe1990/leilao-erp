@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,11 @@ import (
 )
 
 const defaultEndpoint = "https://api.backblazeb2.com"
+
+const (
+	putAttempts    = 3
+	putBackoffBase = 250 * time.Millisecond
+)
 
 // Config is one application key scoped to a single bucket.
 type Config struct {
@@ -142,33 +148,53 @@ func ObjectKeyFromURL(raw, bucket string) (string, bool) {
 }
 
 func (c *Client) Put(ctx context.Context, key string, body []byte, contentType string) (string, error) {
+	var lastErr error
+	backoff := putBackoffBase
+	for attempt := 1; attempt <= putAttempts; attempt++ {
+		lastErr = c.putOnce(ctx, key, body, contentType)
+		if lastErr == nil {
+			return c.PublicURL(key), nil
+		}
+		if !isRetryableB2Error(lastErr) || attempt == putAttempts {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(backoff):
+		}
+		backoff *= 3
+	}
+	return "", lastErr
+}
+
+// putOnce fetches a fresh upload URL and posts the file. Retrying with a new
+// URL matters: a 503 "no tomes available" means that pod is out of capacity.
+func (c *Client) putOnce(ctx context.Context, key string, body []byte, contentType string) error {
 	sess, err := c.session(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 	var upload struct {
 		UploadURL          string `json:"uploadUrl"`
 		AuthorizationToken string `json:"authorizationToken"`
 	}
 	if err := c.post(ctx, "/b2_get_upload_url", map[string]any{"bucketId": sess.bucketID}, &upload); err != nil {
-		return "", err
+		return err
 	}
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, upload.UploadURL, bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("b2 upload: %w", err)
+		return fmt.Errorf("b2 upload: %w", err)
 	}
 	req.ContentLength = int64(len(body))
 	req.Header.Set("Authorization", upload.AuthorizationToken)
 	req.Header.Set("X-Bz-File-Name", encodeFileName(key))
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("X-Bz-Content-Sha1", "do_not_verify")
-	if err := c.do(req, nil); err != nil {
-		return "", err
-	}
-	return c.PublicURL(key), nil
+	return c.do(req, nil)
 }
 
 func (c *Client) Remove(ctx context.Context, key string) error {
@@ -313,12 +339,36 @@ func (c *Client) do(req *http.Request, out any) error {
 	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode != http.StatusOK {
 		snippet, _ := io.ReadAll(io.LimitReader(res.Body, 512))
-		return fmt.Errorf("b2 %s: HTTP %d: %s", req.URL.Path, res.StatusCode, bytes.TrimSpace(snippet))
+		return &statusError{path: req.URL.Path, code: res.StatusCode, snippet: snippet}
 	}
 	if out == nil {
 		return nil
 	}
 	return json.NewDecoder(res.Body).Decode(out)
+}
+
+// statusError keeps the HTTP status so callers can tell transient failures
+// (503 no tomes available) from permanent ones (400 bad request).
+type statusError struct {
+	path    string
+	code    int
+	snippet []byte
+}
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("b2 %s: HTTP %d: %s", e.path, e.code, bytes.TrimSpace(e.snippet))
+}
+
+func isRetryableB2Error(err error) bool {
+	var se *statusError
+	if !errors.As(err, &se) {
+		return false
+	}
+	switch se.code {
+	case http.StatusRequestTimeout, http.StatusTooManyRequests:
+		return true
+	}
+	return se.code >= 500
 }
 
 func encodeFileName(key string) string {
