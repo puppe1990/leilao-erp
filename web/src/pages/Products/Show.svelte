@@ -4,6 +4,7 @@
   import AppShell from '@/components/AppShell.svelte'
   import MonitorIcon from '@/components/MonitorIcon.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
+  import { imageFilesFromDataTransfer } from '@/lib/photoDrop.js'
   import {
     applyVisibleMedia,
     firstPhotoIndex,
@@ -24,6 +25,8 @@
 
   let videoURL = ''
   let mediaBusy = false
+  let photoDropActive = false
+  let photoQueue = []
   let lightboxOpen = false
   let lightboxIndex = 0
   let dragFrom = -1
@@ -147,8 +150,7 @@
     )
   }
 
-  function onPhotoFile(e) {
-    const file = e?.target?.files?.[0]
+  function uploadPhotoFile(file) {
     if (!file) return
     mediaDraft = null
     mediaSaveError = ''
@@ -160,10 +162,40 @@
         forceFormData: true,
         onFinish: () => {
           mediaBusy = false
-          if (e?.target) e.target.value = ''
+          const next = photoQueue.shift()
+          if (next) uploadPhotoFile(next)
         },
       },
     )
+  }
+
+  function onPhotoFile(e) {
+    const file = e?.target?.files?.[0]
+    if (e?.target) e.target.value = ''
+    uploadPhotoFile(file)
+  }
+
+  function onPhotoDragOver(e) {
+    if (mediaBusy) return
+    e.preventDefault()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+    photoDropActive = true
+  }
+
+  function onPhotoDragLeave(e) {
+    const next = e.relatedTarget
+    if (next && e.currentTarget?.contains?.(next)) return
+    photoDropActive = false
+  }
+
+  function onPhotoDrop(e) {
+    e.preventDefault()
+    photoDropActive = false
+    if (mediaBusy) return
+    const files = imageFilesFromDataTransfer(e.dataTransfer)
+    if (!files.length) return
+    photoQueue.push(...files.slice(1))
+    uploadPhotoFile(files[0])
   }
 
   function persistMediaOrder(next) {
@@ -563,7 +595,16 @@
     {/if}
 
     <div class="grid sm:grid-cols-2 gap-3 pt-2">
-      <div class="border border-dashed border-outline-variant rounded-lg p-3">
+      <div
+        class="border border-dashed rounded-lg p-3 transition-colors {photoDropActive
+          ? 'border-secondary bg-secondary-container/30'
+          : 'border-outline-variant'}"
+        role="region"
+        aria-label="Adicionar foto"
+        on:dragover={onPhotoDragOver}
+        on:dragleave={onPhotoDragLeave}
+        on:drop={onPhotoDrop}
+      >
         <p class="ahq-label mb-2">Adicionar foto</p>
         <label class="ahq-btn-ghost h-10 px-3 text-sm inline-flex items-center cursor-pointer">
           <span class="material-symbols-outlined text-[18px] mr-1">upload</span>
@@ -596,6 +637,7 @@
             URL
           </button>
         </div>
+        <p class="text-xs text-on-surface-variant mt-2">Arraste e solte uma imagem aqui.</p>
       </div>
       <div class="border border-dashed border-outline-variant rounded-lg p-3">
         <p class="ahq-label mb-2">Adicionar vídeo</p>

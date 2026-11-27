@@ -27,6 +27,15 @@ describe('Products Show media order', () => {
     expect(page).toMatch(/Arraste para reordenar/)
   })
 
+  it('aceita arrastar e soltar fotos na área de upload', () => {
+    expect(page).toMatch(/imageFilesFromDataTransfer/)
+    expect(page).toMatch(/on:dragover=\{onPhotoDragOver\}/)
+    expect(page).toMatch(/on:dragleave=\{onPhotoDragLeave\}/)
+    expect(page).toMatch(/on:drop=\{onPhotoDrop\}/)
+    expect(page).toMatch(/photoDropActive/)
+    expect(page).toMatch(/Arraste e solte uma imagem aqui\./)
+  })
+
   it('troca a ordem na tela antes de salvar e avisa se falhar', () => {
     expect(page).toMatch(/applyVisibleMedia/)
     expect(page).toMatch(/mediaSaveFailedMessage/)
