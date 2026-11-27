@@ -13,6 +13,7 @@ import (
 
 	"github.com/puppe1990/leilao-erp/internal/app"
 	"github.com/puppe1990/leilao-erp/internal/b2"
+	"github.com/puppe1990/leilao-erp/internal/handlers"
 	appi18n "github.com/puppe1990/leilao-erp/internal/i18n"
 	"github.com/puppe1990/leilao-erp/internal/store"
 	"github.com/puppe1990/leilao-erp/web"
@@ -83,6 +84,12 @@ func bootstrapWithConfig(cfg cais.Config) (*app.App, error) {
 		_ = s.Close()
 		return nil, fmt.Errorf("b2: %w", err)
 	}
+	// Keep the interface nil when B2 is off: a typed-nil *b2.Client would pass
+	// the handler's nil check and panic on Put.
+	var mediaStore handlers.ProductObjectStore
+	if objectStore != nil {
+		mediaStore = objectStore
+	}
 
 	inertiaI, err := inertia.NewFromFileFS(tmplFS, "app.html")
 	if err != nil {
@@ -95,7 +102,7 @@ func bootstrapWithConfig(cfg cais.Config) (*app.App, error) {
 		Store:       s,
 		StaticDir:   staticDir,
 		UploadsDir:  uploadsDir,
-		ObjectStore: objectStore,
+		ObjectStore: mediaStore,
 		Site:        meta.SiteFrom("leilao-erp", cfg.AppURL),
 		Catalog:     catalog,
 		Inertia:     inertiaI,
