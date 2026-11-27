@@ -2,6 +2,12 @@
   import { router, useForm } from '@inertiajs/svelte'
   import AppShell from '@/components/AppShell.svelte'
   import { askConfirm } from '@/lib/confirmDialog.js'
+  import {
+    loadFindSorts,
+    saveFindSorts,
+    sortFinds,
+    stackFindSort,
+  } from '@/lib/findsTable.js'
 
   export let finds = []
   export let source = ''
@@ -22,8 +28,56 @@
   let editingId = null
   let edit = { ...emptyFind }
 
+  /** @type {{ key: string, dir: 'asc'|'desc' }[]} */
+  let sorts = loadFindSorts()
+
+  $: saveFindSorts(sorts)
   $: rows = Array.isArray(finds) ? finds : []
   $: sourceOptions = Array.isArray(sources) ? sources : []
+  $: sorted = sortFinds(rows, sorts)
+  $: multiSort = sorts.length > 1
+  /** @type {Record<string, number>} */
+  $: sortRankByKey = Object.fromEntries(sorts.map((s, i) => [s.key, i + 1]))
+  /** @type {Record<string, 'asc'|'desc'>} */
+  $: sortDirByKey = Object.fromEntries(sorts.map((s) => [s.key, s.dir]))
+
+  const findColumns = [
+    { key: 'source', label: 'Fonte', thClass: 'px-2 py-1 w-28', btnClass: 'items-center' },
+    { key: 'name', label: 'Nome', thClass: 'px-2 py-1', btnClass: 'items-center' },
+    {
+      key: 'buy',
+      label: 'Comprar',
+      thClass: 'px-2 py-1 w-28',
+      btnClass: 'items-center justify-end',
+    },
+    {
+      key: 'sell',
+      label: 'Vender',
+      thClass: 'px-2 py-1 w-28',
+      btnClass: 'items-center justify-end',
+    },
+    {
+      key: 'margin',
+      label: 'Margem',
+      thClass: 'px-2 py-1 w-28',
+      btnClass: 'items-center justify-end',
+    },
+  ]
+
+  function toggleSort(key) {
+    sorts = stackFindSort(sorts, key)
+  }
+
+  function clearSorts() {
+    sorts = [{ key: 'margin', dir: 'desc' }]
+  }
+
+  /** Template reads sortDirByKey[key] so Svelte invalidates the icon. */
+  function iconForDir(dir) {
+    if (dir === 'asc') return 'arrow_upward'
+    if (dir === 'desc') return 'arrow_downward'
+    return 'unfold_more'
+  }
 
   function filterSource(value) {
     router.get(value ? `/finds?source=${encodeURIComponent(value)}` : '/finds', {}, { preserveState: true })
@@ -161,6 +215,16 @@
       {rows.length}
       {rows.length === 1 ? 'achado' : 'achados'}
     </p>
+    {#if multiSort}
+      <button
+        type="button"
+        class="ahq-btn-ghost h-8 px-3 text-sm"
+        title="Voltar à ordem por margem"
+        on:click={clearSorts}
+      >
+        Limpar ordem ({sorts.length})
+      </button>
+    {/if}
   </div>
 
   {#if rows.length === 0}
@@ -172,16 +236,28 @@
       <table class="w-full text-sm text-left min-w-[720px]">
         <thead>
           <tr class="bg-surface-container-low text-on-surface-variant border-b border-outline-variant">
-            <th class="px-3 py-2.5 font-medium text-[11px] uppercase w-28">Fonte</th>
-            <th class="px-3 py-2.5 font-medium text-[11px] uppercase">Nome</th>
-            <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-28">Comprar</th>
-            <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-28">Vender</th>
-            <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-28">Margem</th>
+            {#each findColumns as col (col.key)}
+              <th class={col.thClass}>
+                <button
+                  type="button"
+                  class="w-full px-2 py-1.5 flex {col.btnClass} gap-0.5 font-medium text-[11px] uppercase hover:text-primary"
+                  on:click={() => toggleSort(col.key)}
+                >
+                  {col.label}
+                  {#if multiSort && sortRankByKey[col.key]}
+                    <span class="text-[10px] font-bold text-secondary">{sortRankByKey[col.key]}</span>
+                  {/if}
+                  <span class="material-symbols-outlined text-[14px]"
+                    >{iconForDir(sortDirByKey[col.key])}</span
+                  >
+                </button>
+              </th>
+            {/each}
             <th class="px-3 py-2.5 font-medium text-[11px] uppercase text-right w-44">Ações</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-outline-variant">
-          {#each rows as row (row.id)}
+          {#each sorted as row (row.id)}
             {#if editingId === row.id}
               <tr class="bg-secondary-container/20">
                 <td class="px-3 py-2" colspan="5">
