@@ -28,6 +28,39 @@
     -apple-system,
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  scrollbar-color: var(--shop-green) var(--shop-bg);
+  scrollbar-width: thin;
+}
+/* Viewport uses input.css on html (--c-green lives on :root). --shop-green is only on .shop. */
+.shop * {
+  scrollbar-color: var(--shop-green) var(--shop-bg);
+  scrollbar-width: thin;
+}
+.shop::-webkit-scrollbar,
+.shop *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.shop::-webkit-scrollbar-track,
+.shop *::-webkit-scrollbar-track {
+  background: var(--shop-bg);
+}
+.shop::-webkit-scrollbar-thumb,
+.shop *::-webkit-scrollbar-thumb {
+  background: var(--shop-green);
+  border-radius: 999px;
+}
+.shop::-webkit-scrollbar-thumb:hover,
+.shop *::-webkit-scrollbar-thumb:hover {
+  background: var(--shop-green-hover);
+}
+.shop .shop-cats-inner,
+.shop .shop-thumbs {
+  scrollbar-width: none;
+}
+.shop .shop-cats-inner::-webkit-scrollbar,
+.shop .shop-thumbs::-webkit-scrollbar {
+  display: none;
 }
 
 /* Light mode */

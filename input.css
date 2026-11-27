@@ -55,10 +55,30 @@ html[data-shop-theme="light"] {
 @layer base {
   html {
     background-color: rgb(var(--c-bg));
+    scrollbar-color: rgb(var(--c-green)) rgb(var(--c-bg));
+    scrollbar-width: thin;
+  }
+  * {
+    scrollbar-color: rgb(var(--c-green)) rgb(var(--c-bg));
   }
   body {
     @apply font-body-md text-body-md text-on-surface bg-background antialiased;
   }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--c-bg));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-green));
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--c-green-hover));
 }
 
 @layer components {

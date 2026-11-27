@@ -68,6 +68,12 @@ describe('Catálogo da loja', () => {
     expect(css).not.toMatch(/\.shop-cta \{[^}]*text-transform:\s*uppercase/s)
   })
 
+  it('pinta a scrollbar no verde do sistema', () => {
+    expect(css).toMatch(/scrollbar-color:\s*var\(--shop-green\)/)
+    expect(css).toMatch(/::-webkit-scrollbar-thumb/)
+    expect(css).toMatch(/background:\s*var\(--shop-green\)/)
+  })
+
   it('pinta Pronta entrega de âmbar, fora do verde do PIX', () => {
     expect(page).toMatch(/shopBadgeClass\(p\.badge\)/)
     expect(show).toMatch(/shopBadgeClass\(product\.badge\)/)
